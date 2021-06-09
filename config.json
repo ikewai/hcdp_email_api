@@ -1,0 +1,15 @@
+
+{
+    "port": 443,
+    "smtp": "smtp.hawaii.edu",
+    "smtpPort": 25,
+    "key": "key.pem",
+    "cert": "cert.pem",
+    "defaultZipName": "HCDP_data.zip",
+    "downloadGenRoot": "test_root/",
+    "email": {
+        "from": "mcleanj@hawaii.edu",
+        "subject": "HCDP Data",
+        "message": "Here is your HCDP data package."
+    }
+}

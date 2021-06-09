@@ -1,0 +1,9 @@
+{
+    "from": "mcleanj@hawaii.edu",
+    "to": "mcleanj@hawaii.edu",
+    "subject": "test",
+    "message": "test",
+    "attachments": [{
+        "path": "test_attch.txt"
+    }]
+}
