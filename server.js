@@ -17,7 +17,7 @@ const hscert = fs.readFileSync(certFile);
 const mailOptionsBase = config.email;
 const defaultZipName = config.defaultZipName;
 const genRoot = config.downloadGenRoot;
-const linkRoot = downloadLinkRoot;
+const linkRoot = config.downloadLinkRoot;
 //gmail attachment limit
 const ATTACHMENT_MAX_MB = 25;
 
