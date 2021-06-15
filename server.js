@@ -69,6 +69,9 @@ server.post("/genzip/email", async (req, res) => {
   let zipName = req.body.name || defaultZipName;
   let files = req.body.files;
 
+  //note no good way to validate eamil address, should have something in app saying that if email does not come to verify spelling
+  //email should arrive in the next few minutes, if email does not arrive within 24 hours we may have been unable to send the email, check for typos, try again, or contact the site administrators
+
   //response should be sent immediately, don't wait for email to finish
   res.send("Generating download package");
 
@@ -117,12 +120,14 @@ server.post("/genzip/email", async (req, res) => {
           content: fs.createReadStream(zipPath)
         }];
         mailOptions.attachments = attachments;
-        mailOptions.message = "Your HCDP data package is attached.";
+        mailOptions.text = "Your HCDP data package is attached.";
+        mailOptions.html = "<p>Your HCDP data package is attached.</p>";
       }
       else {
         //create download link and send in message body
         let downloadLink = linkRoot + zipPath;
-        mailOptions.message = "Here is a link to your HCDP download package:\n\n" + downloadLink + "\n\nThis link will expire in three days. Please download your data in that time.";
+        mailOptions.text = "Your HCDP download package is ready. Please go to" + downloadLink + "to download it. This link will expire in three days, please download your data in that time.";
+        mailOptions.html = "<p>Your HCDP download package is ready. Please click <a href=\"" + downloadLink + "\">here</a> to download it. This link will expire in three days, please download your data in that time.</p>"
       }
 
       let transporterOptions = {
