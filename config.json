@@ -6,9 +6,9 @@
     "key": "key.pem",
     "cert": "cert.pem",
     "defaultZipName": "HCDP_data.zip",
-    "downloadGenRoot": "test_root/",
+    "downloadGenRoot": "/data/downloads/",
     "email": {
-        "from": "mcleanj@hawaii.edu",
+        "from": "no-reply-hcdp@hawaii.edu",
         "subject": "HCDP Data",
         "message": "Here is your HCDP data package."
     }
