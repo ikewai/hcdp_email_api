@@ -17,8 +17,9 @@ const hscert = fs.readFileSync(certFile);
 const mailOptionsBase = config.email;
 const defaultZipName = config.defaultZipName;
 const genRoot = config.downloadGenRoot;
-
-const ATTACHMENT_MAX_MB = Number.POSITIVE_INFINITY;
+const linkRoot = downloadLinkRoot;
+//gmail attachment limit
+const ATTACHMENT_MAX_MB = 25;
 
 
 async function sendEmail(transporterOptions, mailOptions) {
@@ -116,10 +117,12 @@ server.post("/genzip/email", async (req, res) => {
           content: fs.createReadStream(zipPath)
         }];
         mailOptions.attachments = attachments;
+        mailOptions.message = "Your HCDP data package is attached.";
       }
       else {
-        //generate download link and add to message body
-        mailOptions.message = "";
+        //create download link and send in message body
+        let downloadLink = linkRoot + zipPath;
+        mailOptions.message = "Here is a link to your HCDP download package:\n\n" + downloadLink + "\n\nThis link will expire in three days. Please download your data in that time.";
       }
 
       let transporterOptions = {
@@ -131,11 +134,17 @@ server.post("/genzip/email", async (req, res) => {
       mailOptions = Object.assign({}, mailOptionsBase, mailOptions);
       let mailRes = await sendEmail(transporterOptions, mailOptions);
 
+      // if(!mailRes.success) {
+      //   console.error(error);
+      //   //attempt to send failure message
+      // }
+
+      //attempt to email error on failure?
       console.log(mailRes);
 
+      //cleanup file if attached
+      //otherwise should be cleaned by chron task
       if(attachFile) {
-        //cleanup file if attached
-        //how to deal with cleanup link generated? Can use UH filedrop?
         child_process.exec("rm -r " + zipRoot);
       }
       
