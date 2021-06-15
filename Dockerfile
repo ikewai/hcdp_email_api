@@ -1,13 +1,13 @@
-FROM node:8
+FROM node:16
 
-RUN apt-get update && apt-get install -y zip
+RUN apt-get update \
+&& apt-get install -y zip \
+&& apt-get install -y uuid-runtime
 
 # Create app directory
 WORKDIR /usr/src/app
 
 # Install app dependencies
-# A wildcard is used to ensure both package.json AND package-lock.json are copied
-# where available (npm@5+)
 COPY *.pem ./
 COPY package*.json ./
 COPY config.json ./
