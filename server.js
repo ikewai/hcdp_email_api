@@ -99,8 +99,10 @@ server.post("/genzip/email", async (req, res) => {
     }
     else {
       let zipPath = zipOutput;
+      let zipDec = zipPath.split("/");
       console.log(zipPath);
-      let zipRoot = zipPath.substring(0, zipPath.lastIndexOf("/"));
+      let zipRoot = zipDec.slice(0, -1).join("/");
+      let zipExt = zipDec.slice(-2).join("/");
 
       //for very large files probably have to have download link, how to set this up?
       //what is the attachment limit?
@@ -125,7 +127,7 @@ server.post("/genzip/email", async (req, res) => {
       }
       else {
         //create download link and send in message body
-        let downloadLink = linkRoot + zipPath;
+        let downloadLink = linkRoot + zipExt;
         mailOptions.text = "Your HCDP download package is ready. Please go to" + downloadLink + "to download it. This link will expire in three days, please download your data in that time.";
         mailOptions.html = "<p>Your HCDP download package is ready. Please click <a href=\"" + downloadLink + "\">here</a> to download it. This link will expire in three days, please download your data in that time.</p>"
       }
