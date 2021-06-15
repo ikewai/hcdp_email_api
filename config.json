@@ -6,7 +6,8 @@
     "key": "key.pem",
     "cert": "cert.pem",
     "defaultZipName": "HCDP_data.zip",
-    "downloadGenRoot": "test_root/",
+    "downloadGenRoot": "/mnt/netapp/ikewai/annotated/Rainfall/",
+    "downloadLinkRoot": "",
     "email": {
         "from": "mcleanj@hawaii.edu",
         "subject": "HCDP Data",

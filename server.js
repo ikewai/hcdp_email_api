@@ -119,6 +119,7 @@ server.post("/genzip/email", async (req, res) => {
       }
       else {
         //generate download link and add to message body
+        mailOptions.message = "";
       }
 
       let transporterOptions = {
