@@ -38,7 +38,7 @@ async function sendEmail(transporterOptions, mailOptions) {
 
   let transporter = nodemailer.createTransport(transporterOptions);
 
-  //have to be on uh vpn
+  //have to be on uh netork
   return transporter.sendMail(combinedMailOptions)
   .then((info) => {
     //should parse response for success (shoudl start with 250)
@@ -58,6 +58,34 @@ async function sendEmail(transporterOptions, mailOptions) {
   });
 }
 
+async function validateFile(file) {
+  return new Promise((resolve, reject) => {
+    fs.access(file, fs.F_OK, (e) => {
+      if(e) {
+        reject(e);
+      }
+      else {
+        resolve();
+      }
+    });
+  });
+}
+
+//all or nothing?
+async function validateFiles(files) {
+  let validators = [];
+  for(let file of files) {
+    validators.push(validateFile(file));
+  }
+  return new Promise((resolve, reject) => {
+    Promise.all(validators).then(() => {
+      resolve(true);
+    }, (e) => {
+      resolve(false);
+    });
+  });
+}
+
 const server = express();
 
 let options = {
@@ -73,8 +101,8 @@ console.log("Server listening at port " + port);
 server.use(bodyParser.json());
 server.use(bodyParser.urlencoded({ extended: true }));
 
+//should move file indexing
 server.post("/genzip/email", async (req, res) => {
-
   let success = true;
   
   let email = req.body.email;
@@ -90,7 +118,26 @@ server.post("/genzip/email", async (req, res) => {
       zipName (optional): What to name the zip file. Default: " + defaultZipName
     );
   }
+  //validate files
+  else if(!(await validateFiles(files))) {
+    success = false;
+    //resources not found
+    res.status(404)
+    .send("Some of the files requested could not be found");
+  }
   else {
+    //note no good way to validate eamil address, should have something in app saying that if email does not come to verify spelling
+    //email should arrive in the next few minutes, if email does not arrive within 2 hours we may have been unable to send the email, check for typos, try again, or contact the site administrators
+  
+    //response should be sent immediately, don't wait for email to finish
+    //202 accepted indicates request accepted but non-commital completion
+    res.status(202)
+    .send("Request received. Generating download package");
+
+    ///////////////////////////////////
+    //generate package and send email//
+    ///////////////////////////////////
+
     let handleError = async (clientError, serverError) => {
       success = false;
   
@@ -106,14 +153,6 @@ server.post("/genzip/email", async (req, res) => {
       mailRes = await sendEmail(transporterOptions, mailOptions);
       return mailRes;
     }
-  
-    //note no good way to validate eamil address, should have something in app saying that if email does not come to verify spelling
-    //email should arrive in the next few minutes, if email does not arrive within 2 hours we may have been unable to send the email, check for typos, try again, or contact the site administrators
-  
-    //response should be sent immediately, don't wait for email to finish
-    //202 accepted indicates request accepted but non-commital completion
-    res.status(202)
-    .send("Request received. Generating download package");
   
     //child_process.exec("sh ./zipgen.sh " + email + " " + files, (error, stdout, stderr) => {
     let zipProc = child_process.spawn("sh", ["./zipgen.sh", genRoot, zipName, ...files]);
@@ -199,12 +238,11 @@ server.post("/genzip/email", async (req, res) => {
   }
 
   //log email address and success status
-  console.log(email + ":" + success);
+  console.log(email + ":" + res.statusCode + ":" + success);
 });
 
 
 server.post("/genzip/instant", async (req, res) => {
-
   let success = true;
 
   let files = req.body.files;
@@ -215,6 +253,13 @@ server.post("/genzip/instant", async (req, res) => {
       "Request body should include the following fields: \n\
       files: A non-empty array of files to zip"
     );
+  }
+  //validate files
+  else if(!(await validateFiles(files))) {
+    success = false;
+    //resources not found
+    res.status(404)
+    .send("Some of the files requested could not be found");
   }
   else {
     let zipProc = child_process.spawn("zip", ["-qq", "-", ...files]);
@@ -241,39 +286,7 @@ server.post("/genzip/instant", async (req, res) => {
   }
 
   //log successful
-  console.log("instant:" + success);
+  console.log("instant:" + res.statusCode + ":" + success);
 
 });
 
-
-
-// server.post("/email", (req, res) => {
-//   console.log(req.body);
-//   //ignore SSL validation in case tenant uses self-signed cert
-//   process.env["NODE_TLS_REJECT_UNAUTHORIZED"] = 0;
-
-//   let transporter = nodemailer.createTransport({
-//       host: smtp,
-//       port: smtpPort,
-//       secure: false
-//   });
-//   let mailOptions = {
-//       from: req.body.from,
-//       to: req.body.to,
-//       subject: req.body.subject,
-//       text: req.body.message,
-//       attachments: req.body.attachments
-//   };
-
-//   //have to be on uh vpn
-//   transporter.sendMail(mailOptions, function(error, info) {
-//     if (error) {
-//       res.json({error: error});
-//       console.log(error);
-//     }
-//     else {
-//         res.json({success: info.response});
-//         console.log("Email sent: " + info.response);
-//     }
-//   });
-// })
