@@ -119,7 +119,7 @@ server.use(bodyParser.urlencoded({ extended: true }));
 
 //should move file indexing
 server.post("/genzip/email", async (req, res) => {
-  return handleReq(req, new Promise((resolve, reject) => {
+  return handleReq(req, new Promise(async (resolve, reject) => {
     let status = {
       user: null,
       code: 202,
@@ -280,7 +280,7 @@ server.post("/genzip/email", async (req, res) => {
 
 
 server.post("/genzip/instant", async (req, res) => {
-  return handleReq(req, new Promise((resolve, reject) => {
+  return handleReq(req, new Promise(async (resolve, reject) => {
     let status = {
       user: "instant",
       code: 200,
