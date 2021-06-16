@@ -1,7 +1,5 @@
 FROM node:16
 
-RUN npm install -g npm
-
 RUN apt-get update \
 && apt-get install -y zip \
 && apt-get install -y uuid-runtime
