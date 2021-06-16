@@ -86,6 +86,22 @@ async function validateFiles(files) {
   });
 }
 
+async function handleReq(req, handler) {
+  return handler
+  .then((status) => {
+    //log email address and success status
+    console.log(status.user + ":" + status.code + ":" + status.success);
+  })
+  .catch((e) => {
+    console.error(
+      "An error has occured: \n\
+      method:" + req.method + "\n\
+      endpoint:" + req.path + "\n\
+      error: " + e.toString()
+    );
+  });
+}
+
 const server = express();
 
 let options = {
@@ -103,190 +119,232 @@ server.use(bodyParser.urlencoded({ extended: true }));
 
 //should move file indexing
 server.post("/genzip/email", async (req, res) => {
-  let success = true;
-  
-  let email = req.body.email;
-  let zipName = req.body.name || defaultZipName;
-  let files = req.body.files;
-  if(!Array.isArray(files) || files.length < 1 || !email) {
-    success = false;
-    res.status(400)
-    .send(
-      "Request body should include the following fields: \n\
-      files: A non-empty array of files to zip \n\
-      email: The email to send the package to \n\
-      zipName (optional): What to name the zip file. Default: " + defaultZipName
-    );
-  }
-  //validate files
-  else if(!(await validateFiles(files))) {
-    success = false;
-    //resources not found
-    res.status(404)
-    .send("Some of the files requested could not be found");
-  }
-  else {
-    //note no good way to validate eamil address, should have something in app saying that if email does not come to verify spelling
-    //email should arrive in the next few minutes, if email does not arrive within 2 hours we may have been unable to send the email, check for typos, try again, or contact the site administrators
-  
-    //response should be sent immediately, don't wait for email to finish
-    //202 accepted indicates request accepted but non-commital completion
-    res.status(202)
-    .send("Request received. Generating download package");
-
-    ///////////////////////////////////
-    //generate package and send email//
-    ///////////////////////////////////
-
-    let handleError = async (clientError, serverError) => {
-      success = false;
-  
-      //should also add email to admin for bug reporting?
-      console.error(serverError);
-  
-      message += " We appologize for the inconvenience. The site administrators will be notified of the issue. Please try again later.";
-      let mailOptions = {
-        to: email,
-        text: clientError,
-        html: "<p>" + clientError + "</p>"
-      };
-      mailRes = await sendEmail(transporterOptions, mailOptions);
-      return mailRes;
+  return handleReq(req, new Promise((resolve, reject) => {
+    let status = {
+      user: null,
+      code: 202,
+      success: true
     }
-  
-    //child_process.exec("sh ./zipgen.sh " + email + " " + files, (error, stdout, stderr) => {
-    let zipProc = child_process.spawn("sh", ["./zipgen.sh", genRoot, zipName, ...files]);
-    //let zipProc = child_process.spawn("zip", ["-qq", "-", ...files]);
+
+    let email = req.body.email || null;
+    let zipName = req.body.name || defaultZipName;
+    let files = req.body.files;
+    status.user = email;
+    if(!Array.isArray(files) || files.length < 1 || !email) {
+      //set failure and code in status and resolve for logging
+      status.success = false;
+      status.code = 400;
+      resolve(status);
+
+      //send error
+      res.status(400)
+      .send(
+        "Request body should include the following fields: \n\
+        files: A non-empty array of files to zip \n\
+        email: The email to send the package to \n\
+        zipName (optional): What to name the zip file. Default: " + defaultZipName
+      );
+    }
+    //validate files
+    else if(!(await validateFiles(files))) {
+      //set failure and code in status and resolve for logging
+      status.success = false;
+      status.code = 404;
+
+      //send error
+      resolve(status);
+      //resources not found
+      res.status(404)
+      .send("Some of the files requested could not be found");
+    }
+    else {
+      //note no good way to validate eamil address, should have something in app saying that if email does not come to verify spelling
+      //email should arrive in the next few minutes, if email does not arrive within 2 hours we may have been unable to send the email, check for typos, try again, or contact the site administrators
     
-    let zipOutput = "";
+      //response should be sent immediately, don't wait for email to finish
+      //202 accepted indicates request accepted but non-commital completion
+      res.status(202)
+      .send("Request received. Generating download package");
   
-    // Keep writing stdout to res
-    zipProc.stdout.on("data", (data) => {
-      zipOutput += data.toString();
-    });
-  
-    // End the response on zip exit
-    zipProc.on("exit", async (code) => {
-      if(code !== 0) {
-        let serverError = "Failed to generate download package for user " + email + ". Zip process failed with code " + code;
-        let clientError = "There was an error generating your HCDP download package.";
+      ///////////////////////////////////
+      //generate package and send email//
+      ///////////////////////////////////
+    
+      //child_process.exec("sh ./zipgen.sh " + email + " " + files, (error, stdout, stderr) => {
+      let zipProc = child_process.spawn("sh", ["./zipgen.sh", genRoot, zipName, ...files]);
+      //let zipProc = child_process.spawn("zip", ["-qq", "-", ...files]);
+
+      let handleError = async (clientError, serverError) => {
+        //set failure in status and resolve for logging
+        status.success = false;
+        resolve(status);
+
+        //should also add email to admin for bug reporting?
         console.error(serverError);
-        handleError(clientError);
+    
+        message += " We appologize for the inconvenience. The site administrators will be notified of the issue. Please try again later.";
+        let mailOptions = {
+          to: email,
+          text: clientError,
+          html: "<p>" + clientError + "</p>"
+        };
+        mailRes = await sendEmail(transporterOptions, mailOptions);
+        return mailRes;
       }
-      else {
-        let zipPath = zipOutput;
-        let zipDec = zipPath.split("/");
-        // console.log(zipPath);
-        let zipRoot = zipDec.slice(0, -1).join("/");
-        let zipExt = zipDec.slice(-2).join("/");
-  
-        //what is the attachment limit?
-        let fstat = fs.statSync(zipPath);
-        let fsizeB = fstat.size;
-        let fsizeMB = fsizeB / (1024 * 1024);
-  
-        let attachFile = fsizeMB < ATTACHMENT_MAX_MB;
-  
-        let mailRes;
-  
-        if(attachFile) {
-          attachments = [{
-            filename: zipName,
-            content: fs.createReadStream(zipPath)
-          }];
-          let mailOptions = {
-            to: email,
-            attachments: attachments,
-            text: "Your HCDP data package is attached.",
-            html: "<p>Your HCDP data package is attached.</p>"
-          };
-          
-          mailOptions = Object.assign({}, mailOptionsBase, mailOptions);
-          mailRes = await sendEmail(transporterOptions, mailOptions);
-          //if an error occured fall back to link
+
+      let zipOutput = "";
+    
+      //write stdout (should be file name) to output accumulator
+      zipProc.stdout.on("data", (data) => {
+        zipOutput += data.toString();
+      });
+    
+      //handle result on end
+      zipProc.on("exit", async (code) => {
+        if(code !== 0) {
+          let serverError = "Failed to generate download package for user " + email + ". Zip process failed with code " + code;
+          let clientError = "There was an error generating your HCDP download package.";
+          console.error(serverError);
+          handleError(clientError);
+        }
+        else {
+          let zipPath = zipOutput;
+          let zipDec = zipPath.split("/");
+          // console.log(zipPath);
+          let zipRoot = zipDec.slice(0, -1).join("/");
+          let zipExt = zipDec.slice(-2).join("/");
+    
+          //what is the attachment limit?
+          let fstat = fs.statSync(zipPath);
+          let fsizeB = fstat.size;
+          let fsizeMB = fsizeB / (1024 * 1024);
+    
+          let attachFile = fsizeMB < ATTACHMENT_MAX_MB;
+    
+          let mailRes;
+    
+          if(attachFile) {
+            attachments = [{
+              filename: zipName,
+              content: fs.createReadStream(zipPath)
+            }];
+            let mailOptions = {
+              to: email,
+              attachments: attachments,
+              text: "Your HCDP data package is attached.",
+              html: "<p>Your HCDP data package is attached.</p>"
+            };
+            
+            mailOptions = Object.assign({}, mailOptionsBase, mailOptions);
+            mailRes = await sendEmail(transporterOptions, mailOptions);
+            //if an error occured fall back to link
+            if(!mailRes.success) {
+              attachFile = false;
+            }
+          }
+    
+          //recheck, state may change if fallback on error
+          if(!attachFile) {
+            //create download link and send in message body
+            let downloadLink = linkRoot + zipExt;
+            let mailOptions = {
+              to: email,
+              text: "Your HCDP download package is ready. Please go to " + downloadLink + " to download it. This link will expire in three days, please download your data in that time.",
+              html: "<p>Your HCDP download package is ready. Please click <a href=\"" + downloadLink + "\">here</a> to download it. This link will expire in three days, please download your data in that time.</p>"
+            };
+            mailRes = await sendEmail(transporterOptions, mailOptions);
+          }
+    
+          //if unsuccessful attempt to send error email
           if(!mailRes.success) {
-            attachFile = false;
+            let serverError = "Failed to send message to user " + email + ". Error: " + mailRes.error.toString();
+            let clientError = "There was an error sending your HCDP download package to this email address.";
+            handleError(clientError, serverError);
+          }
+          //success, resolve with status for logging
+          else {
+            resolve(status);
+          }
+    
+          //cleanup file if attached
+          //otherwise should be cleaned by chron task
+          //no need error handling, if error chron should handle later
+          if(attachFile) {
+            child_process.exec("rm -r " + zipRoot);
           }
         }
-  
-        //recheck, state may change if fallback on error
-        if(!attachFile) {
-          //create download link and send in message body
-          let downloadLink = linkRoot + zipExt;
-          let mailOptions = {
-            to: email,
-            text: "Your HCDP download package is ready. Please go to " + downloadLink + " to download it. This link will expire in three days, please download your data in that time.",
-            html: "<p>Your HCDP download package is ready. Please click <a href=\"" + downloadLink + "\">here</a> to download it. This link will expire in three days, please download your data in that time.</p>"
-          };
-          mailRes = await sendEmail(transporterOptions, mailOptions);
-        }
-  
-        //if unsuccessful attempt to send error email
-        if(!mailRes.success) {
-          let serverError = "Failed to send message to user " + email + ". Error: " + mailRes.error.toString();
-          let clientError = "There was an error sending your HCDP download package to this email address.";
-          handleError(clientError, serverError);
-        }
-  
-        //cleanup file if attached
-        //otherwise should be cleaned by chron task
-        if(attachFile) {
-          child_process.exec("rm -r " + zipRoot);
-        }
-      }
-    });
-  }
-
-  //log email address and success status
-  console.log(email + ":" + res.statusCode + ":" + success);
+      });
+    }
+  }));
 });
 
 
 server.post("/genzip/instant", async (req, res) => {
-  let success = true;
+  return handleReq(req, new Promise((resolve, reject) => {
+    let status = {
+      user: "instant",
+      code: 200,
+      success: true
+    }
 
-  let files = req.body.files;
-  if(!Array.isArray(files) || files.length < 1) {
-    success = false;
-    res.status(400)
-    .send(
-      "Request body should include the following fields: \n\
-      files: A non-empty array of files to zip"
-    );
-  }
-  //validate files
-  else if(!(await validateFiles(files))) {
-    success = false;
-    //resources not found
-    res.status(404)
-    .send("Some of the files requested could not be found");
-  }
-  else {
-    let zipProc = child_process.spawn("zip", ["-qq", "-", ...files]);
+    let files = req.body.files;
+    if(!Array.isArray(files) || files.length < 1) {
+      //set failure and code in status and resolve for logging
+      status.success = false;
+      status.code = 400;
+      resolve(status);
 
-    res.contentType("application/zip");
+      res.status(400)
+      .send(
+        "Request body should include the following fields: \n\
+        files: A non-empty array of files to zip"
+      );
+    }
+    //validate files
+    else if(!(await validateFiles(files))) {
+      //set failure and code in status and resolve for logging
+      status.success = false;
+      status.code = 404;
+      resolve(status);
+
+      //resources not found
+      res.status(404)
+      .send("Some of the files requested could not be found");
+    }
+    else {
+      res.contentType("application/zip");
+
+      let zipProc = child_process.spawn("zip", ["-qq", "-", ...files]);
+
+      //write content to res
+      zipProc.stdout.on("data", (data) => {
+          res.write(data);
+      });
+
+      //handle errors and end res on completion
+      zipProc.on("exit", (code) => {
+        if(code !== 0) {
+          //set failure and code in status and resolve for logging
+          status.success = false;
+          status.code = 500;
+          resolve(status);
+
+          res.status(500)
+          .end();
+          console.error("Zip process failed with code " + code);
+        }
+        else {
+          //resolve for logging
+          resolve(status)
+
+          res.status(200)
+          .end();
+        }
+      });
+    }
+  }));
+
   
-    // Keep writing stdout to res
-    zipProc.stdout.on("data", (data) => {
-        res.write(data);
-    });
-  
-    // End the response on zip exit
-    zipProc.on("exit", (code) => {
-      if(code !== 0) {
-        success = false
-        res.statusCode = 500;
-        console.error("Zip process failed with code " + code);
-        res.end();
-      }
-      else {
-          res.end();
-      }
-    });
-  }
-
-  //log successful
-  console.log("instant:" + res.statusCode + ":" + success);
 
 });
 
