@@ -19,7 +19,7 @@ const defaultZipName = config.defaultZipName;
 const genRoot = config.downloadGenRoot;
 const linkRoot = config.downloadLinkRoot;
 //gmail attachment limit
-const ATTACHMENT_MAX_MB = 999;
+const ATTACHMENT_MAX_MB = 25;
 
 
 async function sendEmail(transporterOptions, mailOptions) {
