@@ -21,5 +21,5 @@ for(let y = 1990; y < 2018; y++) {
 }
 
 farrstring += fstrings.join(",");
-farrstring += "];
+farrstring += "]";
 console.log(farrstring);
