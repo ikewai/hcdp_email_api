@@ -103,7 +103,7 @@ server.post("/genzip/email", async (req, res) => {
       secure: false
     }
 
-    let handleError = (clientError, serverError) => {
+    let handleError = async (clientError, serverError) => {
       //should also add email to admin for bug reporting?
       console.error(serverError);
 
