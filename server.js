@@ -530,7 +530,9 @@ server.post("/genzip/instant/parallel/chunk", async (req, res) => {
     }
 
     let fref = req.body.fref;
-    let range = req.range();
+    //this is causing cors issues, lets just use body params, maybe its get only or something
+    //let range = req.range();
+    let range = req.body.range;
     let fpath = genRoot + fref;
 
     //change what this is checking
