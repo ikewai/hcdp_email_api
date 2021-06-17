@@ -520,7 +520,7 @@ server.post("/genzip/instant/parallel/fref", async (req, res) => {
   }));
 });
 
-//can this be implicitly done with file link and range header???
+
 server.post("/genzip/instant/parallel/chunk", async (req, res) => {
   return handleReq(req, new Promise(async (resolve, reject) => {
     let status = {
@@ -582,7 +582,7 @@ server.post("/genzip/instant/parallel/chunk", async (req, res) => {
                 size: bytes
               }
               //206 partial content
-              res.status(206)
+              res.status(200)
               .json(data);
             }
           });
