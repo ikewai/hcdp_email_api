@@ -551,7 +551,7 @@ server.post("/genzip/instant/parallel/chunk", async (req, res) => {
     //   );
     // }
     //validate files
-    if(!(await validateFiles(files))) {
+    if(!(await validateFile(fpath))) {
       //set failure and code in status and resolve for logging
       status.success = false;
       status.code = 404;
