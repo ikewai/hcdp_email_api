@@ -450,6 +450,8 @@ server.post("/genzip/instant/parallel/fref", async (req, res) => {
     }
 
     let files = req.body.files;
+    let zipName = defaultZipName;
+
     if(!Array.isArray(files) || files.length < 1) {
       //set failure and code in status and resolve for logging
       status.success = false;
@@ -536,20 +538,20 @@ server.post("/genzip/instant/parallel/chunk", async (req, res) => {
     let fpath = genRoot + fref;
 
     //change what this is checking
-    if(!Array.isArray(files) || files.length < 1) {
-      //set failure and code in status and resolve for logging
-      status.success = false;
-      status.code = 400;
-      resolve(status);
+    // if(!Array.isArray(files) || files.length < 1) {
+    //   //set failure and code in status and resolve for logging
+    //   status.success = false;
+    //   status.code = 400;
+    //   resolve(status);
 
-      res.status(400)
-      .send(
-        "Request body should include the following fields: \n\
-        files: A non-empty array of files to zip"
-      );
-    }
+    //   res.status(400)
+    //   .send(
+    //     "Request body should include the following fields: \n\
+    //     files: A non-empty array of files to zip"
+    //   );
+    // }
     //validate files
-    else if(!(await validateFiles(files))) {
+    if(!(await validateFiles(files))) {
       //set failure and code in status and resolve for logging
       status.success = false;
       status.code = 404;
