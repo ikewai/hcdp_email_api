@@ -110,9 +110,14 @@ let options = {
 };
 
 https.createServer(options, server)
-.listen(port);
-
-console.log("Server listening at port " + port);
+.listen(port, (err) => {
+  if(err) {
+    console.error(error);
+  }
+  else {
+    console.log("Server listening at port " + port);
+  }
+});
 
 server.use(bodyParser.json());
 server.use(bodyParser.urlencoded({ extended: true }));
@@ -222,7 +227,6 @@ server.post("/genzip/email", async (req, res) => {
           let zipRoot = zipDec.slice(0, -1).join("/");
           let zipExt = zipDec.slice(-2).join("/");
     
-          //what is the attachment limit?
           let fstat = fs.statSync(zipPath);
           let fsizeB = fstat.size;
           let fsizeMB = fsizeB / (1024 * 1024);
@@ -287,7 +291,7 @@ server.post("/genzip/email", async (req, res) => {
 });
 
 
-server.post("/genzip/instant", async (req, res) => {
+server.post("/genzip/instant/content", async (req, res) => {
   return handleReq(req, new Promise(async (resolve, reject) => {
     let status = {
       user: "instant",
@@ -352,7 +356,237 @@ server.post("/genzip/instant", async (req, res) => {
     }
   }));
 
-  
-
 });
 
+
+
+server.post("/genzip/instant/link", async (req, res) => {
+  return handleReq(req, new Promise(async (resolve, reject) => {
+    let status = {
+      user: "instant",
+      code: 200,
+      success: true
+    }
+
+    let files = req.body.files;
+    if(!Array.isArray(files) || files.length < 1) {
+      //set failure and code in status and resolve for logging
+      status.success = false;
+      status.code = 400;
+      resolve(status);
+
+      res.status(400)
+      .send(
+        "Request body should include the following fields: \n\
+        files: A non-empty array of files to zip"
+      );
+    }
+    //validate files
+    else if(!(await validateFiles(files))) {
+      //set failure and code in status and resolve for logging
+      status.success = false;
+      status.code = 404;
+      resolve(status);
+
+      //resources not found
+      res.status(404)
+      .send("Some of the files requested could not be found");
+    }
+    else {
+      res.contentType("application/zip");
+
+      let zipProc = child_process.spawn("sh", ["./zipgen.sh", genRoot, zipName, ...files]);
+      let zipOutput = "";
+      //write stdout (should be file name) to output accumulator
+      zipProc.stdout.on("data", (data) => {
+        zipOutput += data.toString();
+      });
+    
+      //handle result on end
+      zipProc.on("exit", async (code) => {
+        if(code !== 0) {
+          //set failure and code in status and resolve for logging
+          status.success = false;
+          status.code = 500;
+          resolve(status);
+
+          let serverError = "Failed to generate download package. Zip process failed with code " + code;
+          res.status(500)
+          .send(serverError);
+          console.error(serverError);
+        }
+        else {
+          resolve(status);
+          let zipPath = zipOutput;
+          let zipDec = zipPath.split("/");
+          let zipExt = zipDec.slice(-2).join("/");
+          let downloadLink = linkRoot + zipExt;
+          res.status(200)
+          .send(downloadLink);
+        }
+      });
+    }
+  }));
+});
+
+
+
+
+
+
+
+
+
+
+
+server.post("/genzip/instant/parallel/fref", async (req, res) => {
+  return handleReq(req, new Promise(async (resolve, reject) => {
+    let status = {
+      user: "instant",
+      code: 200,
+      success: true
+    }
+
+    let files = req.body.files;
+    if(!Array.isArray(files) || files.length < 1) {
+      //set failure and code in status and resolve for logging
+      status.success = false;
+      status.code = 400;
+      resolve(status);
+
+      res.status(400)
+      .send(
+        "Request body should include the following fields: \n\
+        files: A non-empty array of files to zip"
+      );
+    }
+    //validate files
+    else if(!(await validateFiles(files))) {
+      //set failure and code in status and resolve for logging
+      status.success = false;
+      status.code = 404;
+      resolve(status);
+
+      //resources not found
+      res.status(404)
+      .send("Some of the files requested could not be found");
+    }
+    else {
+      res.contentType("application/zip");
+
+      let zipProc = child_process.spawn("sh", ["./zipgen.sh", genRoot, zipName, ...files]);
+      let zipOutput = "";
+      //write stdout (should be file name) to output accumulator
+      zipProc.stdout.on("data", (data) => {
+        zipOutput += data.toString();
+      });
+    
+      //handle result on end
+      zipProc.on("exit", async (code) => {
+        if(code !== 0) {
+          //set failure and code in status and resolve for logging
+          status.success = false;
+          status.code = 500;
+          resolve(status);
+
+          let serverError = "Failed to generate download package. Zip process failed with code " + code;
+          res.status(500)
+          .send(serverError);
+          console.error(serverError);
+        }
+        else {
+          resolve(status);
+          let zipPath = zipOutput;
+          let zipDec = zipPath.split("/");
+          let zipExt = zipDec.slice(-2).join("/");
+
+          //get file size
+          let fstat = fs.statSync(zipPath);
+          let fsizeB = fstat.size;
+
+          let data = {
+            fref: zipExt,
+            fsizeB: fsizeB
+          }
+
+          //201 resource created
+          res.status(201)
+          .json(data);
+        }
+      });
+    }
+  }));
+});
+
+//can this be implicitly done with file link and range header???
+server.post("/genzip/instant/parallel/chunk", async (req, res) => {
+  return handleReq(req, new Promise(async (resolve, reject) => {
+    let status = {
+      user: "instant",
+      code: 200,
+      success: true
+    }
+
+    let fref = req.body.fref;
+    let range = req.range();
+    let fpath = genRoot + fref;
+
+    //change what this is checking
+    if(!Array.isArray(files) || files.length < 1) {
+      //set failure and code in status and resolve for logging
+      status.success = false;
+      status.code = 400;
+      resolve(status);
+
+      res.status(400)
+      .send(
+        "Request body should include the following fields: \n\
+        files: A non-empty array of files to zip"
+      );
+    }
+    //validate files
+    else if(!(await validateFiles(files))) {
+      //set failure and code in status and resolve for logging
+      status.success = false;
+      status.code = 404;
+      resolve(status);
+
+      //resources not found
+      res.status(404)
+      .send("Some of the files requested could not be found");
+    }
+    else {
+      res.contentType("application/octet-stream");
+
+      fs.open(fref, "r", (err, fd) => {
+        if(err) {
+
+        }
+        else {
+          //should make sure type is bytes
+          let size = range.end - range.start;
+          let buff = Buffer.alloc(size);
+          fs.read(fd, buff, 0, size, range.start, (err, bytes, filledBuff) => {
+            if(err) {
+
+            }
+            else {
+              resolve(status);
+              //send buffer and number of bytes read
+              let data = {
+                content: filledBuff,
+                size: bytes
+              }
+              //206 partial content
+              res.status(206)
+              .json(data);
+            }
+          });
+        }
+      });
+
+      
+
+    }
+  }));
+});
