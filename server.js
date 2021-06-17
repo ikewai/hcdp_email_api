@@ -117,6 +117,13 @@ console.log("Server listening at port " + port);
 server.use(bodyParser.json());
 server.use(bodyParser.urlencoded({ extended: true }));
 
+server.use((req, res, next) => {
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Methods", "GET, POST");
+  //pass to next layer
+  next();
+});
+
 //should move file indexing
 server.post("/genzip/email", async (req, res) => {
   return handleReq(req, new Promise(async (resolve, reject) => {
