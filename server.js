@@ -125,7 +125,7 @@ server.use(bodyParser.urlencoded({ extended: true }));
 server.use((req, res, next) => {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "GET, POST");
-  res.setHeader("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, Authorization");
+  res.setHeader("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, Authorization, Range");
   //pass to next layer
   next();
 });
@@ -369,6 +369,8 @@ server.post("/genzip/instant/link", async (req, res) => {
     }
 
     let files = req.body.files;
+    let zipName = defaultZipName;
+
     if(!Array.isArray(files) || files.length < 1) {
       //set failure and code in status and resolve for logging
       status.success = false;
@@ -558,7 +560,7 @@ server.post("/genzip/instant/parallel/chunk", async (req, res) => {
     else {
       res.contentType("application/octet-stream");
 
-      fs.open(fref, "r", (err, fd) => {
+      fs.open(fpath, "r", (err, fd) => {
         if(err) {
 
         }
