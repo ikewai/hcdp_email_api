@@ -82,6 +82,7 @@ async function validateFiles(files) {
     Promise.all(validators).then(() => {
       resolve(true);
     }, (e) => {
+      console.error(e);
       resolve(false);
     });
   });
@@ -123,7 +124,7 @@ https.createServer(options, server)
 server.use(bodyParser.json());
 server.use(bodyParser.urlencoded({ extended: true }));
 //compress all HTTP responses
-app.use(compression());
+server.use(compression());
 
 server.use((req, res, next) => {
   res.setHeader("Access-Control-Allow-Origin", "*");
