@@ -10,7 +10,7 @@ mkdir $dir
 file_base=$dir/out_
 
 #-m flag deletes source files, should retain by default
-zip -qq - $@ | split -b 1m -d - $file_base
+zip -qq - $@ | split -b 256k -d - $file_base
 
 if [ $? -eq 0 ]
 then
