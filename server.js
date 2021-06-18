@@ -650,7 +650,6 @@ server.post("/genzip/instant/splitlink", async (req, res) => {
     }
     else {
       res.contentType("application/zip");
-      console.log(genRoot, ...files);
 
       let zipProc = child_process.spawn("sh", ["./zipgen_parts.sh", genRoot, ...files]);
       let zipOutput = "";
