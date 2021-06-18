@@ -1,5 +1,6 @@
 // server.js
 const express = require("express");
+const compression = require("compression");
 const bodyParser = require("body-parser");
 const nodemailer = require("nodemailer");
 const https = require("https");
@@ -121,6 +122,8 @@ https.createServer(options, server)
 
 server.use(bodyParser.json());
 server.use(bodyParser.urlencoded({ extended: true }));
+//compress all HTTP responses
+app.use(compression());
 
 server.use((req, res, next) => {
   res.setHeader("Access-Control-Allow-Origin", "*");

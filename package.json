@@ -9,6 +9,7 @@
   "author": "Sean Cleveland",
   "license": "ISC",
   "dependencies": {
+    "compression": "^1.7.4",
     "console-stamp": "^3.0.2",
     "express": "^4.17.1",
     "nodemailer": "^6.6.1"
