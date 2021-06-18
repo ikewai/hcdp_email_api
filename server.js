@@ -624,7 +624,6 @@ server.post("/genzip/instant/splitlink", async (req, res) => {
     }
 
     let files = req.body.files;
-    let zipName = defaultZipName;
 
     if(!Array.isArray(files) || files.length < 1) {
       //set failure and code in status and resolve for logging
@@ -651,8 +650,9 @@ server.post("/genzip/instant/splitlink", async (req, res) => {
     }
     else {
       res.contentType("application/zip");
+      console.log(genRoot, ...files);
 
-      let zipProc = child_process.spawn("sh", ["./zipgen_parts.sh", genRoot, zipName, ...files]);
+      let zipProc = child_process.spawn("sh", ["./zipgen_parts.sh", genRoot, ...files]);
       let zipOutput = "";
       //write stdout (should be file name) to output accumulator
       zipProc.stdout.on("data", (data) => {

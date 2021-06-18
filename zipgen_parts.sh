@@ -2,7 +2,6 @@
 
 uuid=$(uuidgen)
 froot=$1; shift
-out_name=$1; shift
 
 dir=$froot$uuid
 
