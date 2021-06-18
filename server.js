@@ -651,6 +651,8 @@ server.post("/genzip/instant/splitlink", async (req, res) => {
     else {
       res.contentType("application/zip");
 
+      console.log("sh ./zipgen_parts.sh" + genRoot + " " + files.join(" "));
+
       let zipProc = child_process.spawn("sh", ["./zipgen_parts.sh", genRoot, ...files]);
       let zipOutput = "";
       //write stdout (should be file name) to output accumulator
