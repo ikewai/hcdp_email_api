@@ -13,6 +13,7 @@ COPY package*.json ./
 COPY config.json ./
 COPY server.js ./
 COPY zipgen.sh ./
+COPY zipgen_parts.sh ./
 
 RUN npm install
 # If you are building your code for production
