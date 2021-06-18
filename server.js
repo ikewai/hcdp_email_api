@@ -674,11 +674,10 @@ server.post("/genzip/instant/splitlink", async (req, res) => {
         else {
           resolve(status);
           let parts = zipOutput.split(" ");
-          console.log(zipOutput);
           let files = [];
           let uuid = parts[0];
           for(let i = 1; i < parts.length; i++) {
-            let fpart = files[i];
+            let fpart = parts[i];
             let fname = linkRoot + uuid + "/" + fpart;
             files.push(fname);
           }
