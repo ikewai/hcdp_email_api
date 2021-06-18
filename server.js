@@ -600,3 +600,97 @@ server.post("/genzip/instant/parallel/chunk", async (req, res) => {
     }
   }));
 });
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+server.post("/genzip/instant/splitlink", async (req, res) => {
+  return handleReq(req, new Promise(async (resolve, reject) => {
+    let status = {
+      user: "instant",
+      code: 200,
+      success: true
+    }
+
+    let files = req.body.files;
+    let zipName = defaultZipName;
+
+    if(!Array.isArray(files) || files.length < 1) {
+      //set failure and code in status and resolve for logging
+      status.success = false;
+      status.code = 400;
+      resolve(status);
+
+      res.status(400)
+      .send(
+        "Request body should include the following fields: \n\
+        files: A non-empty array of files to zip"
+      );
+    }
+    //validate files
+    else if(!(await validateFiles(files))) {
+      //set failure and code in status and resolve for logging
+      status.success = false;
+      status.code = 404;
+      resolve(status);
+
+      //resources not found
+      res.status(404)
+      .send("Some of the files requested could not be found");
+    }
+    else {
+      res.contentType("application/zip");
+
+      let zipProc = child_process.spawn("sh", ["./zipgen_parts.sh", genRoot, zipName, ...files]);
+      let zipOutput = "";
+      //write stdout (should be file name) to output accumulator
+      zipProc.stdout.on("data", (data) => {
+        zipOutput += data.toString();
+      });
+    
+      //handle result on end
+      zipProc.on("exit", async (code) => {
+        if(code !== 0) {
+          //set failure and code in status and resolve for logging
+          status.success = false;
+          status.code = 500;
+          resolve(status);
+
+          let serverError = "Failed to generate download package. Zip process failed with code " + code;
+          res.status(500)
+          .send(serverError);
+          console.error(serverError);
+        }
+        else {
+          resolve(status);
+          let parts = zipOutput.split(" ");
+          let files = [];
+          let uuid = parts[0];
+          for(let i = 1; i < parts.length; i++) {
+            let fpart = files[i];
+            let fname = linkRoot + uuid + "/" + fpart;
+            files.push(fname);
+          }
+
+          let data = {
+            files: files
+          }
+
+          res.status(200)
+          .json(data);
+        }
+      });
+    }
+  }));
+});
