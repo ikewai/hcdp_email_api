@@ -12,7 +12,7 @@ file_base=$dir/out_
 #-m flag deletes source files, should retain by default
 zip -qq - $@ | split -b 1m -d - $file_base
 
-if [ $? -eq 0 ] && [ -f "$file" ]
+if [ $? -eq 0 ]
 then
     echo -n "$uuid " && ls $dir | head -c -1 | tr "\n" " "
 else
