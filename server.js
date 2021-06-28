@@ -31,9 +31,10 @@ const transporterOptions = {
 //gmail attachment limit
 const ATTACHMENT_MAX_MB = 25;
 
+process.env["NODE_TLS_REJECT_UNAUTHORIZED"] = 0;
+
 
 async function sendEmail(transporterOptions, mailOptions) {
-  process.env["NODE_TLS_REJECT_UNAUTHORIZED"] = 0;
 
   combinedMailOptions = Object.assign({}, mailOptionsBase, mailOptions);
 

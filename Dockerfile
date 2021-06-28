@@ -8,7 +8,7 @@ RUN apt-get update \
 WORKDIR /usr/src/app
 
 # Install app dependencies
-COPY *.pem ./
+COPY certs/*.pem ./
 COPY package*.json ./
 COPY config.json ./
 COPY server.js ./
