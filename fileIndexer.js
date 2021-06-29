@@ -1,4 +1,4 @@
-
+const moment = require("moment");
 
 //multiple paths
 //THERE IS NOTHING ABOVE DATA TYPE
@@ -17,6 +17,7 @@ let fileIndex = {
             raster: {
                 values: (opts) => {
                     let files = [];
+                    let pathBase = `${root}allMonYrData/`;
                     let fbase;
                     switch(opts.type) {
                         case "raster": {
@@ -40,12 +41,21 @@ let fileIndex = {
                             break;
                         }
                     }
+                    let period = opts.period;
                     let d1 = opts.dates[0];
                     let d2 = opts.dates[1];
-                    let y1 = Number.parseInt(d1.substring(0, 4));
-                    let y2 = Number.parseInt(d2.substring(0, 4));
-                    let m1 = Number.parseInt(d1.substring(5, 7));
-                    let m2 = Number.parseInt(d2.substring(5, 7));
+                    let start = moment(d1);
+                    let end = moment(d2);
+                    while(start.add(1, period).isBefore(end)) {
+                        let dateFormat = getFormat(start, period);
+                        let fdate = start.format(dateFormat);
+                        let file = `${pathBase}${fdate}/${fdate}${fbase}`;
+                        files.push(file);
+                    }
+                    return {
+                        files: files,
+                        filterHandler: new GeotiffFilterHandler(opts.filterOpts)
+                    };
                 }
             },
             stations: {
@@ -95,24 +105,24 @@ let fileIndex = {
     }
 }
 
-let t = (date, period) => {
-    let dstring = "";
+let getFormat = (date, period) => {
+    let dateFormat = "";
     switch(period) {
         case "year": {
-            dstring += data.substring(0, 4);
+            dstring += "YYYY";
         }
         case "month": {
-            dstring += "_" + data.substring(5, 7);
+            dstring += "_" + "MM";
         }
         case "day": {
-            dstring += "_" + data.substring(8, 10);
+            dstring += "_" + "DD";
             break;
         }
         default: {
-            throw Error("invalid period");
+            throw Error("Unrecognized period");
         }
     }
-
+    return dateFormat;
 }
 
 //file grouping, file information
@@ -197,3 +207,6 @@ class MultiAttributeMap {
         return root;
     }
 }
+
+//need something to parse index, indexer class should be exported
+module.exports = fileIndex;
