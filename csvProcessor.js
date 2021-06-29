@@ -9,9 +9,8 @@ let property2header = {
 }
 
 
-
+//only simple filtering for now
 class CSVHandler {
-    //constructPropertyFilter()
 
     constructPropertyFilters(filters) {
         let filterFuncts = {};
@@ -24,7 +23,6 @@ class CSVHandler {
                 return contains && include;
             };
         }
-        
         this.filterFuncts = filterFuncts;
     }
 
@@ -32,17 +30,20 @@ class CSVHandler {
         for(let property in row) {
             let value = row[property];
             if(!this.filterFuncts[property](value)) {
-                return false
+                return false;
             }
         }
         return true;
     }
     
     filterCSV(infile, outfile, filters) {
-        fs.createReadStream(file)
+        fs.createWriteStream(outfile);
+        fs.createReadStream(infile)
         .pipe(csv())
         .on("data", (data) => {
-
+            if(this.rowFilter(row)) {
+                
+            }
         })
         .on("end", () => {
 

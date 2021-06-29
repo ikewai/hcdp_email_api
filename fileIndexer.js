@@ -15,11 +15,11 @@ let fileIndex = {
     datatype: {
         rainfall: {
             raster: {
-                values: (opts) => {
+                values: (fileData, filterOpts) => {
                     let files = [];
-                    let pathBase = `${root}allMonYrData/`;
+                    let pathBase = `${fileIndex.root}allMonYrData/`;
                     let fbase;
-                    switch(opts.type) {
+                    switch(fileData.type) {
                         case "raster": {
                             fbase = "_statewide_rf_mm.tif"; 
                             break;
@@ -41,60 +41,64 @@ let fileIndex = {
                             break;
                         }
                     }
-                    let period = opts.period;
-                    let d1 = opts.dates[0];
-                    let d2 = opts.dates[1];
+                    let period = fileData.period;
+                    let formatter = new DateFormatter(period);
+                    let d1 = fileData.dates[0];
+                    let d2 = fileData.dates[1];
                     let start = moment(d1);
                     let end = moment(d2);
                     while(start.add(1, period).isBefore(end)) {
-                        let dateFormat = getFormat(start, period);
-                        let fdate = start.format(dateFormat);
+                        let fdate = formatter.getDateString(start);
                         let file = `${pathBase}${fdate}/${fdate}${fbase}`;
                         files.push(file);
                     }
                     return {
                         files: files,
-                        filterHandler: new GeotiffFilterHandler(opts.filterOpts)
+                        filterHandler: new GeotiffFilterHandler(filterOpts)
                     };
                 }
             },
             stations: {
                 //array of files
-                metadata: (opts) => {
+                metadata: (fileData, filterOpts) => {
+                    let file = `${fileIndex.root}Master_Sta_List_Meta_2020_11_09.csv`;
                     return {
-                        files: ["Master_Sta_List_Meta_2020_11_09.csv"],
-                        filterHandler: new CSVFilterHandler(opts.filterOpts)
+                        files: [file],
+                        filterHandler: new CSVFilterHandler(filterOpts)
                     };
                 },
-                values: (opts) => {
+                values: (fileData, filterOpts) => {
                     //this stuff needs to move
                     let attributes = ["period", "tier", "fill"];
                     let index = new MultiAttributeMap(attributes);
+                    let file = `${fileIndex.root}monthly_rf_new_data_1990_2020_FINAL_19dec2020.csv`;
                     index.setData({
                         period: "month",
                         tier: 0,
                         fill: "partial"
-                    }, "monthly_rf_new_data_1990_2020_FINAL_19dec2020.csv");
+                    }, file);
+                    file = `${fileIndex.root}Unfilled_Daily_RF_mm_2020_12_31_RF.csv`;
                     index.setData({
                         period: "day",
                         tier: 0,
                         fill: "partial"
-                    }, "Unfilled_Daily_RF_mm_2020_12_31_RF.csv");
+                    }, file);
+                    file = `${fileIndex.root}Unfilled_Daily_RF_mm_2020_12_31_RF.csv`;
                     index.setData({
                         period: "day",
                         tier: 0,
                         fill: "unfilled"
-                    }, "Unfilled_Daily_RF_mm_2020_12_31_RF.csv");
+                    }, file);
 
                     let data = {
-                        period: opts.period,
-                        tier: opts.tier,
-                        fill: opts.fill
+                        period: fileData.period,
+                        tier: fileData.tier,
+                        fill: fileData.fill
                     }
-                    let file = index.getData(data);
+                    let file = index.getValue(data);
                     return {
                         files: [file],
-                        filterHandler: new CSVFilterHandler(opts.filterOpts) 
+                        filterHandler: new CSVFilterHandler(filterOpts) 
                     }
                 }
 
@@ -105,25 +109,36 @@ let fileIndex = {
     }
 }
 
-let getFormat = (date, period) => {
-    let dateFormat = "";
-    switch(period) {
-        case "year": {
-            dstring += "YYYY";
+
+class DateFormatter {
+    constructor(period) {
+        let dateFormat = "";
+        switch(period) {
+            case "year": {
+                dstring += "YYYY";
+            }
+            case "month": {
+                dstring += "_" + "MM";
+            }
+            case "day": {
+                dstring += "_" + "DD";
+                break;
+            }
+            default: {
+                throw Error("Unrecognized period");
+            }
         }
-        case "month": {
-            dstring += "_" + "MM";
-        }
-        case "day": {
-            dstring += "_" + "DD";
-            break;
-        }
-        default: {
-            throw Error("Unrecognized period");
-        }
+        this.dateFormat = dateFormat;
     }
-    return dateFormat;
+
+    getDateString(date) {
+        let fdate = date.format(this.dateFormat);
+        return fdate
+    }
+
 }
+
+
 
 //file grouping, file information
 //file information should have same set of properties
@@ -144,18 +159,22 @@ let getFormat = (date, period) => {
 
 class Indexer {
 
-    getFiles(path) {
-        let files = [];
-        let index = fileIndex;
-        for(item of path) {
-            if(typeof index === "function") {
-                index = index(item);
-            }
-            else {
-                index = index[item]
-            }
+    constructor(index) {
+        this.index = index;
+    }
+
+    getFiles(fileData) {
+        let allFiles = [];
+        
+        for(let item of fileData) {
+            let index = this.index;
+            index = index[item.datatype];
+            let groupData = item.fileGroup;
+            let indexer = index[groupData.group][groupData.type];
+            let files = indexer(item.fileData, item.filterOpts);
+            allFiles = files.concat(allFiles);
         }
-        files.concat
+        return allFiles
     }
 }
 
@@ -209,4 +228,4 @@ class MultiAttributeMap {
 }
 
 //need something to parse index, indexer class should be exported
-module.exports = fileIndex;
+module.exports = new Indexer(fileIndex).getFiles;
