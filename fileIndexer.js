@@ -228,4 +228,5 @@ class MultiAttributeMap {
 }
 
 //need something to parse index, indexer class should be exported
-module.exports = new Indexer(fileIndex).getFiles;
+let indexer = new Indexer(fileIndex);
+module.exports = indexer.getFiles.bind(indexer);
