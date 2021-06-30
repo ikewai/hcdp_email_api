@@ -8,12 +8,16 @@ RUN apt-get update \
 WORKDIR /usr/src/app
 
 # Install app dependencies
-COPY certs/*.pem ./
+COPY certs/live/cistore.its.hawaii.edu/cert.pem ./
+COPY certs/live/cistore.its.hawaii.edu/privkey.pem ./key.pem
 COPY package*.json ./
 COPY config.json ./
 COPY server.js ./
+COPY fileIndexer.js ./
+COPY csvProcessor.js ./
 COPY zipgen.sh ./
 COPY zipgen_parts.sh ./
+
 
 RUN npm install
 # If you are building your code for production
