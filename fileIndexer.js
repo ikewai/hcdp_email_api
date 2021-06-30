@@ -167,6 +167,9 @@ class Indexer {
         let allFiles = [];
         
         for(let item of fileData) {
+            console.log(item);
+            console.log(item.fileGroup);
+            console.log(item.fileData);
             let index = this.index;
             index = index[item.datatype];
             let groupData = item.fileGroup;

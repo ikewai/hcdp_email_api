@@ -504,7 +504,7 @@ server.post("/genzip/instant/splitlink", async (req, res) => {
     //if not array then leave files as 0 length to be picked up by error handler
     if(Array.isArray(fileData)) {
       try {
-        let fileGroup = indexer(fileData).files;
+        let fileGroup = indexer(fileData);
         //reduce to just files, how deal with filtering?
         //should add file staging and write out files there
         files = fileGroup.reduce((acc, item) => {
