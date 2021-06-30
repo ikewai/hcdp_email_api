@@ -503,16 +503,18 @@ server.post("/genzip/instant/splitlink", async (req, res) => {
     let files = [];
     //if not array then leave files as 0 length to be picked up by error handler
     if(Array.isArray(fileData)) {
-      for(let fileItem of fileData) {
-        try {
-          let fileGroup = indexer(fileItem).files;
-          files = files.concat(fileGroup);
-        }
-        catch(error) {
-          console.error(error);
-          //if there was an error in the file indexer set files to a junk file to be picked up by file validator
-          files = ["/error.error"];
-        }
+      try {
+        let fileGroup = indexer(fileData).files;
+        //reduce to just files, how deal with filtering?
+        //should add file staging and write out files there
+        files = fileGroup.reduce((acc, item) => {
+          return acc.concat(item.files);
+        }, []);
+      }
+      catch(error) {
+        console.error(error);
+        //if there was an error in the file indexer set files to a junk file to be picked up by file validator
+        files = ["/error.error"];
       }
     }
     console.log(files);

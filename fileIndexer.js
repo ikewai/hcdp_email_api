@@ -172,7 +172,7 @@ class Indexer {
             let groupData = item.fileGroup;
             let indexer = index[groupData.group][groupData.type];
             let files = indexer(item.fileData, item.filterOpts);
-            allFiles = files.concat(allFiles);
+            allFiles.push(files);
         }
         return allFiles
     }
