@@ -114,14 +114,14 @@ class DateFormatter {
     constructor(period) {
         let dateFormat = "";
         switch(period) {
-            case "year": {
-                dateFormat += "YYYY";
+            case "day": {
+                dateFormat = "_DD";
             }
             case "month": {
-                dateFormat += "_" + "MM";
+                dateFormat = "_MM" + dateFormat;
             }
-            case "day": {
-                dateFormat += "_" + "DD";
+            case "year": {
+                dateFormat = "YYYY" + dateFormat;
                 break;
             }
             default: {
