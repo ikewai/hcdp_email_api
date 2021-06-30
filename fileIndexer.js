@@ -115,13 +115,13 @@ class DateFormatter {
         let dateFormat = "";
         switch(period) {
             case "year": {
-                dstring += "YYYY";
+                dateFormat += "YYYY";
             }
             case "month": {
-                dstring += "_" + "MM";
+                dateFormat += "_" + "MM";
             }
             case "day": {
-                dstring += "_" + "DD";
+                dateFormat += "_" + "DD";
                 break;
             }
             default: {
