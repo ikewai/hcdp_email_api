@@ -498,6 +498,7 @@ server.post("/genzip/instant/splitlink", async (req, res) => {
     }
 
     let fileData = req.body.fileData;
+    console.log(fileData);
 
     let files = [];
     //if not array then leave files as 0 length to be picked up by error handler
@@ -508,6 +509,7 @@ server.post("/genzip/instant/splitlink", async (req, res) => {
           files = files.concat(fileGroup);
         }
         catch(error) {
+          console.error(error);
           //if there was an error in the file indexer set files to a junk file to be picked up by file validator
           files = ["/error.error"];
         }
