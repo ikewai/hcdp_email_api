@@ -132,8 +132,10 @@ class DateFormatter {
     }
 
     getDateString(date) {
+        console.log(this.dateFormat);
         let fdate = date.format(this.dateFormat);
-        return fdate
+        console.log(fdate);
+        return fdate;
     }
 
 }
