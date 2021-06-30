@@ -95,9 +95,9 @@ let fileIndex = {
                         tier: fileData.tier,
                         fill: fileData.fill
                     }
-                    let file = index.getValue(data);
+                    let returnFile = index.getValue(data);
                     return {
-                        files: [file],
+                        files: [returnFile],
                         filterHandler: new CSVFilterHandler(filterOpts) 
                     }
                 }

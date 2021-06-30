@@ -7,7 +7,7 @@ const https = require("https");
 const fs = require("fs");
 const config = require("./config.json");
 const child_process = require("child_process");
-const indexer = require("fileIndexer");
+const indexer = require("./fileIndexer");
 //add timestamps to output
 require("console-stamp")(console);
 
