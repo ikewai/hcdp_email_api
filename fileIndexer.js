@@ -224,7 +224,7 @@ class MultiAttributeMap {
         let root = this.map;
         for(let property of this.precedence) {
             let value = data[property];
-            let root = root[value];
+            root = root[value];
         }
         return root;
     }
