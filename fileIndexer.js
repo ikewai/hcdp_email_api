@@ -47,10 +47,11 @@ let fileIndex = {
                     let d2 = dates.end;
                     let start = moment(d1);
                     let end = moment(d2);
-                    while(start.add(1, period).isBefore(end)) {
+                    while(start.isSameOrBefore(end)) {
                         let fdate = formatter.getDateString(start);
                         let file = `${pathBase}${fdate}/${fdate}${fbase}`;
                         files.push(file);
+                        start.add(1, period);
                     }
                     return {
                         files: files,
@@ -132,9 +133,7 @@ class DateFormatter {
     }
 
     getDateString(date) {
-        console.log(this.dateFormat);
         let fdate = date.format(this.dateFormat);
-        console.log(fdate);
         return fdate;
     }
 
@@ -169,10 +168,6 @@ class Indexer {
         let allFiles = [];
         
         for(let item of fileData) {
-            console.log(item);
-            console.log(item.group);
-            console.log(item.data);
-            console.log(item.dates);
             let index = this.index.datatype;
             index = index[item.datatype];
             let groupData = item.group;
