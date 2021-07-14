@@ -69,7 +69,6 @@ let fileIndex = {
                     };
                 },
                 values: (dates, fileData, filterOpts) => {
-                    console.log(fileData);
                     //this stuff needs to move
                     let attributes = ["period", "tier", "fill"];
                     let index = new MultiAttributeMap(attributes);
@@ -79,13 +78,13 @@ let fileIndex = {
                         tier: 0,
                         fill: "partial"
                     }, file);
-                    file = `${fileIndex.root}Unfilled_Daily_RF_mm_2020_12_31_RF.csv`;
+                    file = `${fileIndex.root}monthly_rf_new_data_1990_2020_FINAL_19dec2020.csv`;
                     index.setData({
                         period: "day",
                         tier: 0,
                         fill: "partial"
                     }, file);
-                    file = `${fileIndex.root}Unfilled_Daily_RF_mm_2020_12_31_RF.csv`;
+                    file = `${fileIndex.root}monthly_rf_new_data_1990_2020_FINAL_19dec2020.csv`;
                     index.setData({
                         period: "day",
                         tier: 0,
@@ -97,7 +96,6 @@ let fileIndex = {
                         tier: fileData.tier,
                         fill: fileData.fill
                     };
-                    console.log(data);
                     let returnFile = index.getValue(data);
                     return {
                         files: [returnFile],
@@ -223,11 +221,7 @@ class MultiAttributeMap {
     getValue(data) {
         let root = this.map;
         for(let property of this.precedence) {
-            let value = data[property];
-            console.log(root);
-            console.log(property);
-            console.log(value);
-            
+            let value = data[property];          
             root = root[value];
         }
         return root;

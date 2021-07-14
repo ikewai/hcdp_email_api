@@ -247,7 +247,6 @@ server.post("/genzip/email", async (req, res) => {
         else {
           let zipPath = zipOutput;
           let zipDec = zipPath.split("/");
-          // console.log(zipPath);
           let zipRoot = zipDec.slice(0, -1).join("/");
           let zipExt = zipDec.slice(-2).join("/");
     
