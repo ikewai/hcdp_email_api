@@ -154,16 +154,17 @@ server.post("/genzip/email", async (req, res) => {
     let files = [];
     //if not array then leave files as 0 length to be picked up by error handler
     if(Array.isArray(fileData)) {
-      for(let fileItem of fileData) {
-        try {
-          //need to do filtering stuff too when implemented
-          let fileGroup = indexer(fileItem).files;
-          files = files.concat(fileGroup);
-        }
-        catch(error) {
-          //if there was an error in the file indexer set files to a junk file to be picked up by file validator
-          files = ["/error.error"];
-        }
+      try {
+        let fileGroup = indexer(fileData);
+        //reduce to just files, how deal with filtering?
+        //should add file staging and write out files there
+        files = fileGroup.reduce((acc, item) => {
+          return acc.concat(item.files);
+        }, []);
+      }
+      catch(error) {
+        //if there was an error in the file indexer set files to a junk file to be picked up by file validator
+        files = ["/error.error"];
       }
     }
 
@@ -329,15 +330,17 @@ server.post("/genzip/instant/content", async (req, res) => {
     let files = [];
     //if not array then leave files as 0 length to be picked up by error handler
     if(Array.isArray(fileData)) {
-      for(let fileItem of fileData) {
-        try {
-          let fileGroup = indexer(fileItem).files;
-          files = files.concat(fileGroup);
-        }
-        catch(error) {
-          //if there was an error in the file indexer set files to a junk file to be picked up by file validator
-          files = ["/error.error"];
-        }
+      try {
+        let fileGroup = indexer(fileData);
+        //reduce to just files, how deal with filtering?
+        //should add file staging and write out files there
+        files = fileGroup.reduce((acc, item) => {
+          return acc.concat(item.files);
+        }, []);
+      }
+      catch(error) {
+        //if there was an error in the file indexer set files to a junk file to be picked up by file validator
+        files = ["/error.error"];
       }
     }
 
@@ -415,15 +418,17 @@ server.post("/genzip/instant/link", async (req, res) => {
     let files = [];
     //if not array then leave files as 0 length to be picked up by error handler
     if(Array.isArray(fileData)) {
-      for(let fileItem of fileData) {
-        try {
-          let fileGroup = indexer(fileItem).files;
-          files = files.concat(fileGroup);
-        }
-        catch(error) {
-          //if there was an error in the file indexer set files to a junk file to be picked up by file validator
-          files = ["/error.error"];
-        }
+      try {
+        let fileGroup = indexer(fileData);
+        //reduce to just files, how deal with filtering?
+        //should add file staging and write out files there
+        files = fileGroup.reduce((acc, item) => {
+          return acc.concat(item.files);
+        }, []);
+      }
+      catch(error) {
+        //if there was an error in the file indexer set files to a junk file to be picked up by file validator
+        files = ["/error.error"];
       }
     }
 
