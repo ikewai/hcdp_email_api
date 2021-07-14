@@ -175,9 +175,9 @@ class Indexer {
             console.log(item.dates);
             let index = this.index.datatype;
             index = index[item.datatype];
-            let groupData = item.fileGroup;
+            let groupData = item.group;
             let indexer = index[groupData.group][groupData.type];
-            let files = indexer(item.dates, item.fileData, item.filterOpts);
+            let files = indexer(item.dates, item.data, item.filterOpts);
             allFiles.push(files);
         }
         return allFiles
