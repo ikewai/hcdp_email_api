@@ -170,8 +170,8 @@ class Indexer {
         
         for(let item of fileData) {
             console.log(item);
-            console.log(item.fileGroup);
-            console.log(item.fileData);
+            console.log(item.group);
+            console.log(item.data);
             console.log(item.dates);
             let index = this.index.datatype;
             index = index[item.datatype];
