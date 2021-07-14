@@ -32,7 +32,7 @@ let fileIndex = {
                             fbase = "_statewide_anom.tif";
                             break;
                         }
-                        case "loocv": {
+                        case "stderr_anomaly": {
                             fbase = "_statewide_anom_SE.tif";
                             break;
                         }
@@ -69,6 +69,7 @@ let fileIndex = {
                     };
                 },
                 values: (dates, fileData, filterOpts) => {
+                    console.log(fileData);
                     //this stuff needs to move
                     let attributes = ["period", "tier", "fill"];
                     let index = new MultiAttributeMap(attributes);
@@ -96,6 +97,7 @@ let fileIndex = {
                         tier: fileData.tier,
                         fill: fileData.fill
                     };
+                    console.log(data);
                     let returnFile = index.getValue(data);
                     return {
                         files: [returnFile],
