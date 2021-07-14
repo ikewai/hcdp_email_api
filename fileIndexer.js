@@ -15,7 +15,7 @@ let fileIndex = {
     datatype: {
         rainfall: {
             raster: {
-                values: (fileData, filterOpts) => {
+                values: (dates, fileData, filterOpts) => {
                     let files = [];
                     let pathBase = `${fileIndex.root}allMonYrData/`;
                     let fbase;
@@ -41,10 +41,10 @@ let fileIndex = {
                             break;
                         }
                     }
-                    let period = fileData.period;
+                    let period = dates.period;
                     let formatter = new DateFormatter(period);
-                    let d1 = fileData.dates[0];
-                    let d2 = fileData.dates[1];
+                    let d1 = dates.start;
+                    let d2 = dates.end;
                     let start = moment(d1);
                     let end = moment(d2);
                     while(start.add(1, period).isBefore(end)) {
@@ -67,7 +67,7 @@ let fileIndex = {
                         filterHandler: new CSVFilterHandler(filterOpts)
                     };
                 },
-                values: (fileData, filterOpts) => {
+                values: (dates, fileData, filterOpts) => {
                     //this stuff needs to move
                     let attributes = ["period", "tier", "fill"];
                     let index = new MultiAttributeMap(attributes);
@@ -91,15 +91,15 @@ let fileIndex = {
                     }, file);
 
                     let data = {
-                        period: fileData.period,
+                        period: dates.period,
                         tier: fileData.tier,
                         fill: fileData.fill
-                    }
+                    };
                     let returnFile = index.getValue(data);
                     return {
                         files: [returnFile],
                         filterHandler: new CSVFilterHandler(filterOpts) 
-                    }
+                    };
                 }
 
             }
@@ -172,11 +172,12 @@ class Indexer {
             console.log(item);
             console.log(item.fileGroup);
             console.log(item.fileData);
+            console.log(item.dates);
             let index = this.index.datatype;
             index = index[item.datatype];
             let groupData = item.fileGroup;
             let indexer = index[groupData.group][groupData.type];
-            let files = indexer(item.fileData, item.filterOpts);
+            let files = indexer(item.dates, item.fileData, item.filterOpts);
             allFiles.push(files);
         }
         return allFiles
