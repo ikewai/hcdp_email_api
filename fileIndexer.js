@@ -226,7 +226,7 @@ class MultiAttributeMap {
             let value = data[property];
             console.log(root);
             console.log(property);
-            consol.log(value);
+            console.log(value);
             
             root = root[value];
         }
