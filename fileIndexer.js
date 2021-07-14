@@ -223,6 +223,7 @@ class MultiAttributeMap {
     getValue(data) {
         let root = this.map;
         for(let property of this.precedence) {
+            console.log(root);
             let value = data[property];
             root = root[value];
         }
