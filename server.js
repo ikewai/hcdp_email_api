@@ -148,6 +148,8 @@ server.post("/genzip/email", async (req, res) => {
     let email = req.body.email || null;
     let zipName = req.body.name || defaultZipName;
     let fileData = req.body.fileData;
+    console.log(fileData);
+    console.log(email);
 
     let files = [];
     //if not array then leave files as 0 length to be picked up by error handler
