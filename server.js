@@ -141,6 +141,7 @@ server.use((req, res, next) => {
 
 
 server.get("/raster", async (req, res) => {
+  console.log("raster");
 
   let resourceData = {
     type: "raster"
@@ -189,8 +190,7 @@ server.get("/raster", async (req, res) => {
     .send("Some of the files requested could not be found");
   }
 
-  res.status(304)
-  .contentType("image/tif;charset=UTF-8")
+  res.status(200)
   .sendFile(file);
 
 });
