@@ -165,9 +165,9 @@ server.get("/raster", async (req, res) => {
     filterOpts: {}
   }
   //delete values not needed in data values
-  delete resourceInfo.data.query.datatype;
-  delete resourceInfo.data.query.period;
-  delete resourceInfo.data.query.date;
+  delete resourceInfo.data.datatype;
+  delete resourceInfo.data.period;
+  delete resourceInfo.data.date;
 
   try {
     //should only be one result and one file
