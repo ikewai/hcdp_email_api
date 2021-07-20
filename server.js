@@ -8,6 +8,8 @@ const fs = require("fs");
 const config = require("./config.json");
 const child_process = require("child_process");
 const indexer = require("./fileIndexer");
+const request = require("request");
+const fileIndexer = require("./fileIndexer");
 //add timestamps to output
 require("console-stamp")(console);
 
@@ -33,6 +35,7 @@ const transporterOptions = {
 const ATTACHMENT_MAX_MB = 25;
 
 process.env["NODE_TLS_REJECT_UNAUTHORIZED"] = 0;
+process.env["NODE_ENV"] = "production";
 
 
 async function sendEmail(transporterOptions, mailOptions) {
@@ -135,6 +138,71 @@ server.use((req, res, next) => {
   //pass to next layer
   next();
 });
+
+
+
+//use this for raster data, it should only have the file data portion of the resource request, then wrap
+server.get("/raster", (req, res) => {
+  //should be in a slightly different pattern, exactly one date instead of range
+  //should update to other format with range of a single date for reuse
+  //this is wrong, wrap (see function comment)
+
+  let resourceData = {
+    type: "raster"
+  }
+
+  let resourceInfo = {
+    datatype: req.query.datatype,
+    dates: {
+      period: req.query.period,
+      start: req.query.date,
+      end: req.query.date
+    },
+    group: {
+      group: "raster",
+      type: "values"
+    },
+    data: Object.assign(resourceData, req.query),
+    filterOpts: {}
+  }
+  //delete values not needed in data values
+  delete resourceInfo.data.query.datatype;
+  delete resourceInfo.data.query.period;
+  delete resourceInfo.data.query.date;
+
+  try {
+    //should only be one result and one file
+    file = indexer(resourceInfo)[0].files[0];
+  }
+  catch(error) {
+    console.error(error);
+    //if there was an error in the file indexer set files to a junk file to be picked up by file validator
+    file = "/error.error";
+  }
+  
+  try {
+    await validateFile(file);
+  }
+  catch {
+    //set failure and code in status and resolve for logging
+    status.success = false;
+    status.code = 404;
+    resolve(status);
+
+    //resources not found
+    return res.status(404)
+    .send("Some of the files requested could not be found");
+  }
+
+  res.status(200)
+  .sendFile(file);
+
+});
+
+
+
+
+
 
 //should move file indexing
 server.post("/genzip/email", async (req, res) => {
