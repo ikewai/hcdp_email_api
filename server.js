@@ -171,7 +171,7 @@ server.get("/raster", async (req, res) => {
 
   try {
     //should only be one result and one file
-    file = indexer(resourceInfo)[0].files[0];
+    file = indexer([resourceInfo])[0].files[0];
   }
   catch(error) {
     console.error(error);
