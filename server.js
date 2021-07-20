@@ -140,11 +140,7 @@ server.use((req, res, next) => {
 
 
 
-//use this for raster data, it should only have the file data portion of the resource request, then wrap
 server.get("/raster", async (req, res) => {
-  //should be in a slightly different pattern, exactly one date instead of range
-  //should update to other format with range of a single date for reuse
-  //this is wrong, wrap (see function comment)
 
   let resourceData = {
     type: "raster"
@@ -193,7 +189,8 @@ server.get("/raster", async (req, res) => {
     .send("Some of the files requested could not be found");
   }
 
-  res.status(200)
+  res.status(304)
+  .contentType("image/tif;charset=UTF-8")
   .sendFile(file);
 
 });
