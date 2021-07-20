@@ -8,7 +8,6 @@ const fs = require("fs");
 const config = require("./config.json");
 const child_process = require("child_process");
 const indexer = require("./fileIndexer");
-const request = require("request");
 const fileIndexer = require("./fileIndexer");
 //add timestamps to output
 require("console-stamp")(console);
