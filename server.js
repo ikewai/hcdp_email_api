@@ -187,7 +187,7 @@ server.get("/raster", async (req, res) => {
 
     //resources not found
     return res.status(404)
-    .send("Some of the files requested could not be found");
+    .send("The requested file could not be found");
   }
 
   res.status(200)
@@ -646,8 +646,12 @@ server.post("/genzip/instant/splitlink", async (req, res) => {
             files: fileParts
           }
 
-          res.status(200)
-          .json(data);
+          //wait for a couple seconds and hope file permissions update, should link into perms for verification
+          setTimeout(() => {
+            res.status(200)
+            .json(data);
+          }, 2000);
+          
         }
       });
     }

@@ -8,6 +8,7 @@
     "defaultZipName": "HCDP_data.zip",
     "downloadGenRoot": "/data/downloads/",
     "downloadLinkRoot": "https://ikeauth.its.hawaii.edu/files/v2/download/public/system/ikewai-annotated-data/Rainfall/downloads/",
+    
     "email": {
         "from": "no-reply-hcdp@hawaii.edu",
         "subject": "HCDP Data"
