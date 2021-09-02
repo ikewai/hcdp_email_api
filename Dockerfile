@@ -22,4 +22,6 @@ RUN npm install
 # RUN npm install --only=production
 
 EXPOSE 443
-CMD [ "npm", "start" ]
+#don't use npm start because signals are handled weird. To get a graceful stop need to run node server.js directly
+#https://medium.com/@becintec/building-graceful-node-applications-in-docker-4d2cd4d5d392
+CMD [ "node", "server.js" ]

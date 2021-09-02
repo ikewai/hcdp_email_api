@@ -35,6 +35,72 @@ const ATTACHMENT_MAX_MB = 25;
 process.env["NODE_TLS_REJECT_UNAUTHORIZED"] = 0;
 process.env["NODE_ENV"] = "production";
 
+////////////////////////////////
+//////////server setup//////////
+////////////////////////////////
+
+const server = express();
+
+let options = {
+    key: hskey,
+    cert: hscert
+};
+
+https.createServer(options, server)
+.listen(port, (err) => {
+  if(err) {
+    console.error(error);
+  }
+  else {
+    console.log("Server listening at port " + port);
+  }
+});
+
+server.use(express.json());
+server.use(express.urlencoded({ extended: true }));
+//compress all HTTP responses
+server.use(compression());
+
+server.use((req, res, next) => {
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Methods", "GET, POST");
+  res.setHeader("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, Authorization, Range, Content-Range, Cache-Control");
+  //pass to next layer
+  next();
+});
+
+////////////////////////////////
+////////////////////////////////
+
+/////////////////////////////
+///////signal handling///////
+/////////////////////////////
+
+const signals = {
+  "SIGHUP": 1,
+  "SIGINT": 2,
+  "SIGTERM": 15
+};
+
+function shutdown(code) {
+  //stops new connections and completes existing ones before closing
+  server.close(() => {
+    console.log(`Server shutdown.`);
+    process.exit(code);
+  });
+}
+
+for(let signal in signals) {
+  let signalVal = signals[signal];
+  process.on(signal, () => {
+    console.log(`Received ${signal}, shutting down server...`);
+    shutdown(128 + signalVal);
+  });
+}
+
+/////////////////////////////
+/////////////////////////////
+
 
 async function sendEmail(transporterOptions, mailOptions) {
 
@@ -107,37 +173,6 @@ async function handleReq(req, handler) {
   });
 }
 
-const server = express();
-
-let options = {
-    key: hskey,
-    cert: hscert
-};
-
-https.createServer(options, server)
-.listen(port, (err) => {
-  if(err) {
-    console.error(error);
-  }
-  else {
-    console.log("Server listening at port " + port);
-  }
-});
-
-server.use(express.json());
-server.use(express.urlencoded({ extended: true }));
-//compress all HTTP responses
-server.use(compression());
-
-server.use((req, res, next) => {
-  res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Methods", "GET, POST");
-  res.setHeader("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, Authorization, Range, Content-Range, Cache-Control");
-  //pass to next layer
-  next();
-});
-
-
 
 server.get("/raster", async (req, res) => {
   console.log("raster");
@@ -193,8 +228,6 @@ server.get("/raster", async (req, res) => {
   .sendFile(file);
 
 });
-
-
 
 
 
