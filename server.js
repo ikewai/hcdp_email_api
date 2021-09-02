@@ -1,7 +1,6 @@
 // server.js
 const express = require("express");
 const compression = require("compression");
-const bodyParser = require("body-parser");
 const nodemailer = require("nodemailer");
 const https = require("https");
 const fs = require("fs");
@@ -44,7 +43,7 @@ async function sendEmail(transporterOptions, mailOptions) {
   //have to be on uh netork
   return transporter.sendMail(combinedMailOptions)
   .then((info) => {
-    //should parse response for success (shoudl start with 250)
+    //should parse response for success (should start with 250)
     res = {
       success: true,
       result: info,
@@ -123,8 +122,8 @@ https.createServer(options, server)
   }
 });
 
-server.use(bodyParser.json());
-server.use(bodyParser.urlencoded({ extended: true }));
+server.use(express.json());
+server.use(express.urlencoded({ extended: true }));
 //compress all HTTP responses
 server.use(compression());
 
