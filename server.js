@@ -1,4 +1,3 @@
-// server.js
 const express = require("express");
 const compression = require("compression");
 const nodemailer = require("nodemailer");
@@ -39,14 +38,14 @@ process.env["NODE_ENV"] = "production";
 //////////server setup//////////
 ////////////////////////////////
 
-const server = express();
+const app = express();
 
 let options = {
     key: hskey,
     cert: hscert
 };
 
-https.createServer(options, server)
+server = https.createServer(options, server)
 .listen(port, (err) => {
   if(err) {
     console.error(error);
@@ -56,12 +55,12 @@ https.createServer(options, server)
   }
 });
 
-server.use(express.json());
-server.use(express.urlencoded({ extended: true }));
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 //compress all HTTP responses
-server.use(compression());
+app.use(compression());
 
-server.use((req, res, next) => {
+app.use((req, res, next) => {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "GET, POST");
   res.setHeader("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, Authorization, Range, Content-Range, Cache-Control");
@@ -174,7 +173,7 @@ async function handleReq(req, handler) {
 }
 
 
-server.get("/raster", async (req, res) => {
+app.get("/raster", async (req, res) => {
 
   let resourceData = {
     type: "raster"
@@ -232,7 +231,7 @@ server.get("/raster", async (req, res) => {
 
 
 //should move file indexing
-server.post("/genzip/email", async (req, res) => {
+app.post("/genzip/email", async (req, res) => {
   return handleReq(req, new Promise(async (resolve, reject) => {
     let status = {
       user: null,
@@ -409,7 +408,7 @@ server.post("/genzip/email", async (req, res) => {
 });
 
 
-server.post("/genzip/instant/content", async (req, res) => {
+app.post("/genzip/instant/content", async (req, res) => {
   return handleReq(req, new Promise(async (resolve, reject) => {
     let status = {
       user: "instant",
@@ -496,7 +495,7 @@ server.post("/genzip/instant/content", async (req, res) => {
 
 
 
-server.post("/genzip/instant/link", async (req, res) => {
+app.post("/genzip/instant/link", async (req, res) => {
   return handleReq(req, new Promise(async (resolve, reject) => {
     let status = {
       user: "instant",
@@ -588,7 +587,7 @@ server.post("/genzip/instant/link", async (req, res) => {
 
 
 
-server.post("/genzip/instant/splitlink", async (req, res) => {
+app.post("/genzip/instant/splitlink", async (req, res) => {
   return handleReq(req, new Promise(async (resolve, reject) => {
     let status = {
       user: "instant",
