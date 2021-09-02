@@ -175,7 +175,6 @@ async function handleReq(req, handler) {
 
 
 server.get("/raster", async (req, res) => {
-  console.log("raster");
 
   let resourceData = {
     type: "raster"
