@@ -45,7 +45,7 @@ let options = {
     cert: hscert
 };
 
-const server = https.createServer(options, server)
+const server = https.createServer(options, app)
 .listen(port, (err) => {
   if(err) {
     console.error(error);
