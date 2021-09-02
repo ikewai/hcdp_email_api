@@ -7,6 +7,7 @@ const fs = require("fs");
 const config = require("./config.json");
 const child_process = require("child_process");
 const indexer = require("./fileIndexer");
+const fileIndexer = require("./fileIndexer");
 //add timestamps to output
 require("console-stamp")(console);
 
@@ -32,6 +33,7 @@ const transporterOptions = {
 const ATTACHMENT_MAX_MB = 25;
 
 process.env["NODE_TLS_REJECT_UNAUTHORIZED"] = 0;
+process.env["NODE_ENV"] = "production";
 
 
 async function sendEmail(transporterOptions, mailOptions) {
@@ -130,10 +132,72 @@ server.use(compression());
 server.use((req, res, next) => {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "GET, POST");
-  res.setHeader("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, Authorization, Range, Content-Range");
+  res.setHeader("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, Authorization, Range, Content-Range, Cache-Control");
   //pass to next layer
   next();
 });
+
+
+
+server.get("/raster", async (req, res) => {
+  console.log("raster");
+
+  let resourceData = {
+    type: "raster"
+  }
+
+  let resourceInfo = {
+    datatype: req.query.datatype,
+    dates: {
+      period: req.query.period,
+      start: req.query.date,
+      end: req.query.date
+    },
+    group: {
+      group: "raster",
+      type: "values"
+    },
+    data: Object.assign(resourceData, req.query),
+    filterOpts: {}
+  }
+  //delete values not needed in data values
+  delete resourceInfo.data.datatype;
+  delete resourceInfo.data.period;
+  delete resourceInfo.data.date;
+
+  try {
+    //should only be one result and one file
+    file = indexer([resourceInfo])[0].files[0];
+  }
+  catch(error) {
+    console.error(error);
+    //if there was an error in the file indexer set files to a junk file to be picked up by file validator
+    file = "/error.error";
+  }
+  
+  try {
+    await validateFile(file);
+  }
+  catch {
+    //set failure and code in status and resolve for logging
+    status.success = false;
+    status.code = 404;
+    resolve(status);
+
+    //resources not found
+    return res.status(404)
+    .send("The requested file could not be found");
+  }
+
+  res.status(200)
+  .sendFile(file);
+
+});
+
+
+
+
+
 
 //should move file indexing
 server.post("/genzip/email", async (req, res) => {
@@ -151,16 +215,17 @@ server.post("/genzip/email", async (req, res) => {
     let files = [];
     //if not array then leave files as 0 length to be picked up by error handler
     if(Array.isArray(fileData)) {
-      for(let fileItem of fileData) {
-        try {
-          //need to do filtering stuff too when implemented
-          let fileGroup = indexer(fileItem).files;
-          files = files.concat(fileGroup);
-        }
-        catch(error) {
-          //if there was an error in the file indexer set files to a junk file to be picked up by file validator
-          files = ["/error.error"];
-        }
+      try {
+        let fileGroup = indexer(fileData);
+        //reduce to just files, how deal with filtering?
+        //should add file staging and write out files there
+        files = fileGroup.reduce((acc, item) => {
+          return acc.concat(item.files);
+        }, []);
+      }
+      catch(error) {
+        //if there was an error in the file indexer set files to a junk file to be picked up by file validator
+        files = ["/error.error"];
       }
     }
 
@@ -245,7 +310,6 @@ server.post("/genzip/email", async (req, res) => {
         else {
           let zipPath = zipOutput;
           let zipDec = zipPath.split("/");
-          // console.log(zipPath);
           let zipRoot = zipDec.slice(0, -1).join("/");
           let zipExt = zipDec.slice(-2).join("/");
     
@@ -326,15 +390,17 @@ server.post("/genzip/instant/content", async (req, res) => {
     let files = [];
     //if not array then leave files as 0 length to be picked up by error handler
     if(Array.isArray(fileData)) {
-      for(let fileItem of fileData) {
-        try {
-          let fileGroup = indexer(fileItem).files;
-          files = files.concat(fileGroup);
-        }
-        catch(error) {
-          //if there was an error in the file indexer set files to a junk file to be picked up by file validator
-          files = ["/error.error"];
-        }
+      try {
+        let fileGroup = indexer(fileData);
+        //reduce to just files, how deal with filtering?
+        //should add file staging and write out files there
+        files = fileGroup.reduce((acc, item) => {
+          return acc.concat(item.files);
+        }, []);
+      }
+      catch(error) {
+        //if there was an error in the file indexer set files to a junk file to be picked up by file validator
+        files = ["/error.error"];
       }
     }
 
@@ -412,15 +478,17 @@ server.post("/genzip/instant/link", async (req, res) => {
     let files = [];
     //if not array then leave files as 0 length to be picked up by error handler
     if(Array.isArray(fileData)) {
-      for(let fileItem of fileData) {
-        try {
-          let fileGroup = indexer(fileItem).files;
-          files = files.concat(fileGroup);
-        }
-        catch(error) {
-          //if there was an error in the file indexer set files to a junk file to be picked up by file validator
-          files = ["/error.error"];
-        }
+      try {
+        let fileGroup = indexer(fileData);
+        //reduce to just files, how deal with filtering?
+        //should add file staging and write out files there
+        files = fileGroup.reduce((acc, item) => {
+          return acc.concat(item.files);
+        }, []);
+      }
+      catch(error) {
+        //if there was an error in the file indexer set files to a junk file to be picked up by file validator
+        files = ["/error.error"];
       }
     }
 
@@ -497,7 +565,6 @@ server.post("/genzip/instant/splitlink", async (req, res) => {
     }
 
     let fileData = req.body.fileData;
-    console.log(fileData);
 
     let files = [];
     //if not array then leave files as 0 length to be picked up by error handler
@@ -516,7 +583,6 @@ server.post("/genzip/instant/splitlink", async (req, res) => {
         files = ["/error.error"];
       }
     }
-    console.log(files);
 
     if(files.length < 1) {
       //set failure and code in status and resolve for logging
@@ -579,8 +645,12 @@ server.post("/genzip/instant/splitlink", async (req, res) => {
             files: fileParts
           }
 
-          res.status(200)
-          .json(data);
+          //wait for a couple seconds and hope file permissions update, should link into perms for verification
+          setTimeout(() => {
+            res.status(200)
+            .json(data);
+          }, 2000);
+          
         }
       });
     }

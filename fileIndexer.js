@@ -15,7 +15,7 @@ let fileIndex = {
     datatype: {
         rainfall: {
             raster: {
-                values: (fileData, filterOpts) => {
+                values: (dates, fileData, filterOpts) => {
                     let files = [];
                     let pathBase = `${fileIndex.root}allMonYrData/`;
                     let fbase;
@@ -32,7 +32,7 @@ let fileIndex = {
                             fbase = "_statewide_anom.tif";
                             break;
                         }
-                        case "loocv": {
+                        case "stderr_anomaly": {
                             fbase = "_statewide_anom_SE.tif";
                             break;
                         }
@@ -41,16 +41,17 @@ let fileIndex = {
                             break;
                         }
                     }
-                    let period = fileData.period;
+                    let period = dates.period;
                     let formatter = new DateFormatter(period);
-                    let d1 = fileData.dates[0];
-                    let d2 = fileData.dates[1];
+                    let d1 = dates.start;
+                    let d2 = dates.end;
                     let start = moment(d1);
                     let end = moment(d2);
-                    while(start.add(1, period).isBefore(end)) {
+                    while(start.isSameOrBefore(end)) {
                         let fdate = formatter.getDateString(start);
                         let file = `${pathBase}${fdate}/${fdate}${fbase}`;
                         files.push(file);
+                        start.add(1, period);
                     }
                     return {
                         files: files,
@@ -67,7 +68,7 @@ let fileIndex = {
                         filterHandler: new CSVFilterHandler(filterOpts)
                     };
                 },
-                values: (fileData, filterOpts) => {
+                values: (dates, fileData, filterOpts) => {
                     //this stuff needs to move
                     let attributes = ["period", "tier", "fill"];
                     let index = new MultiAttributeMap(attributes);
@@ -77,13 +78,13 @@ let fileIndex = {
                         tier: 0,
                         fill: "partial"
                     }, file);
-                    file = `${fileIndex.root}Unfilled_Daily_RF_mm_2020_12_31_RF.csv`;
+                    file = `${fileIndex.root}monthly_rf_new_data_1990_2020_FINAL_19dec2020.csv`;
                     index.setData({
                         period: "day",
                         tier: 0,
                         fill: "partial"
                     }, file);
-                    file = `${fileIndex.root}Unfilled_Daily_RF_mm_2020_12_31_RF.csv`;
+                    file = `${fileIndex.root}monthly_rf_new_data_1990_2020_FINAL_19dec2020.csv`;
                     index.setData({
                         period: "day",
                         tier: 0,
@@ -91,15 +92,15 @@ let fileIndex = {
                     }, file);
 
                     let data = {
-                        period: fileData.period,
+                        period: dates.period,
                         tier: fileData.tier,
                         fill: fileData.fill
-                    }
+                    };
                     let returnFile = index.getValue(data);
                     return {
                         files: [returnFile],
                         filterHandler: new CSVFilterHandler(filterOpts) 
-                    }
+                    };
                 }
 
             }
@@ -132,9 +133,7 @@ class DateFormatter {
     }
 
     getDateString(date) {
-        console.log(this.dateFormat);
         let fdate = date.format(this.dateFormat);
-        console.log(fdate);
         return fdate;
     }
 
@@ -169,14 +168,11 @@ class Indexer {
         let allFiles = [];
         
         for(let item of fileData) {
-            console.log(item);
-            console.log(item.fileGroup);
-            console.log(item.fileData);
             let index = this.index.datatype;
             index = index[item.datatype];
-            let groupData = item.fileGroup;
+            let groupData = item.group;
             let indexer = index[groupData.group][groupData.type];
-            let files = indexer(item.fileData, item.filterOpts);
+            let files = indexer(item.dates, item.data, item.filterOpts);
             allFiles.push(files);
         }
         return allFiles
@@ -225,8 +221,8 @@ class MultiAttributeMap {
     getValue(data) {
         let root = this.map;
         for(let property of this.precedence) {
-            let value = data[property];
-            let root = root[value];
+            let value = data[property];          
+            root = root[value];
         }
         return root;
     }

@@ -8,8 +8,6 @@ RUN apt-get update \
 WORKDIR /usr/src/app
 
 # Install app dependencies
-COPY certs/live/cistore.its.hawaii.edu/cert.pem ./
-COPY certs/live/cistore.its.hawaii.edu/privkey.pem ./key.pem
 COPY package*.json ./
 COPY config.json ./
 COPY server.js ./
