@@ -6,9 +6,10 @@
     "key": "key.pem",
     "cert": "cert.pem",
     "defaultZipName": "HCDP_data.zip",
-    "downloadGenRoot": "/data/downloads/",
-    "downloadLinkRoot": "https://ikeauth.its.hawaii.edu/files/v2/download/public/system/ikewai-annotated-data/Rainfall/downloads/",
-    
+    "rawDataDir": "raw/",
+    "downloadDir": "downloads/",
+    "dataRoot": "/data/",
+    "urlRoot": "https://ikeauth.its.hawaii.edu/files/v2/download/public/system/ikewai-annotated-data/HCDP/",
     "email": {
         "from": "no-reply-hcdp@hawaii.edu",
         "subject": "HCDP Data"

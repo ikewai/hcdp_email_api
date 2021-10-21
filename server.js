@@ -6,7 +6,7 @@ const fs = require("fs");
 const config = require("./config.json");
 const child_process = require("child_process");
 const indexer = require("./fileIndexer");
-const fileIndexer = require("./fileIndexer");
+const moment = require("moment");
 //add timestamps to output
 require("console-stamp")(console);
 
@@ -19,8 +19,16 @@ const hskey = fs.readFileSync(keyFile);
 const hscert = fs.readFileSync(certFile);
 const mailOptionsBase = config.email;
 const defaultZipName = config.defaultZipName;
-const genRoot = config.downloadGenRoot;
-const linkRoot = config.downloadLinkRoot;
+
+const dataRoot = config.dataRoot;
+const urlRoot = config.urlRoot;
+const rawDataDir = config.rawDataDir;
+const downloadDir = config.downloadDir;
+
+const rawDataRoot = `${dataRoot}${rawDataDir}`;
+const rawDataURLRoot = `${urlRoot}${rawDataDir}`;
+const downloadURLRoot = `${urlRoot}${downloadDir}`;
+
 
 const transporterOptions = {
   host: smtp,
@@ -174,56 +182,63 @@ async function handleReq(req, handler) {
 
 
 app.get("/raster", async (req, res) => {
+  return handleReq(req, new Promise(async (resolve, reject) => {
+    let status = {
+      user: null,
+      code: 200,
+      success: true
+    };
 
-  let resourceData = {
-    type: "raster"
-  }
-
-  let resourceInfo = {
-    datatype: req.query.datatype,
-    dates: {
-      period: req.query.period,
-      start: req.query.date,
-      end: req.query.date
-    },
-    group: {
-      group: "raster",
-      type: "values"
-    },
-    data: Object.assign(resourceData, req.query),
-    filterOpts: {}
-  }
-  //delete values not needed in data values
-  delete resourceInfo.data.datatype;
-  delete resourceInfo.data.period;
-  delete resourceInfo.data.date;
-
-  try {
-    //should only be one result and one file
-    file = indexer([resourceInfo])[0].files[0];
-  }
-  catch(error) {
-    console.error(error);
-    //if there was an error in the file indexer set files to a junk file to be picked up by file validator
-    file = "/error.error";
-  }
+    let resourceData = {
+      type: "raster"
+    }
   
-  try {
-    await validateFile(file);
-  }
-  catch {
-    //set failure and code in status and resolve for logging
-    status.success = false;
-    status.code = 404;
-    resolve(status);
-
-    //resources not found
-    return res.status(404)
-    .send("The requested file could not be found");
-  }
-
-  res.status(200)
-  .sendFile(file);
+    let resourceInfo = {
+      datatype: req.query.datatype,
+      dates: {
+        period: req.query.period,
+        start: req.query.date,
+        end: req.query.date
+      },
+      group: {
+        group: "raster",
+        type: "values"
+      },
+      data: Object.assign(resourceData, req.query),
+      filterOpts: {}
+    }
+    //delete values not needed in data values
+    delete resourceInfo.data.datatype;
+    delete resourceInfo.data.period;
+    delete resourceInfo.data.date;
+  
+    try {
+      //should only be one result and one file
+      file = indexer([resourceInfo])[0].files[0];
+    }
+    catch(error) {
+      console.error(error);
+      //if there was an error in the file indexer set files to a junk file to be picked up by file validator
+      file = "/error.error";
+    }
+    
+    try {
+      await validateFile(file);
+    }
+    catch {
+      //set failure and code in status and resolve for logging
+      status.success = false;
+      status.code = 404;
+      resolve(status);
+  
+      //resources not found
+      return res.status(404)
+      .send("The requested file could not be found");
+    }
+    resolve(status)
+    res.status(200)
+    .sendFile(file);
+  }));
 
 });
 
@@ -237,7 +252,7 @@ app.post("/genzip/email", async (req, res) => {
       user: null,
       code: 202,
       success: true
-    }
+    };
 
     let email = req.body.email || null;
     let zipName = req.body.name || defaultZipName;
@@ -375,7 +390,7 @@ app.post("/genzip/email", async (req, res) => {
           //recheck, state may change if fallback on error
           if(!attachFile) {
             //create download link and send in message body
-            let downloadLink = linkRoot + zipExt;
+            let downloadLink = downloadURLRoot + zipExt;
             let mailOptions = {
               to: email,
               text: "Your HCDP download package is ready. Please go to " + downloadLink + " to download it. This link will expire in three days, please download your data in that time.",
@@ -414,7 +429,7 @@ app.post("/genzip/instant/content", async (req, res) => {
       user: "instant",
       code: 200,
       success: true
-    }
+    };
 
     let fileData = req.body.fileData;
 
@@ -501,7 +516,7 @@ app.post("/genzip/instant/link", async (req, res) => {
       user: "instant",
       code: 200,
       success: true
-    }
+    };
 
     let zipName = defaultZipName;
     let fileData = req.body.fileData;
@@ -574,7 +589,7 @@ app.post("/genzip/instant/link", async (req, res) => {
           let zipPath = zipOutput;
           let zipDec = zipPath.split("/");
           let zipExt = zipDec.slice(-2).join("/");
-          let downloadLink = linkRoot + zipExt;
+          let downloadLink = downloadURLRoot + zipExt;
           res.status(200)
           .send(downloadLink);
         }
@@ -593,7 +608,7 @@ app.post("/genzip/instant/splitlink", async (req, res) => {
       user: "instant",
       code: 200,
       success: true
-    }
+    };
 
     let fileData = req.body.fileData;
 
@@ -668,22 +683,69 @@ app.post("/genzip/instant/splitlink", async (req, res) => {
           let uuid = parts[0];
           for(let i = 1; i < parts.length; i++) {
             let fpart = parts[i];
-            let fname = linkRoot + uuid + "/" + fpart;
+            let fname = downloadURLRoot + uuid + "/" + fpart;
             fileParts.push(fname);
           }
 
           let data = {
             files: fileParts
           }
-
-          //wait for a couple seconds and hope file permissions update, should link into perms for verification
-          setTimeout(() => {
-            res.status(200)
-            .json(data);
-          }, 2000);
-          
+          res.status(200)
+          .json(data);
         }
       });
     }
+  }));
+});
+
+
+
+
+
+
+
+app.get("/raw/list", async (req, res) => {
+  return handleReq(req, new Promise(async (resolve, reject) => {
+
+    let status = {
+      user: null,
+      code: 200,
+      success: true
+    };
+
+    let date = req.query.date;
+    let parsedDate = moment(date);
+    let year = parsedDate.format("YYYY");
+    let month = parsedDate.format("MM");
+    let day = parsedDate.format("DD");
+
+    let dataDir = `${year}/${month}/${day}/`;
+    let sysDir = `${rawDataRoot}${dataDir}`;
+    let linkDir = `${rawDataURLRoot}${dataDir}`;
+
+    fs.readdir(sysDir, (err, files) => {
+      //no dir for requested date, just return empty
+      if(err && err.code == "ENOENT") {
+        files = [];
+      }
+      else if(err) {
+        //set failure and code in status and resolve for logging
+        status.success = false;
+        status.code = 500;
+        resolve(status);
+        //resources not found
+        return res.status(500)
+        .send("An error occured while reatreiving the requested data.");
+      }
+
+      files = files.map((file) => {
+        let fileLink = `${linkDir}${file}`;
+        return fileLink;
+      });
+
+      resolve(status);
+      return res.status(200)
+      .json(files);
+    });
   }));
 });

@@ -11,7 +11,7 @@ const moment = require("moment");
 //should this just be stored above that branch?
 //maybe put values above, even though no "values" in vis
 let fileIndex = {
-    root: "/data/",
+    root: "/data/rainfall/",
     datatype: {
         rainfall: {
             raster: {
