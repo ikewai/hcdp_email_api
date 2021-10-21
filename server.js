@@ -27,6 +27,7 @@ const downloadDir = config.downloadDir;
 
 const rawDataRoot = `${dataRoot}${rawDataDir}`;
 const rawDataURLRoot = `${urlRoot}${rawDataDir}`;
+const downloadRoot = `${dataRoot}${downloadDir}`;
 const downloadURLRoot = `${urlRoot}${downloadDir}`;
 
 
@@ -317,7 +318,7 @@ app.post("/genzip/email", async (req, res) => {
       ///////////////////////////////////
     
       //child_process.exec("sh ./zipgen.sh " + email + " " + files, (error, stdout, stderr) => {
-      let zipProc = child_process.spawn("sh", ["./zipgen.sh", genRoot, zipName, ...files]);
+      let zipProc = child_process.spawn("sh", ["./zipgen.sh", downloadRoot, zipName, ...files]);
       //let zipProc = child_process.spawn("zip", ["-qq", "-", ...files]);
 
       let handleError = async (clientError, serverError) => {
@@ -564,7 +565,7 @@ app.post("/genzip/instant/link", async (req, res) => {
     else {
       res.contentType("application/zip");
 
-      let zipProc = child_process.spawn("sh", ["./zipgen.sh", genRoot, zipName, ...files]);
+      let zipProc = child_process.spawn("sh", ["./zipgen.sh", downloadRoot, zipName, ...files]);
       let zipOutput = "";
       //write stdout (should be file name) to output accumulator
       zipProc.stdout.on("data", (data) => {
@@ -656,7 +657,7 @@ app.post("/genzip/instant/splitlink", async (req, res) => {
     else {
       res.contentType("application/zip");
 
-      let zipProc = child_process.spawn("sh", ["./zipgen_parts.sh", genRoot, ...files]);
+      let zipProc = child_process.spawn("sh", ["./zipgen_parts.sh", downloadRoot, ...files]);
       let zipOutput = "";
       //write stdout (should be file name) to output accumulator
       zipProc.stdout.on("data", (data) => {
