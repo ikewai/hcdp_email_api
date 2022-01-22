@@ -10,8 +10,14 @@ dir=$froot$uuid
 mkdir $dir
 file=$dir/$out_name
 
-#-m flag deletes source files, should retain by default
-zip -qq $file $@
+#if no files provided just create an empty zip file
+if [ $# -eq 0 ]
+then
+    touch $file
+else
+    #-m flag deletes source files, should retain by default
+    zip -qq $file $@
+fi
 
 if [ $? -eq 0 ] && [ -f "$file" ]
 then

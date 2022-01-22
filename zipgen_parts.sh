@@ -9,8 +9,15 @@ dir=$froot$uuid
 mkdir $dir
 file_base=$dir/out_
 
-#-m flag deletes source files, should retain by default
-zip -qq - $@ | split -b 4m -d - $file_base
+#if no files provided just create an empty single file
+if [ $# -eq 0 ]
+then
+    file=${file_base}00
+    touch $file
+else
+    #-m flag deletes source files, should retain by default
+    zip -qq - $@ | split -b 4m -d - $file_base
+fi
 
 if [ $? -eq 0 ]
 then
