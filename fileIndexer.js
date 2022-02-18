@@ -34,8 +34,132 @@ class DateFormatter {
 exports.getFiles = getFiles;
 exports.getEmpty = getEmpty;
 
+
 const root = "/data";
 const dateFormatter = new DateFormatter();
+
+//then file, date parts
+let hierarchy = ["datatype", "production", "aggregation", "period", "extent", "fill", "file"];
+
+function getFiles(data) {
+    files = [];
+    //DEAL WITH DATES, file types
+    for(let item of data) {
+        let fpath = root;
+        let fname = ""
+        let period = item.period;
+        let dates = item.range;
+        let files = item.files;
+        for(let property of hierarchy) {
+            let value = item[property];
+            if(value !== undefined) {
+                path.join(fpath, value);
+                fname = `${fname}_${value}`;
+            }
+        }
+        for(let file of files) {
+            if(period && dates) {
+                
+                //add date part of fpath
+                //add date part of fname (note separate by file, some aggregated)
+            }
+        }
+    }
+}
+
+// helper functs
+function shiftPeriod(period, diff) {
+    let periodOrder = ["day", "month", "year"];
+    let periodIndex = periodOrder.indexOf(period);
+    let shiftedPeriodIndex = periodIndex + agg;
+    let shiftedPeriod = periodOrder[shiftedPeriodIndex]
+    return shiftedPeriod;
+}
+fu
+
+let fileDetails = {
+    metadata: {
+        agg: 0,
+        ext: "txt"
+    },
+    data_map: {
+        agg: 0,
+        ext: "tif"
+    },
+    se: {
+        agg: 0,
+        ext: "tif"
+    },
+    anom: {
+        agg: 0,
+        ext: "tif"
+    },
+    anom_se: {
+        agg: 0,
+        ext: "tif"
+    },
+    station_metadata: {
+        agg: null,
+        ext: "csv"
+    },
+    station_data: {
+        agg: 1,
+        ext: "csv"
+    }
+}
+
+function getFnameEnd(file, period, date) {
+    switch(file) {
+        case "metadata": {
+            break;
+        }
+    }
+}
+
+function getExpandedFnames(datatype, file, properties, range) {
+    let fnames = [];
+    //expand dates
+    let period = range.period;
+    let start = range.start;
+    let end = range.end;
+    let date = new moment(start);
+    let endDate = new moment(end);
+    while(date.isSameOrBefore(endDate)) {
+        let dateData = {
+            date: date,
+            period: period
+        };
+        let fname = getFname(datatype, file, properties, dateData);
+        if(fname) {
+            fnames.append(fname);
+        }
+        date.add(1, period);
+    }
+    return fnames;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 async function getFiles(data) {
     let fpaths = [];
