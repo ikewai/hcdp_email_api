@@ -70,6 +70,7 @@ async function getFiles(data) {
                     let fnameComplete = `${fname}_${getFnameEnd(ftype, period, date)}`;
                     //construct complete file path
                     let fpath = path.join(fdirComplete, fnameComplete);
+                    console.log(fpath);
                     //validate file exists and push to file list if it does
                     if(await validateFile(fpath)) {
                         files.push(fpath);
