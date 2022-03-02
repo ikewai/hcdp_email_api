@@ -263,7 +263,7 @@ app.post("/genzip/email", async (req, res) => {
         //should also add email to admin for bug reporting?
         console.error(serverError);
 
-        message += " We appologize for the inconvenience. The site administrators will be notified of the issue. Please try again later.";
+        clientError += " We appologize for the inconvenience. The site administrators will be notified of the issue. Please try again later.";
         let mailOptions = {
           to: email,
           text: clientError,
