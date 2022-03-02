@@ -55,7 +55,7 @@ async function getFiles(data) {
         for(let property of hierarchy) {
             let value = item[property];
             if(value !== undefined) {
-                path.join(fdir, value);
+                fdir = path.join(fdir, value);
                 fname = `${fname}_${value}`;
             }
         }
