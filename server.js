@@ -366,12 +366,15 @@ app.post("/genzip/email", async (req, res) => {
 app.post("/genzip/instant/content", async (req, res) => {
   return handleReq(req, new Promise(async (resolve, reject) => {
     let status = {
-      user: "instant",
+      user: null,
       code: 200,
       success: true
     };
 
+    let email = req.body.email;
     let data = req.body.data;
+
+    status.user = email;
 
     if(!Array.isArray(data)) {
       //set failure and code in status and resolve for logging
@@ -433,13 +436,16 @@ app.post("/genzip/instant/content", async (req, res) => {
 app.post("/genzip/instant/link", async (req, res) => {
   return handleReq(req, new Promise(async (resolve, reject) => {
     let status = {
-      user: "instant",
+      user: null,
       code: 200,
       success: true
     };
 
     let zipName = defaultZipName;
+    let email = req.body.email;
     let data = req.body.data;
+
+    status.user = email;
 
     //if not array then leave files as 0 length to be picked up by error handler
     if(!Array.isArray(data)) {
@@ -499,12 +505,15 @@ app.post("/genzip/instant/link", async (req, res) => {
 app.post("/genzip/instant/splitlink", async (req, res) => {
   return handleReq(req, new Promise(async (resolve, reject) => {
     let status = {
-      user: "instant",
+      user: email,
       code: 200,
       success: true
     };
 
+    let email = req.body.email;
     let data = req.body.data;
+
+    status.user = email;
 
     if(!Array.isArray(data)) {
       //set failure and code in status and resolve for logging
