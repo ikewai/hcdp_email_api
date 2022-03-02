@@ -93,6 +93,8 @@ async function getFiles(data) {
             }
         }
     }
+    console.log(data);
+    console.log(files);
     return files;
 }
 
