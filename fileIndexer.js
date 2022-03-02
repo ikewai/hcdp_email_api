@@ -44,13 +44,13 @@ const emptyIndex = {
 };
 
 async function getFiles(data) {
-    files = [];
+    let files = [];
     for(let item of data) {
         let fdir = root;
         let fname = ""
         let period = item.period;
         let range = item.range;
-        let files = item.files;
+        let ftypes = item.files;
         //add properties to path in order of hierarchy
         for(let property of hierarchy) {
             let value = item[property];
@@ -63,32 +63,32 @@ async function getFiles(data) {
             //expand out dates
             dates = expandDates(period, range);
             for(date of dates) {
-                for(let file of files) {
+                for(let ftype of ftypes) {
                     //add file and date part of fdir
-                    fdirComplete = path.join(fdir, file, createDateString(date, period, "/"));
+                    let fdirComplete = path.join(fdir, ftype, createDateString(date, period, "/"));
                     //add fname end to fname
-                    fnameComplete = `${fname}_${getFnameEnd(file, period, date)}`;
+                    let fnameComplete = `${fname}_${getFnameEnd(ftype, period, date)}`;
                     //construct complete file path
-                    fpath = path.join(fdirComplete, fnameComplete);
-                    //validate file exists and append to file list if it does
+                    let fpath = path.join(fdirComplete, fnameComplete);
+                    //validate file exists and push to file list if it does
                     if(await validateFile(fpath)) {
-                        files.append(fpath);
+                        files.push(fpath);
                     }
                 }
             } 
         }
         //no date component
         else {
-            for(let file of files) {
+            for(let ftype of ftypes) {
                 //add file part to path
-                fdirComplete = path.join(fdir, file);
+                let fdirComplete = path.join(fdir, ftype);
                 //add fname end to fname
-                fnameComplete = `${fname}_${getFnameEnd(file, undefined, undefined)}`;
+                let fnameComplete = `${fname}_${getFnameEnd(ftype, undefined, undefined)}`;
                 //construct complete file path
-                fpath = path.join(fdirComplete, fnameComplete);
+                let fpath = path.join(fdirComplete, fnameComplete);
                 //validate file exists and append to file list if it does
                 if(await validateFile(fpath)) {
-                    files.append(fpath);
+                    files.push(fpath);
                 }
             }
         }
@@ -162,7 +162,7 @@ function expandDates(period, range) {
     let endDate = new moment(end);
     while(date.isSameOrBefore(endDate)) {
         let clone = date.clone();
-        dates.append(clone);
+        dates.push(clone);
         date.add(1, period);
     }
     return dates;
