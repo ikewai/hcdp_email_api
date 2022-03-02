@@ -133,7 +133,6 @@ function createDateString(date, period, delim) {
             throw Error("Unrecognized period");
         }
     }
-    let dateFormat = dateFormat;
 
     let fdate = date.format(dateFormat);
     return fdate;
