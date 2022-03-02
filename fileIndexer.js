@@ -4,7 +4,7 @@ const path = require("path");
 
 
 //data root
-const root = "/data";
+const root = "/data/production";
 //property hierarchy (followed by file and date parts)
 const hierarchy = ["datatype", "production", "aggregation", "period", "extent", "fill"];
 //details on file name period aggregations and file extensions
