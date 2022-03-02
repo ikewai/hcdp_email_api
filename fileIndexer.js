@@ -140,9 +140,10 @@ function createDateString(date, period, delim) {
 
 //get the end portion of file name
 function getFnameEnd(file, period, date) {
+    console.log(file);
     let details = fileDetails[file];
     let fnameEnd = file;
-    let agg = details.agg
+    let agg = details.agg;
     if(agg !== null) {
         aggPeriod = agg == 0 ? period : shiftPeriod(period, agg);
         datePart = createDateString(date, aggPeriod, "_")
