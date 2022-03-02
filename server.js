@@ -503,7 +503,7 @@ app.post("/genzip/instant/link", async (req, res) => {
 app.post("/genzip/instant/splitlink", async (req, res) => {
   return handleReq(req, new Promise(async (resolve, reject) => {
     let status = {
-      user: email,
+      user: null,
       code: 200,
       success: true
     };
