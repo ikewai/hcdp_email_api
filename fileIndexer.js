@@ -64,10 +64,13 @@ async function getFiles(data) {
             dates = expandDates(period, range);
             for(date of dates) {
                 for(let ftype of ftypes) {
+                    let dirPeriod = shiftPeriod(period, 1);
                     //add file and date part of fdir
-                    let fdirComplete = path.join(fdir, ftype, createDateString(date, period, "/"));
+                    let fdirComplete = path.join(fdir, ftype, createDateString(date, dirPeriod, "/"));
                     //add fname end to fname
                     let fnameComplete = `${fname}_${getFnameEnd(ftype, period, date)}`;
+                    //strip leading underscore
+                    fnameComplete = fnameComplete.substring(1);
                     //construct complete file path
                     let fpath = path.join(fdirComplete, fnameComplete);
                     console.log(fpath);
@@ -85,6 +88,8 @@ async function getFiles(data) {
                 let fdirComplete = path.join(fdir, ftype);
                 //add fname end to fname
                 let fnameComplete = `${fname}_${getFnameEnd(ftype, undefined, undefined)}`;
+                //strip leading underscore
+                fnameComplete = fnameComplete.substring(1);
                 //construct complete file path
                 let fpath = path.join(fdirComplete, fnameComplete);
                 //validate file exists and append to file list if it does
