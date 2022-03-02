@@ -387,7 +387,7 @@ app.post("/genzip/instant/content", async (req, res) => {
       );
     }
     else {
-      let files = indexer.getFiles(data);
+      let files = await indexer.getFiles(data);
       if(files.length > 0) {
         res.contentType("application/zip");
   
@@ -460,7 +460,7 @@ app.post("/genzip/instant/link", async (req, res) => {
       );
     }
     else {
-      let files = indexer.getFiles(data);
+      let files = await indexer.getFiles(data);
       res.contentType("application/zip");
 
       let zipProc = child_process.spawn("sh", ["./zipgen.sh", downloadRoot, zipName, ...files]);
@@ -526,7 +526,7 @@ app.post("/genzip/instant/splitlink", async (req, res) => {
       );
     }
     else {
-      let files = indexer.getFiles(data);
+      let files = await indexer.getFiles(data);
       console.log(data);
       console.log(files);
       res.contentType("application/zip");
