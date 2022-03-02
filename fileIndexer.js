@@ -92,8 +92,8 @@ async function getFiles(data) {
                 }
             }
         }
-        
     }
+    return files;
 }
 
 //add folder with empty geotiffs for extents
