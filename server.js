@@ -168,17 +168,15 @@ app.get("/raster", async (req, res) => {
     };
 
     //destructure query
-    let {datatype, period, date, returnEmptyNotFound, ...properties} = req.query;
+    let {date, returnEmptyNotFound, ...properties} = req.query;
 
     let data = [{
-      datatype: datatype,
-      files: ["raster"],
-      properties: properties,
+      files: ["data_map"],
       range: {
-        period: period,
         start: date,
         end: date
-      }
+      },
+      ...properties
     }];
     
     let files = await indexer.getFiles(data);
