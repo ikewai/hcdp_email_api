@@ -527,11 +527,7 @@ app.post("/genzip/instant/splitlink", async (req, res) => {
     }
     else {
       let files = await indexer.getFiles(data);
-      console.log(data);
-      console.log(files);
       res.contentType("application/zip");
-      console.log(["./zipgen_parts.sh", downloadRoot, ...files]);
-
       let zipProc = child_process.spawn("sh", ["./zipgen_parts.sh", downloadRoot, ...files]);
       let zipOutput = "";
       //write stdout (should be file name) to output accumulator
