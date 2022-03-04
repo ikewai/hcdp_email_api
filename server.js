@@ -142,7 +142,7 @@ async function sendEmail(transporterOptions, mailOptions) {
 
 
 
-async function handleReq(req, handler) {
+async function handleReq(req, res, handler) {
   return handler
   .then((status) => {
     //log email address and success status
@@ -155,12 +155,15 @@ async function handleReq(req, handler) {
       endpoint:" + req.path + "\n\
       error: " + e.toString()
     );
+
+    res.status(500)
+    .send("An unexpected error occurred");
   });
 }
 
 
 app.get("/raster", async (req, res) => {
-  return handleReq(req, new Promise(async (resolve, reject) => {
+  return handleReq(req, res, new Promise(async (resolve, reject) => {
     let status = {
       user: null,
       code: 200,
@@ -214,7 +217,7 @@ app.get("/raster", async (req, res) => {
 
 //should move file indexing
 app.post("/genzip/email", async (req, res) => {
-  return handleReq(req, new Promise(async (resolve, reject) => {
+  return handleReq(req, res, new Promise(async (resolve, reject) => {
     let status = {
       user: null,
       code: 202,
@@ -362,7 +365,7 @@ app.post("/genzip/email", async (req, res) => {
 
 
 app.post("/genzip/instant/content", async (req, res) => {
-  return handleReq(req, new Promise(async (resolve, reject) => {
+  return handleReq(req, res, new Promise(async (resolve, reject) => {
     let status = {
       user: null,
       code: 200,
@@ -432,7 +435,7 @@ app.post("/genzip/instant/content", async (req, res) => {
 
 
 app.post("/genzip/instant/link", async (req, res) => {
-  return handleReq(req, new Promise(async (resolve, reject) => {
+  return handleReq(req, res, new Promise(async (resolve, reject) => {
     let status = {
       user: null,
       code: 200,
@@ -501,7 +504,7 @@ app.post("/genzip/instant/link", async (req, res) => {
 
 
 app.post("/genzip/instant/splitlink", async (req, res) => {
-  return handleReq(req, new Promise(async (resolve, reject) => {
+  return handleReq(req, res, new Promise(async (resolve, reject) => {
     let status = {
       user: null,
       code: 200,
@@ -573,7 +576,7 @@ app.post("/genzip/instant/splitlink", async (req, res) => {
 
 
 app.get("/raw/list", async (req, res) => {
-  return handleReq(req, new Promise(async (resolve, reject) => {
+  return handleReq(req, res, new Promise(async (resolve, reject) => {
 
     let status = {
       user: null,
@@ -634,7 +637,7 @@ app.get("/raw/list", async (req, res) => {
 
 
 app.get("/source_data/data", async (req, res) => {
-  return handleReq(req, new Promise(async (resolve, reject) => {
+  return handleReq(req, res, new Promise(async (resolve, reject) => {
 
     let status = {
       user: null,
@@ -712,7 +715,7 @@ app.get("/source_data/data", async (req, res) => {
 
 
 app.get("/source_data/list", async (req, res) => {
-  return handleReq(req, new Promise(async (resolve, reject) => {
+  return handleReq(req, res, new Promise(async (resolve, reject) => {
 
     let status = {
       user: null,
