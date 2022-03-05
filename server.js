@@ -169,6 +169,7 @@ app.get("/raster", async (req, res) => {
       code: 200,
       success: true
     };
+    throw new Error("rawr");
 
     //destructure query
     let {date, returnEmptyNotFound, ...properties} = req.query;
