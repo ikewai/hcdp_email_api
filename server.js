@@ -162,8 +162,8 @@ async function handleReq(req, res, handler) {
 }
 
 
-app.get("/raster", async (req, res) => {
-  return handleReq(req, res, new Promise(async (resolve, reject) => {
+app.get("/raster", async (req, res, next) => {
+  return handleReq(req, res, async () => {
     let status = {
       user: null,
       code: 200,
@@ -209,7 +209,7 @@ app.get("/raster", async (req, res) => {
       .sendFile(file);
     }
     
-  }));
+  });
 
 });
 
