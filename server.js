@@ -143,22 +143,21 @@ async function sendEmail(transporterOptions, mailOptions) {
 
 
 async function handleReq(req, res, handler) {
-  return handler
-  .then((status) => {
+  try {
+    let status = await handler();
     //log email address and success status
     console.log(status.user + ":" + status.code + ":" + status.success);
-  })
-  .catch((e) => {
+  }
+  catch(e) {
     console.error(
       "An error has occured: \n\
       method:" + req.method + "\n\
       endpoint:" + req.path + "\n\
       error: " + e.toString()
     );
-
     res.status(500)
     .send("An unexpected error occurred");
-  });
+  }
 }
 
 
