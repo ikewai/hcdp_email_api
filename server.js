@@ -153,7 +153,7 @@ async function handleReq(req, res, handler) {
       "An error has occured: \n\
       method:" + req.method + "\n\
       endpoint:" + req.path + "\n\
-      error: " + e.toString()
+      error: " + e
     );
     res.status(500)
     .send("An unexpected error occurred");
