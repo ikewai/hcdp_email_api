@@ -196,8 +196,6 @@ app.get("/raster", async (req, res) => {
       },
       ...properties
     }];
-
-    throw new Error("rawr");
     
     let files = await indexer.getFiles(data);
     let file = null;
