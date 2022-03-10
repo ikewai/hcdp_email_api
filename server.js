@@ -26,6 +26,7 @@ const urlRoot = config.urlRoot;
 const rawDataDir = config.rawDataDir;
 const sourceDataDir = config.sourceDataDir;
 const downloadDir = config.downloadDir;
+const userLog = config.userLog;
 
 const rawDataRoot = `${dataRoot}${rawDataDir}`;
 const rawDataURLRoot = `${urlRoot}${rawDataDir}`;
@@ -140,7 +141,10 @@ async function sendEmail(transporterOptions, mailOptions) {
   });
 }
 
-
+function logUser(user, files) {
+  let data = `${user}: ${files}`
+  fs.appendFile(userLog, data);
+}
 
 async function handleReq(req, res, handler) {
   try {
@@ -149,26 +153,34 @@ async function handleReq(req, res, handler) {
     console.log(status.user + ":" + status.code + ":" + status.success);
   }
   catch(e) {
-    console.error(
-      "An error has occured: \n\
+    let errorMsg = "An error has occured: \n\
       method:" + req.method + "\n\
       endpoint:" + req.path + "\n\
-      error: " + e
-    );
+      error: " + e;
+    //should also add email to admin for bug reporting?
+    console.error(errorMsg);
     res.status(500)
     .send("An unexpected error occurred");
+
+    let mailOptions = {
+      to: ["mcleanj@hawaii.edu", "seanbc@hawaii.edu"],
+      subject: "HCDP API error",
+      text: `An unexpected error occured in the HCDP API:\n${errorMsg}`,
+      html: `<p> An error occured in the HCDP API:\n${errorMsg}</p>`
+    };
+    //attempt to send email to the administrators
+    sendEmail(transporterOptions, mailOptions);
   }
 }
 
 
-app.get("/raster", async (req, res, next) => {
+app.get("/raster", async (req, res) => {
   return handleReq(req, res, async () => {
     let status = {
       user: null,
       code: 200,
       success: true
     };
-    throw new Error("rawr");
 
     //destructure query
     let {date, returnEmptyNotFound, ...properties} = req.query;
@@ -193,21 +205,19 @@ app.get("/raster", async (req, res, next) => {
     }
     
     if(!file) {
-      //set failure and code in status and resolve for logging
+      //set failure and code in status
       status.success = false;
       status.code = 404;
-      resolve(status);
   
       //resources not found
       res.status(404)
       .send("The requested file could not be found");
     }
     else {
-      resolve(status)
       res.status(200)
       .sendFile(file);
     }
-    
+    return status;
   });
 
 });
@@ -217,7 +227,7 @@ app.get("/raster", async (req, res, next) => {
 
 //should move file indexing
 app.post("/genzip/email", async (req, res) => {
-  return handleReq(req, res, new Promise(async (resolve, reject) => {
+  return handleReq(req, res, async () => {
     let status = {
       user: null,
       code: 202,
@@ -231,10 +241,9 @@ app.post("/genzip/email", async (req, res) => {
     status.user = email;
     //make sure required parameters exist and data is an array
     if(!Array.isArray(data) || !email) {
-      //set failure and code in status and resolve for logging
+      //set failure and code in status
       status.success = false;
       status.code = 400;
-      resolve(status);
 
       //send error
       res.status(400)
@@ -258,13 +267,9 @@ app.post("/genzip/email", async (req, res) => {
       // generate package and send email //
       /////////////////////////////////////
 
-      let handleError = async (clientError, serverError) => {
-        //set failure in status and resolve for logging
+      let handleError = async (clientError) => {
+        //set failure in status
         status.success = false;
-        resolve(status);
-
-        //should also add email to admin for bug reporting?
-        console.error(serverError);
 
         clientError += " We appologize for the inconvenience. The site administrators will be notified of the issue. Please try again later.";
         let mailOptions = {
@@ -272,8 +277,8 @@ app.post("/genzip/email", async (req, res) => {
           text: clientError,
           html: "<p>" + clientError + "</p>"
         };
-        mailRes = await sendEmail(transporterOptions, mailOptions);
-        return mailRes;
+        //try to send the error email, last try to actually notify user
+        sendEmail(transporterOptions, mailOptions);
       }
       
       //get files
@@ -292,8 +297,8 @@ app.post("/genzip/email", async (req, res) => {
         if(code !== 0) {
           serverError = `Failed to generate download package for user ${email}. Zip process failed with code ${code}.`
           clientError = "There was an error generating your HCDP download package.";
-          console.error(serverError);
           handleError(clientError);
+          throw new Error(serverError);
         }
         else {
           let zipDec = zipPath.split("/");
@@ -344,28 +349,28 @@ app.post("/genzip/email", async (req, res) => {
           if(!mailRes.success) {
             let serverError = "Failed to send message to user " + email + ". Error: " + mailRes.error.toString();
             let clientError = "There was an error sending your HCDP download package to this email address.";
-            handleError(clientError, serverError);
+            handleError(clientError);
+            //failed to send email, clear data
+            child_process.exec("rm -r " + zipRoot);
+            throw new Error(serverError);
           }
-          //success, resolve with status for logging
-          else {
-            resolve(status);
-          }
-
           //cleanup file if attached
           //otherwise should be cleaned by chron task
           //no need error handling, if error chron should handle later
-          if(attachFile) {
+          else if(attachFile) {
             child_process.exec("rm -r " + zipRoot);
           }
         }
       });
+      logUser(email, files.length);
     }
-  }));
+    return status;
+  });
 });
 
 
 app.post("/genzip/instant/content", async (req, res) => {
-  return handleReq(req, res, new Promise(async (resolve, reject) => {
+  return handleReq(req, res, async () => {
     let status = {
       user: null,
       code: 200,
@@ -378,10 +383,9 @@ app.post("/genzip/instant/content", async (req, res) => {
     status.user = email;
 
     if(!Array.isArray(data)) {
-      //set failure and code in status and resolve for logging
+      //set failure and code in status
       status.success = false;
       status.code = 400;
-      resolve(status);
 
       res.status(400)
       .send(
@@ -404,19 +408,15 @@ app.post("/genzip/instant/content", async (req, res) => {
         //handle errors and end res on completion
         zipProc.on("exit", (code) => {
           if(code !== 0) {
-            //set failure and code in status and resolve for logging
+            //set failure and code in status
             status.success = false;
             status.code = 500;
-            resolve(status);
     
             res.status(500)
             .end();
-            console.error("Zip process failed with code " + code);
+            throw new Error("Zip process failed with code " + code);
           }
           else {
-            //resolve for logging
-            resolve(status)
-    
             res.status(200)
             .end();
           }
@@ -424,18 +424,18 @@ app.post("/genzip/instant/content", async (req, res) => {
       }
       //just send empty if no files
       else {
-        //resolve for logging
-        resolve(status)
         res.status(200)
         .end();
       }
+      logUser(email, files.length);
     }
-  }));
+    return status;
+  });
 });
 
 
 app.post("/genzip/instant/link", async (req, res) => {
-  return handleReq(req, res, new Promise(async (resolve, reject) => {
+  return handleReq(req, res, async () => {
     let status = {
       user: null,
       code: 200,
@@ -450,10 +450,9 @@ app.post("/genzip/instant/link", async (req, res) => {
 
     //if not array then leave files as 0 length to be picked up by error handler
     if(!Array.isArray(data)) {
-      //set failure and code in status and resolve for logging
+      //set failure and code in status
       status.success = false;
       status.code = 400;
-      resolve(status);
 
       res.status(400)
       .send(
@@ -476,27 +475,27 @@ app.post("/genzip/instant/link", async (req, res) => {
       //handle result on end
       zipProc.on("exit", async (code) => {
         if(code !== 0) {
-          //set failure and code in status and resolve for logging
+          //set failure and code in status
           status.success = false;
           status.code = 500;
-          resolve(status);
 
           let serverError = "Failed to generate download package. Zip process failed with code " + code;
           res.status(500)
           .send(serverError);
-          console.error(serverError);
+          throw new Error(serverError);
         }
         else {
-          resolve(status);
           let zipDec = zipPath.split("/");
           let zipExt = zipDec.slice(-2).join("/");
           let downloadLink = downloadURLRoot + zipExt;
           res.status(200)
           .send(downloadLink);
+          logUser(email, files.length);
         }
       });
     }
-  }));
+    return status;
+  });
 });
 
 
@@ -504,7 +503,7 @@ app.post("/genzip/instant/link", async (req, res) => {
 
 
 app.post("/genzip/instant/splitlink", async (req, res) => {
-  return handleReq(req, res, new Promise(async (resolve, reject) => {
+  return handleReq(req, res, async () => {
     let status = {
       user: null,
       code: 200,
@@ -517,10 +516,9 @@ app.post("/genzip/instant/splitlink", async (req, res) => {
     status.user = email;
 
     if(!Array.isArray(data)) {
-      //set failure and code in status and resolve for logging
+      //set failure and code in status
       status.success = false;
       status.code = 400;
-      resolve(status);
 
       res.status(400)
       .send(
@@ -541,18 +539,16 @@ app.post("/genzip/instant/splitlink", async (req, res) => {
       //handle result on end
       zipProc.on("exit", async (code) => {
         if(code !== 0) {
-          //set failure and code in status and resolve for logging
+          //set failure and code in status
           status.success = false;
           status.code = 500;
-          resolve(status);
 
           let serverError = "Failed to generate download package. Zip process failed with code " + code;
           res.status(500)
           .send(serverError);
-          console.error(serverError);
+          throw new Error(serverError);
         }
         else {
-          resolve(status);
           let parts = zipOutput.split(" ");
           let fileParts = [];
           let uuid = parts[0];
@@ -567,17 +563,18 @@ app.post("/genzip/instant/splitlink", async (req, res) => {
           }
           res.status(200)
           .json(data);
+          logUser(email, files.length);
         }
       });
     }
-  }));
+    return status;
+  });
 });
 
 
 
 app.get("/raw/list", async (req, res) => {
-  return handleReq(req, res, new Promise(async (resolve, reject) => {
-
+  return handleReq(req, res, async () => {
     let status = {
       user: null,
       code: 200,
@@ -587,10 +584,9 @@ app.get("/raw/list", async (req, res) => {
     let date = req.query.date;
 
     if(!date) {
-      //set failure and code in status and resolve for logging
+      //set failure and code in status
       status.success = false;
       status.code = 400;
-      resolve(status);
 
       res.status(400)
       .send(
@@ -614,10 +610,9 @@ app.get("/raw/list", async (req, res) => {
         files = [];
       }
       else if(err) {
-        //set failure and code in status and resolve for logging
+        //set failure and code in status
         status.success = false;
         status.code = 500;
-        resolve(status);
         //resources not found
         return res.status(500)
         .send("An error occured while retrieving the requested data.");
@@ -627,18 +622,17 @@ app.get("/raw/list", async (req, res) => {
         let fileLink = path.join(linkDir, file);
         return fileLink;
       });
-
-      resolve(status);
+;
       return res.status(200)
       .json(files);
     });
-  }));
+    return status;
+  });
 });
 
 
 app.get("/source_data/data", async (req, res) => {
-  return handleReq(req, res, new Promise(async (resolve, reject) => {
-
+  return handleReq(req, res, async () => {
     let status = {
       user: null,
       code: 200,
@@ -651,10 +645,9 @@ app.get("/source_data/data", async (req, res) => {
 
     //need to have these three parameters
     if(!(date && source && tier)) {
-      //set failure and code in status and resolve for logging
+      //set failure and code in status
       status.success = false;
       status.code = 400;
-      resolve(status);
 
       res.status(400)
       .send(
@@ -673,19 +666,17 @@ app.get("/source_data/data", async (req, res) => {
 
     let failureHandler = (code) => {
       if(code == 404) {
-        //set failure and code in status and resolve for logging
+        //set failure and code in status and
         status.success = false;
         status.code = 404;
-        resolve(status);
         //resources not found
         return res.status(404)
         .send("The requested data does not exist.");
       }
       else if(code == 404) {
-        //set failure and code in status and resolve for logging
+        //set failure and code in status
         status.success = false;
         status.code = 500;
-        resolve(status);
         //resources not found
         return res.status(500)
         .send("An error occured while retrieving the requested data.");
@@ -706,17 +697,16 @@ app.get("/source_data/data", async (req, res) => {
       }
       file = path.join(dataDir, files[0]);
 
-      resolve(status)
       res.status(200)
       .sendFile(file);
     });
-  }));
+    return status;
+  });
 });
 
 
 app.get("/source_data/list", async (req, res) => {
-  return handleReq(req, res, new Promise(async (resolve, reject) => {
-
+  return handleReq(req, res, async () => {
     let status = {
       user: null,
       code: 200,
@@ -729,10 +719,9 @@ app.get("/source_data/list", async (req, res) => {
 
     //need to have these three parameters
     if(!(date && source && tier)) {
-      //set failure and code in status and resolve for logging
+      //set failure and code in status
       status.success = false;
       status.code = 400;
-      resolve(status);
 
       res.status(400)
       .send(
@@ -755,10 +744,9 @@ app.get("/source_data/list", async (req, res) => {
         files = [];
       }
       else if(err) {
-        //set failure and code in status and resolve for logging
+        //set failure and code in status
         status.success = false;
         status.code = 500;
-        resolve(status);
         //resources not found
         return res.status(500)
         .send("An error occured while retrieving the requested data.");
@@ -769,9 +757,9 @@ app.get("/source_data/list", async (req, res) => {
         return fileLink;
       });
 
-      resolve(status);
       return res.status(200)
       .json(files);
     });
-  }));
+    return status;
+  });
 });
