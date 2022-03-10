@@ -157,20 +157,19 @@ async function handleReq(req, res, handler) {
     console.log(status.user + ":" + status.code + ":" + status.success);
   }
   catch(e) {
-    let errorMsg = "An error has occured: \n\
-      method:" + req.method + "\n\
-      endpoint:" + req.path + "\n\
-      error: " + e;
-    //should also add email to admin for bug reporting?
-    console.error(errorMsg);
+    let errorMsg = `method: ${req.method}\n\
+      endpoint: ${req.path}\n\
+      error: ${e}`;
+    let htmlErrorMsg = errorMsg.replace(/\n/g, "<br>");
+    console.error(`An error has occured:\n${errorMsg}`);
     res.status(500)
     .send("An unexpected error occurred");
-
+    //send the administrators an email logging the error
     let mailOptions = {
       to: ["mcleanj@hawaii.edu", "seanbc@hawaii.edu"],
       subject: "HCDP API error",
       text: `An unexpected error occured in the HCDP API:\n${errorMsg}`,
-      html: `<p> An error occured in the HCDP API:\n${errorMsg}</p>`
+      html: `<p>An error occured in the HCDP API:<br>${htmlErrorMsg}</p>`
     };
     //attempt to send email to the administrators
     sendEmail(transporterOptions, mailOptions);
