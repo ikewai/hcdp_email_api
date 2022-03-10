@@ -143,7 +143,11 @@ async function sendEmail(transporterOptions, mailOptions) {
 
 function logUser(user, files) {
   let data = `${user}: ${files}`
-  fs.appendFile(userLog, data);
+  fs.appendFile(userLog, data, (err) => {
+    if(err) {
+      console.error(`Failed to write userlog.\nError: ${err}`);
+    }
+  });
 }
 
 async function handleReq(req, res, handler) {
