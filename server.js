@@ -86,11 +86,13 @@ app.use((req, res, next) => {
 app.use((req, res, next) => {
   authorized = false;
   let auth = req.headers.Authorization;
+  console.log(auth);
   if(auth) {
     let authPattern = /^Bearer (.+)$/;
     let match = auth.match(authPattern);
     let token = match[1];
-    authorized = this.whitelist.includes(token)
+    console.log(token);
+    authorized = this.whitelist.includes(token);
   }
   if(authorized) {
     //pass to next layer
