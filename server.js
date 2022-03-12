@@ -28,6 +28,7 @@ const sourceDataDir = config.sourceDataDir;
 const downloadDir = config.downloadDir;
 const userLog = config.userLog;
 const whitelist = config.whitelist;
+const administrators = config.administrators;
 
 const rawDataRoot = `${dataRoot}${rawDataDir}`;
 const rawDataURLRoot = `${urlRoot}${rawDataDir}`;
@@ -155,12 +156,10 @@ async function handleReq(req, res, handler) {
   try {
     authorized = false;
     let auth = req.get("authorization");
-    console.log(auth);
     if(auth) {
       let authPattern = /^Bearer (.+)$/;
       let match = auth.match(authPattern);
       let token = match[1];
-      console.log(token);
       authorized = whitelist.includes(token);
     }
     if(authorized) {
@@ -182,21 +181,22 @@ async function handleReq(req, res, handler) {
     res.status(500)
     .send("An unexpected error occurred");
     //send the administrators an email logging the error
-    let mailOptions = {
-      to: ["mcleanj@hawaii.edu", "seanbc@hawaii.edu"],
-      subject: "HCDP API error",
-      text: `An unexpected error occured in the HCDP API:\n${errorMsg}`,
-      html: `<p>An error occured in the HCDP API:<br>${htmlErrorMsg}</p>`
-    };
-    //attempt to send email to the administrators
-    sendEmail(transporterOptions, mailOptions);
+    if(administrators.length > 0) {
+      let mailOptions = {
+        to: administrators,
+        subject: "HCDP API error",
+        text: `An unexpected error occured in the HCDP API:\n${errorMsg}`,
+        html: `<p>An error occured in the HCDP API:<br>${htmlErrorMsg}</p>`
+      };
+      //attempt to send email to the administrators
+      sendEmail(transporterOptions, mailOptions);
+    }
   }
 }
 
 
 app.get("/raster", async (req, res) => {
   return handleReq(req, res, async () => {
-    console.log(req.headers);
     let status = {
       user: null,
       code: 200,
