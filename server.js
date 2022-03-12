@@ -161,7 +161,7 @@ async function handleReq(req, res, handler) {
       let match = auth.match(authPattern);
       let token = match[1];
       console.log(token);
-      authorized = this.whitelist.includes(token);
+      authorized = whitelist.includes(token);
     }
     if(authorized) {
       let status = await handler();
