@@ -83,28 +83,6 @@ app.use((req, res, next) => {
   next();
 });
 
-// app.use((req, res, next) => {
-//   authorized = false;
-//   console.log(req.headers);
-//   let auth = req.get("authorization");
-//   console.log(auth);
-//   if(auth) {
-//     let authPattern = /^Bearer (.+)$/;
-//     let match = auth.match(authPattern);
-//     let token = match[1];
-//     console.log(token);
-//     authorized = this.whitelist.includes(token);
-//   }
-//   if(authorized) {
-//     //pass to next layer
-//     next();
-//   }
-//   else {
-//     res.status(403)
-//     .send("User not authorized")
-//   }
-// });
-
 ////////////////////////////////
 ////////////////////////////////
 
@@ -175,9 +153,25 @@ function logUser(user, files) {
 
 async function handleReq(req, res, handler) {
   try {
-    let status = await handler();
-    //log email address and success status
-    console.log(status.user + ":" + status.code + ":" + status.success);
+    authorized = false;
+    let auth = req.get("authorization");
+    console.log(auth);
+    if(auth) {
+      let authPattern = /^Bearer (.+)$/;
+      let match = auth.match(authPattern);
+      let token = match[1];
+      console.log(token);
+      authorized = this.whitelist.includes(token);
+    }
+    if(authorized) {
+      let status = await handler();
+      //log email address and success status
+      console.log(status.user + ":" + status.code + ":" + status.success);
+    }
+    else {
+      res.status(403)
+      .send("User not authorized")
+    }
   }
   catch(e) {
     let errorMsg = `method: ${req.method}\n\
