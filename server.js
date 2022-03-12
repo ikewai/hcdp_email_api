@@ -70,28 +70,6 @@ const server = https.createServer(options, app)
   }
 });
 
-app.use((req, res, next) => {
-  authorized = false;
-  console.log(req.headers);
-  let auth = req.get("authorization");
-  console.log(auth);
-  if(auth) {
-    let authPattern = /^Bearer (.+)$/;
-    let match = auth.match(authPattern);
-    let token = match[1];
-    console.log(token);
-    authorized = this.whitelist.includes(token);
-  }
-  if(authorized) {
-    //pass to next layer
-    next();
-  }
-  else {
-    res.status(403)
-    .send("User not authorized")
-  }
-});
-
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 //compress all HTTP responses
@@ -105,7 +83,27 @@ app.use((req, res, next) => {
   next();
 });
 
-
+// app.use((req, res, next) => {
+//   authorized = false;
+//   console.log(req.headers);
+//   let auth = req.get("authorization");
+//   console.log(auth);
+//   if(auth) {
+//     let authPattern = /^Bearer (.+)$/;
+//     let match = auth.match(authPattern);
+//     let token = match[1];
+//     console.log(token);
+//     authorized = this.whitelist.includes(token);
+//   }
+//   if(authorized) {
+//     //pass to next layer
+//     next();
+//   }
+//   else {
+//     res.status(403)
+//     .send("User not authorized")
+//   }
+// });
 
 ////////////////////////////////
 ////////////////////////////////
@@ -204,6 +202,7 @@ async function handleReq(req, res, handler) {
 
 app.get("/raster", async (req, res) => {
   return handleReq(req, res, async () => {
+    console.log(req.headers);
     let status = {
       user: null,
       code: 200,
