@@ -85,7 +85,7 @@ app.use((req, res, next) => {
 
 app.use((req, res, next) => {
   authorized = false;
-  console.log(auth.headers);
+  console.log(req.headers.headers);
   let auth = req.headers.authorization;
   console.log(auth);
   if(auth) {
