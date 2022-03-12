@@ -85,7 +85,8 @@ app.use((req, res, next) => {
 
 app.use((req, res, next) => {
   authorized = false;
-  let auth = req.headers.Authorization;
+  console.log(auth.headers);
+  let auth = req.headers.authorization;
   console.log(auth);
   if(auth) {
     let authPattern = /^Bearer (.+)$/;
