@@ -70,19 +70,6 @@ const server = https.createServer(options, app)
   }
 });
 
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-//compress all HTTP responses
-app.use(compression());
-
-app.use((req, res, next) => {
-  res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Methods", "GET, POST");
-  res.setHeader("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, Authorization, Range, Content-Range, Cache-Control");
-  //pass to next layer
-  next();
-});
-
 app.use((req, res, next) => {
   authorized = false;
   console.log(req.headers);
@@ -104,6 +91,21 @@ app.use((req, res, next) => {
     .send("User not authorized")
   }
 });
+
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+//compress all HTTP responses
+app.use(compression());
+
+app.use((req, res, next) => {
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Methods", "GET, POST");
+  res.setHeader("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, Authorization, Range, Content-Range, Cache-Control");
+  //pass to next layer
+  next();
+});
+
+
 
 ////////////////////////////////
 ////////////////////////////////
