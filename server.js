@@ -27,6 +27,7 @@ const rawDataDir = config.rawDataDir;
 const sourceDataDir = config.sourceDataDir;
 const downloadDir = config.downloadDir;
 const userLog = config.userLog;
+const whitelist = config.whitelist;
 
 const rawDataRoot = `${dataRoot}${rawDataDir}`;
 const rawDataURLRoot = `${urlRoot}${rawDataDir}`;
@@ -80,6 +81,25 @@ app.use((req, res, next) => {
   res.setHeader("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, Authorization, Range, Content-Range, Cache-Control");
   //pass to next layer
   next();
+});
+
+app.use((req, res, next) => {
+  authorized = false;
+  let auth = req.headers.Authorization;
+  if(auth) {
+    let authPattern = /^Bearer (.+)$/;
+    let match = auth.match(authPattern);
+    let token = match[1];
+    authorized = this.whitelist.includes(token)
+  }
+  if(authorized) {
+    //pass to next layer
+    next();
+  }
+  else {
+    res.status(403)
+    .send("User not authorized")
+  }
 });
 
 ////////////////////////////////
@@ -385,7 +405,7 @@ app.post("/genzip/instant/content", async (req, res) => {
 
     status.user = email;
 
-    if(!Array.isArray(data)) {
+    if(!Array.isArray(data) || !email) {
       //set failure and code in status
       status.success = false;
       status.code = 400;
@@ -393,7 +413,8 @@ app.post("/genzip/instant/content", async (req, res) => {
       res.status(400)
       .send(
         "Request body should include the following fields: \n\
-        data: An array of file data objects describing a non-empty set of files to zip."
+        data: An array of file data objects describing a non-empty set of files to zip. \n\
+        email: The requestor's email address for logging"
       );
     }
     else {
@@ -452,7 +473,7 @@ app.post("/genzip/instant/link", async (req, res) => {
     status.user = email;
 
     //if not array then leave files as 0 length to be picked up by error handler
-    if(!Array.isArray(data)) {
+    if(!Array.isArray(data) || !email) {
       //set failure and code in status
       status.success = false;
       status.code = 400;
@@ -461,6 +482,7 @@ app.post("/genzip/instant/link", async (req, res) => {
       .send(
         `Request body should include the following fields: \n\
         data: An array of file data objects describing a non-empty set of files to zip. \n\
+        email: The requestor's email address for logging \n\
         zipName (optional): What to name the zip file. Default: ${defaultZipName}`
       );
     }
@@ -518,7 +540,7 @@ app.post("/genzip/instant/splitlink", async (req, res) => {
 
     status.user = email;
 
-    if(!Array.isArray(data)) {
+    if(!Array.isArray(data) || !email) {
       //set failure and code in status
       status.success = false;
       status.code = 400;
@@ -526,7 +548,8 @@ app.post("/genzip/instant/splitlink", async (req, res) => {
       res.status(400)
       .send(
         `Request body should include the following fields: \n\
-        data: An array of file data objects describing a non-empty set of files to zip.`
+        data: An array of file data objects describing a non-empty set of files to zip. \n\
+        email: The requestor's email address for logging`
       );
     }
     else {

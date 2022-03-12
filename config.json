@@ -11,6 +11,7 @@
     "dataRoot": "/data/",
     "urlRoot": "https://ikeauth.its.hawaii.edu/files/v2/download/public/system/ikewai-annotated-data/HCDP/",
     "userLog": "/logs/userlog.txt",
+    "whitelist": [],
     "email": {
         "from": "no-reply-hcdp@hawaii.edu",
         "subject": "HCDP Data"
