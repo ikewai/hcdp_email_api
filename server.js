@@ -117,6 +117,19 @@ for(let signal in signals) {
 /////////////////////////////
 
 
+async function handleSubprocess(subprocess, dataHandler) {
+  return new Promise((resolve, reject) => {
+    //write content to res
+    subprocess.stdout.on("data", (data) => {
+      dataHandler(data);
+    });
+    subprocess.on("exit", (code) => {
+      resolve(code);
+    })
+  });
+}
+
+
 async function sendEmail(transporterOptions, mailOptions) {
 
   combinedMailOptions = Object.assign({}, mailOptionsBase, mailOptions);
@@ -126,13 +139,12 @@ async function sendEmail(transporterOptions, mailOptions) {
   //have to be on uh netork
   return transporter.sendMail(combinedMailOptions)
   .then((info) => {
-    //should parse response for success (should start with 250)
-    res = {
+    //should parse response for success (should start with 250) 
+    return {
       success: true,
       result: info,
       error: null
     };
-    return res;
   })
   .catch((error) => {
     return {
@@ -143,9 +155,11 @@ async function sendEmail(transporterOptions, mailOptions) {
   });
 }
 
-function logUser(user, files) {
-  let data = `${user}: ${files}\n`
-  fs.appendFile(userLog, data, (err) => {
+
+function logReq(data) {
+  const { user, code, success, files, method, endpoint, token } = data;
+  let dataString = `${method}:${endpoint}:${token}:${code}:${success}:${user}:${files}\n`
+  fs.appendFile(userLog, dataString, (err) => {
     if(err) {
       console.error(`Failed to write userlog.\nError: ${err}`);
     }
@@ -153,33 +167,50 @@ function logUser(user, files) {
 }
 
 async function handleReq(req, res, handler) {
+  //note include success since 202 status might not indicate success in generating downloa package
+  let reqData = {
+    user: "",
+    code: 0,
+    success: true,
+    files: 0,
+    method: req.method,
+    endpoint: req.path,
+    token: ""
+  };
   try {
     authorized = false;
     let auth = req.get("authorization");
     if(auth) {
       let authPattern = /^Bearer (.+)$/;
       let match = auth.match(authPattern);
-      let token = match[1];
-      authorized = whitelist.includes(token);
+      if(match) {
+        reqData.token = match[1];
+        authorized = whitelist.includes(reqData.token);
+      }
     }
     if(authorized) {
-      let status = await handler();
-      //log email address and success status
-      console.log(status.user + ":" + status.code + ":" + status.success);
+      await handler(reqData);
     }
     else {
-      res.status(403)
-      .send("User not authorized")
+      reqData.code = 401;
+      res.status(401)
+      .send("User not authorized. Please provide a valid API token in the request header. If you do not have an API token one can be requested from the administrators.");
     }
   }
   catch(e) {
-    let errorMsg = `method: ${req.method}\n\
-      endpoint: ${req.path}\n\
+    //set failure occured in request
+    reqData.success = false;
+    let errorMsg = `method: ${reqData.method}\n\
+      endpoint: ${reqData.path}\n\
       error: ${e}`;
     let htmlErrorMsg = errorMsg.replace(/\n/g, "<br>");
-    console.error(`An error has occured:\n${errorMsg}`);
-    res.status(500)
-    .send("An unexpected error occurred");
+    console.error(`An unexpected error occured:\n${errorMsg}`);
+    //if request code not set by handler set to 500 and send response (otherwise response already sent and error was in post-processing)
+    if(reqData.code == 0) {
+      reqData.code = 500;
+      res.status(500)
+      .send("An unexpected error occurred");
+    }
     //send the administrators an email logging the error
     if(administrators.length > 0) {
       let mailOptions = {
@@ -188,21 +219,26 @@ async function handleReq(req, res, handler) {
         text: `An unexpected error occured in the HCDP API:\n${errorMsg}`,
         html: `<p>An error occured in the HCDP API:<br>${htmlErrorMsg}</p>`
       };
-      //attempt to send email to the administrators
-      sendEmail(transporterOptions, mailOptions);
+      try {
+        //attempt to send email to the administrators
+        let emailStatus = await sendEmail(transporterOptions, mailOptions);
+        //if email send failed throw error for logging
+        if(!emailStatus.success) {
+          throw emailStatus.error;
+        }
+      }
+      //if error while sending admin email erite to stderr
+      catch(e) {
+        console.error(`Failed to send administrator notification email: ${e}`);
+      }
     }
   }
+  logReq(reqData);
 }
 
 
 app.get("/raster", async (req, res) => {
-  return handleReq(req, res, async () => {
-    let status = {
-      user: null,
-      code: 200,
-      success: true
-    };
-
+  return handleReq(req, res, async (reqData) => {
     //destructure query
     let {date, returnEmptyNotFound, ...properties} = req.query;
 
@@ -227,44 +263,37 @@ app.get("/raster", async (req, res) => {
     
     if(!file) {
       //set failure and code in status
-      status.success = false;
-      status.code = 404;
+      reqData.success = false;
+      reqData.code = 404;
   
       //resources not found
       res.status(404)
       .send("The requested file could not be found");
     }
     else {
+      reqData.code = 200;
       res.status(200)
       .sendFile(file);
     }
-    return status;
   });
 
 });
 
 
-
-
 //should move file indexing
 app.post("/genzip/email", async (req, res) => {
-  return handleReq(req, res, async () => {
-    let status = {
-      user: null,
-      code: 202,
-      success: true
-    };
+  return handleReq(req, res, async (reqData) => {
 
     let email = req.body.email;
     let data = req.body.data;
     let zipName = req.body.name || defaultZipName;
 
-    status.user = email;
+    reqData.user = email;
     //make sure required parameters exist and data is an array
     if(!Array.isArray(data) || !email) {
       //set failure and code in status
-      status.success = false;
-      status.code = 400;
+      reqData.success = false;
+      reqData.code = 400;
 
       //send error
       res.status(400)
@@ -276,6 +305,7 @@ app.post("/genzip/email", async (req, res) => {
       );
     }
     else {
+      reqData.code = 202;
       //response should be sent immediately after file check, don't wait for email to finish
       //202 accepted indicates request accepted but non-commital completion
       res.status(202)
@@ -288,18 +318,23 @@ app.post("/genzip/email", async (req, res) => {
       // generate package and send email //
       /////////////////////////////////////
 
-      let handleError = async (clientError) => {
+      let handleError = async (clientError, serverError) => {
         //set failure in status
-        status.success = false;
-
-        clientError += " We appologize for the inconvenience. The site administrators will be notified of the issue. Please try again later.";
-        let mailOptions = {
-          to: email,
-          text: clientError,
-          html: "<p>" + clientError + "</p>"
-        };
-        //try to send the error email, last try to actually notify user
-        sendEmail(transporterOptions, mailOptions);
+        reqData.success = false;
+        //attempt to send an error email to the user, ignore any errors
+        try {
+          clientError += " We appologize for the inconvenience. The site administrators will be notified of the issue. Please try again later.";
+          let mailOptions = {
+            to: email,
+            text: clientError,
+            html: "<p>" + clientError + "</p>"
+          };
+          //try to send the error email, last try to actually notify user
+          await sendEmail(transporterOptions, mailOptions);
+        }
+        catch(e) {}
+        //throw server error to be handled by main error handler
+        throw new Error(serverError);
       }
       
       //get files
@@ -308,105 +343,89 @@ app.post("/genzip/email", async (req, res) => {
       let zipPath = "";
       let zipProc = child_process.spawn("sh", ["./zipgen.sh", downloadRoot, zipName, ...files]);
 
-      //write stdout (should be file name) to output accumulator
-      zipProc.stdout.on("data", (data) => {
+      let code = await handleSubprocess(zipProc, (data) => {
         zipPath += data.toString();
       });
 
-      //handle result on end
-      zipProc.on("exit", async (code) => {
-        if(code !== 0) {
-          serverError = `Failed to generate download package for user ${email}. Zip process failed with code ${code}.`
-          clientError = "There was an error generating your HCDP download package.";
-          handleError(clientError);
-          throw new Error(serverError);
-        }
-        else {
-          let zipDec = zipPath.split("/");
-          let zipRoot = zipDec.slice(0, -1).join("/");
-          let zipExt = zipDec.slice(-2).join("/");
+      if(code !== 0) {
+        serverError = `Failed to generate download package for user ${email}. Zip process failed with code ${code}.`
+        clientError = "There was an error generating your HCDP download package.";
+        handleError(clientError, serverError);
+      }
+      else {
+        let zipDec = zipPath.split("/");
+        let zipRoot = zipDec.slice(0, -1).join("/");
+        let zipExt = zipDec.slice(-2).join("/");
 
-          let fstat = fs.statSync(zipPath);
-          let fsizeB = fstat.size;
-          let fsizeMB = fsizeB / (1024 * 1024);
+        let fstat = fs.statSync(zipPath);
+        let fsizeB = fstat.size;
+        let fsizeMB = fsizeB / (1024 * 1024);
 
-          let attachFile = fsizeMB < ATTACHMENT_MAX_MB;
+        let attachFile = fsizeMB < ATTACHMENT_MAX_MB;
 
-          let mailRes;
+        let mailRes;
 
-          if(attachFile) {
-            attachments = [{
-              filename: zipName,
-              content: fs.createReadStream(zipPath)
-            }];
-            let mailOptions = {
-              to: email,
-              attachments: attachments,
-              text: "Your HCDP data package is attached.",
-              html: "<p>Your HCDP data package is attached.</p>"
-            };
-            
-            mailOptions = Object.assign({}, mailOptionsBase, mailOptions);
-            mailRes = await sendEmail(transporterOptions, mailOptions);
-            //if an error occured fall back to link
-            if(!mailRes.success) {
-              attachFile = false;
-            }
-          }
-
-          //recheck, state may change if fallback on error
-          if(!attachFile) {
-            //create download link and send in message body
-            let downloadLink = downloadURLRoot + zipExt;
-            let mailOptions = {
-              to: email,
-              text: "Your HCDP download package is ready. Please go to " + downloadLink + " to download it. This link will expire in three days, please download your data in that time.",
-              html: "<p>Your HCDP download package is ready. Please click <a href=\"" + downloadLink + "\">here</a> to download it. This link will expire in three days, please download your data in that time.</p>"
-            };
-            mailRes = await sendEmail(transporterOptions, mailOptions);
-          }
-
-          //if unsuccessful attempt to send error email
+        if(attachFile) {
+          attachments = [{
+            filename: zipName,
+            content: fs.createReadStream(zipPath)
+          }];
+          let mailOptions = {
+            to: email,
+            attachments: attachments,
+            text: "Your HCDP data package is attached.",
+            html: "<p>Your HCDP data package is attached.</p>"
+          };
+          
+          mailOptions = Object.assign({}, mailOptionsBase, mailOptions);
+          mailRes = await sendEmail(transporterOptions, mailOptions);
+          //if an error occured fall back to link and try one more time
           if(!mailRes.success) {
-            let serverError = "Failed to send message to user " + email + ". Error: " + mailRes.error.toString();
-            let clientError = "There was an error sending your HCDP download package to this email address.";
-            handleError(clientError);
-            //failed to send email, clear data
-            child_process.exec("rm -r " + zipRoot);
-            throw new Error(serverError);
-          }
-          //cleanup file if attached
-          //otherwise should be cleaned by chron task
-          //no need error handling, if error chron should handle later
-          else if(attachFile) {
-            child_process.exec("rm -r " + zipRoot);
+            attachFile = false;
           }
         }
-      });
-      logUser(email, files.length);
+
+        //recheck, state may change if fallback on error
+        if(!attachFile) {
+          //create download link and send in message body
+          let downloadLink = downloadURLRoot + zipExt;
+          let mailOptions = {
+            to: email,
+            text: "Your HCDP download package is ready. Please go to " + downloadLink + " to download it. This link will expire in three days, please download your data in that time.",
+            html: "<p>Your HCDP download package is ready. Please click <a href=\"" + downloadLink + "\">here</a> to download it. This link will expire in three days, please download your data in that time.</p>"
+          };
+          mailRes = await sendEmail(transporterOptions, mailOptions);
+        }
+        //cleanup file if attached
+        //otherwise should be cleaned by chron task
+        //no need error handling, if error chron should handle later
+        else {
+          child_process.exec("rm -r " + zipRoot);
+        }
+
+        //if unsuccessful attempt to send error email
+        if(!mailRes.success) {
+          let serverError = "Failed to send message to user " + email + ". Error: " + mailRes.error.toString();
+          let clientError = "There was an error sending your HCDP download package to this email address.";
+          handleError(clientError, serverError);
+        }
+      }
     }
-    return status;
   });
 });
 
 
 app.post("/genzip/instant/content", async (req, res) => {
-  return handleReq(req, res, async () => {
-    let status = {
-      user: null,
-      code: 200,
-      success: true
-    };
-
+  return handleReq(req, res, async (reqData) => {
     let email = req.body.email;
     let data = req.body.data;
 
-    status.user = email;
+    reqData.user = email;
 
     if(!Array.isArray(data) || !email) {
       //set failure and code in status
-      status.success = false;
-      status.code = 400;
+      reqData.success = false;
+      reqData.code = 400;
 
       res.status(400)
       .send(
@@ -421,60 +440,44 @@ app.post("/genzip/instant/content", async (req, res) => {
         res.contentType("application/zip");
   
         let zipProc = child_process.spawn("zip", ["-qq", "-", ...files]);
-    
-        //write content to res
-        zipProc.stdout.on("data", (data) => {
-            res.write(data);
+
+        let code = await handleSubprocess(zipProc, (data) => {
+          res.write(data);
         });
-    
-        //handle errors and end res on completion
-        zipProc.on("exit", (code) => {
-          if(code !== 0) {
-            //set failure and code in status
-            status.success = false;
-            status.code = 500;
-    
-            res.status(500)
-            .end();
-            throw new Error("Zip process failed with code " + code);
-          }
-          else {
-            res.status(200)
-            .end();
-          }
-        });
+        //if zip process failed throw error for handling by main error handler
+        if(code !== 0) {
+          throw new Error("Zip process failed with code " + code);
+        }
+        else {
+          reqData.code = 200;
+          res.status(200)
+          .end();
+        }
       }
       //just send empty if no files
       else {
+        reqData.code = 200;
         res.status(200)
         .end();
       }
-      logUser(email, files.length);
     }
-    return status;
   });
 });
 
 
 app.post("/genzip/instant/link", async (req, res) => {
-  return handleReq(req, res, async () => {
-    let status = {
-      user: null,
-      code: 200,
-      success: true
-    };
-
+  return handleReq(req, res, async (reqData) => {
     let zipName = defaultZipName;
     let email = req.body.email;
     let data = req.body.data;
 
-    status.user = email;
+    reqData.user = email;
 
     //if not array then leave files as 0 length to be picked up by error handler
     if(!Array.isArray(data) || !email) {
       //set failure and code in status
-      status.success = false;
-      status.code = 400;
+      reqData.success = false;
+      reqData.code = 400;
 
       res.status(400)
       .send(
@@ -490,58 +493,39 @@ app.post("/genzip/instant/link", async (req, res) => {
 
       let zipProc = child_process.spawn("sh", ["./zipgen.sh", downloadRoot, zipName, ...files]);
       let zipPath = "";
+
       //write stdout (should be file name) to output accumulator
-      zipProc.stdout.on("data", (data) => {
+      let code = await handleSubprocess(zipProc, (data) => {
         zipPath += data.toString();
       });
-    
-      //handle result on end
-      zipProc.on("exit", async (code) => {
-        if(code !== 0) {
-          //set failure and code in status
-          status.success = false;
-          status.code = 500;
-
-          let serverError = "Failed to generate download package. Zip process failed with code " + code;
-          res.status(500)
-          .send(serverError);
-          throw new Error(serverError);
-        }
-        else {
-          let zipDec = zipPath.split("/");
-          let zipExt = zipDec.slice(-2).join("/");
-          let downloadLink = downloadURLRoot + zipExt;
-          res.status(200)
-          .send(downloadLink);
-          logUser(email, files.length);
-        }
-      });
+      //if zip process failed throw error for handling by main error handler  
+      if(code !== 0) {
+        throw new Error("Zip process failed with code " + code);
+      }
+      else {
+        let zipDec = zipPath.split("/");
+        let zipExt = zipDec.slice(-2).join("/");
+        let downloadLink = downloadURLRoot + zipExt;
+        reqData.code = 200;
+        res.status(200)
+        .send(downloadLink);
+      }
     }
-    return status;
   });
 });
 
 
-
-
-
 app.post("/genzip/instant/splitlink", async (req, res) => {
-  return handleReq(req, res, async () => {
-    let status = {
-      user: null,
-      code: 200,
-      success: true
-    };
-
+  return handleReq(req, res, async (reqData) => {
     let email = req.body.email;
     let data = req.body.data;
 
-    status.user = email;
+    reqData.user = email;
 
     if(!Array.isArray(data) || !email) {
       //set failure and code in status
-      status.success = false;
-      status.code = 400;
+      reqData.success = false;
+      reqData.code = 400;
 
       res.status(400)
       .send(
@@ -555,62 +539,45 @@ app.post("/genzip/instant/splitlink", async (req, res) => {
       res.contentType("application/zip");
       let zipProc = child_process.spawn("sh", ["./zipgen_parts.sh", downloadRoot, ...files]);
       let zipOutput = "";
+
       //write stdout (should be file name) to output accumulator
-      zipProc.stdout.on("data", (data) => {
+      let code = await handleSubprocess(zipProc, (data) => {
         zipOutput += data.toString();
       });
-    
-      //handle result on end
-      zipProc.on("exit", async (code) => {
-        if(code !== 0) {
-          //set failure and code in status
-          status.success = false;
-          status.code = 500;
 
-          let serverError = "Failed to generate download package. Zip process failed with code " + code;
-          res.status(500)
-          .send(serverError);
-          throw new Error(serverError);
+      if(code !== 0) {
+        throw new Error("Zip process failed with code " + code);
+      }
+      else {
+        let parts = zipOutput.split(" ");
+        let fileParts = [];
+        let uuid = parts[0];
+        for(let i = 1; i < parts.length; i++) {
+          let fpart = parts[i];
+          let fname = downloadURLRoot + uuid + "/" + fpart;
+          fileParts.push(fname);
         }
-        else {
-          let parts = zipOutput.split(" ");
-          let fileParts = [];
-          let uuid = parts[0];
-          for(let i = 1; i < parts.length; i++) {
-            let fpart = parts[i];
-            let fname = downloadURLRoot + uuid + "/" + fpart;
-            fileParts.push(fname);
-          }
 
-          let data = {
-            files: fileParts
-          }
-          res.status(200)
-          .json(data);
-          logUser(email, files.length);
+        let data = {
+          files: fileParts
         }
-      });
+        reqData.code = 200;
+        res.status(200)
+        .json(data);
+      }
     }
-    return status;
   });
 });
 
 
-
 app.get("/raw/list", async (req, res) => {
-  return handleReq(req, res, async () => {
-    let status = {
-      user: null,
-      code: 200,
-      success: true
-    };
-
+  return handleReq(req, res, async (reqData) => {
     let date = req.query.date;
 
     if(!date) {
       //set failure and code in status
-      status.success = false;
-      status.code = 400;
+      reqData.success = false;
+      reqData.code = 400;
 
       res.status(400)
       .send(
@@ -635,8 +602,8 @@ app.get("/raw/list", async (req, res) => {
       }
       else if(err) {
         //set failure and code in status
-        status.success = false;
-        status.code = 500;
+        reqData.success = false;
+        reqData.code = 500;
         //resources not found
         return res.status(500)
         .send("An error occured while retrieving the requested data.");
@@ -646,144 +613,9 @@ app.get("/raw/list", async (req, res) => {
         let fileLink = path.join(linkDir, file);
         return fileLink;
       });
-;
-      return res.status(200)
-      .json(files);
-    });
-    return status;
-  });
-});
-
-
-app.get("/source_data/data", async (req, res) => {
-  return handleReq(req, res, async () => {
-    let status = {
-      user: null,
-      code: 200,
-      success: true
-    };
-
-    let date = req.query.date;
-    let source = req.query.source;
-    let tier = req.query.tier;
-
-    //need to have these three parameters
-    if(!(date && source && tier)) {
-      //set failure and code in status
-      status.success = false;
-      status.code = 400;
-
-      res.status(400)
-      .send(
-        "Request must include the following parameters: \n\
-        date: An ISO 8601 formatted date string representing the date you would like the data for. \n\
-        source: The data source you would like the data for. \n\
-        tier: The data tier you would like the data for."
-      );
-    }
-
-    let parsedDate = moment(date);
-    let year = parsedDate.format("YYYY");
-    let month = parsedDate.format("MM");
-    let day = parsedDate.format("DD");
-    let dataDir = path.join(tier, source, "parse", year, month, day);
-
-    let failureHandler = (code) => {
-      if(code == 404) {
-        //set failure and code in status and
-        status.success = false;
-        status.code = 404;
-        //resources not found
-        return res.status(404)
-        .send("The requested data does not exist.");
-      }
-      else if(code == 404) {
-        //set failure and code in status
-        status.success = false;
-        status.code = 500;
-        //resources not found
-        return res.status(500)
-        .send("An error occured while retrieving the requested data.");
-      }
-    }
-
-    fs.readdir(dataDir, (err, files) => {
-      //no dir for requested date, return 404
-      if(err && err.code == "ENOENT") {
-        return failureHandler(404);
-      }
-      else if(err) {
-        return failureHandler(500);
-      }
-      //should only be one file in directory (if this is incorrect then switch this to a list function)
-      if(files.length < 1) {
-        return failureHandler(404);
-      }
-      file = path.join(dataDir, files[0]);
-
+      reqData.code = 200;
       res.status(200)
-      .sendFile(file);
-    });
-    return status;
-  });
-});
-
-
-app.get("/source_data/list", async (req, res) => {
-  return handleReq(req, res, async () => {
-    let status = {
-      user: null,
-      code: 200,
-      success: true
-    };
-
-    let date = req.query.date;
-    let source = req.query.source;
-    let tier = req.query.tier;
-
-    //need to have these three parameters
-    if(!(date && source && tier)) {
-      //set failure and code in status
-      status.success = false;
-      status.code = 400;
-
-      res.status(400)
-      .send(
-        "Request must include the following parameters: \n\
-        date: An ISO 8601 formatted date string representing the date you would like the data for. \n\
-        source: The data source you would like the data for. \n\
-        tier: The data tier you would like the data for."
-      );
-    }
-
-    let parsedDate = moment(date);
-    let year = parsedDate.format("YYYY");
-    let month = parsedDate.format("MM");
-    let day = parsedDate.format("DD");
-    let dataDir = path.join(tier, source, "parse", year, month, day);
-
-    fs.readdir(dataDir, (err, files) => {
-      //no dir for requested date, return 404
-      if(err && err.code == "ENOENT") {
-        files = [];
-      }
-      else if(err) {
-        //set failure and code in status
-        status.success = false;
-        status.code = 500;
-        //resources not found
-        return res.status(500)
-        .send("An error occured while retrieving the requested data.");
-      }
-
-      files = files.map((file) => {
-        let fileLink = path.join(linkDir, file);
-        return fileLink;
-      });
-
-      return res.status(200)
       .json(files);
     });
-    return status;
   });
 });
