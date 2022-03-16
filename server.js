@@ -238,7 +238,7 @@ async function handleReq(req, res, handler) {
 
 
 app.get("/raster", async (req, res) => {
-  return handleReq(req, res, async (reqData) => {
+  await handleReq(req, res, async (reqData) => {
     //destructure query
     let {date, returnEmptyNotFound, ...properties} = req.query;
 
@@ -282,13 +282,15 @@ app.get("/raster", async (req, res) => {
 
 //should move file indexing
 app.post("/genzip/email", async (req, res) => {
-  return handleReq(req, res, async (reqData) => {
-
+  await handleReq(req, res, async (reqData) => {
     let email = req.body.email;
     let data = req.body.data;
     let zipName = req.body.name || defaultZipName;
 
-    reqData.user = email;
+    if(email) {
+      reqData.user = email;
+    }
+
     //make sure required parameters exist and data is an array
     if(!Array.isArray(data) || !email) {
       //set failure and code in status
@@ -299,7 +301,7 @@ app.post("/genzip/email", async (req, res) => {
       res.status(400)
       .send(
         `Request body should include the following fields: \n\
-        data: An array of file data objects describing a non-empty set of files to zip \n\
+        data: An array of file data objects describing a set of files to zip \n\
         email: The email to send the package to \n\
         zipName (optional): What to name the zip file. Default: ${defaultZipName}`
       );
@@ -416,11 +418,13 @@ app.post("/genzip/email", async (req, res) => {
 
 
 app.post("/genzip/instant/content", async (req, res) => {
-  return handleReq(req, res, async (reqData) => {
+  await handleReq(req, res, async (reqData) => {
     let email = req.body.email;
     let data = req.body.data;
 
-    reqData.user = email;
+    if(email) {
+      reqData.user = email;
+    }
 
     if(!Array.isArray(data) || !email) {
       //set failure and code in status
@@ -430,7 +434,7 @@ app.post("/genzip/instant/content", async (req, res) => {
       res.status(400)
       .send(
         "Request body should include the following fields: \n\
-        data: An array of file data objects describing a non-empty set of files to zip. \n\
+        data: An array of file data objects describing a set of files to zip. \n\
         email: The requestor's email address for logging"
       );
     }
@@ -466,12 +470,14 @@ app.post("/genzip/instant/content", async (req, res) => {
 
 
 app.post("/genzip/instant/link", async (req, res) => {
-  return handleReq(req, res, async (reqData) => {
+  await handleReq(req, res, async (reqData) => {
     let zipName = defaultZipName;
     let email = req.body.email;
     let data = req.body.data;
 
-    reqData.user = email;
+    if(email) {
+      reqData.user = email;
+    }
 
     //if not array then leave files as 0 length to be picked up by error handler
     if(!Array.isArray(data) || !email) {
@@ -482,7 +488,7 @@ app.post("/genzip/instant/link", async (req, res) => {
       res.status(400)
       .send(
         `Request body should include the following fields: \n\
-        data: An array of file data objects describing a non-empty set of files to zip. \n\
+        data: An array of file data objects describing a set of files to zip. \n\
         email: The requestor's email address for logging \n\
         zipName (optional): What to name the zip file. Default: ${defaultZipName}`
       );
@@ -516,11 +522,13 @@ app.post("/genzip/instant/link", async (req, res) => {
 
 
 app.post("/genzip/instant/splitlink", async (req, res) => {
-  return handleReq(req, res, async (reqData) => {
+  await handleReq(req, res, async (reqData) => {
     let email = req.body.email;
     let data = req.body.data;
 
-    reqData.user = email;
+    if(email) {
+      reqData.user = email;
+    }
 
     if(!Array.isArray(data) || !email) {
       //set failure and code in status
@@ -530,7 +538,7 @@ app.post("/genzip/instant/splitlink", async (req, res) => {
       res.status(400)
       .send(
         `Request body should include the following fields: \n\
-        data: An array of file data objects describing a non-empty set of files to zip. \n\
+        data: An array of file data objects describing a set of files to zip. \n\
         email: The requestor's email address for logging`
       );
     }
@@ -570,8 +578,32 @@ app.post("/genzip/instant/splitlink", async (req, res) => {
 });
 
 
+app.get("production/list", async (req, res) => {
+  await handleReq(req, res, async (reqData) => {
+    let data = req.body.data;
+    if(!Array.isArray(data) || !email) {
+      //set failure and code in status
+      reqData.success = false;
+      reqData.code = 400;
+
+      res.status(400)
+      .send(
+        "Request body should include the following fields: \n\
+        data: An array of file data objects describing a set of files to zip."
+      );
+    }
+    else {
+      let files = await indexer.getFiles(data);
+      reqData.code = 200;
+      res.status(200)
+      .json(files);
+    }
+  });
+});
+
+
 app.get("/raw/list", async (req, res) => {
-  return handleReq(req, res, async (reqData) => {
+  await handleReq(req, res, async (reqData) => {
     let date = req.query.date;
 
     if(!date) {
