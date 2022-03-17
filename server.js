@@ -649,7 +649,7 @@ app.get("/raw/list", async (req, res) => {
     let sysDir = path.join(rawDataRoot, dataDir);
     let linkDir = path.join(rawDataURLRoot, dataDir);
 
-    const { err, files } = await readdir(sysDir);
+    let { err, files } = await readdir(sysDir);
 
     //no dir for requested date, just return empty
     if(err && err.code == "ENOENT") {
