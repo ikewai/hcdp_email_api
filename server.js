@@ -594,10 +594,9 @@ app.get("/production/list", async (req, res) => {
       );
     }
     else {
-      let linkDir = path.join(rawDataURLRoot, dataDir);
       let files = await indexer.getFiles(data);
       files = files.map((file) => {
-        let fileLink = path.join(linkDir, file);
+        let fileLink = path.join(rawDataURLRoot, file);
         return fileLink;
       });
       reqData.code = 200;
