@@ -596,7 +596,7 @@ app.get("/production/list", async (req, res) => {
     else {
       let files = await indexer.getFiles(data);
       files = files.map((file) => {
-        file = path.relative(file, dataRoot);
+        file = path.relative(dataRoot, file);
         let fileLink = path.join(rawDataURLRoot, file);
         return fileLink;
       });
