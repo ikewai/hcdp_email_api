@@ -589,11 +589,12 @@ app.get("/production/list", async (req, res) => {
 
       res.status(400)
       .send(
-        "Request body should include the following fields: \n\
-        data: An array of file data objects describing a set of files to zip."
+        "Request must include the following parameters: \n\
+        data: A string encoded JSON query representing an array of file data objects describing a set of files to zip."
       );
     }
     else {
+      let linkDir = path.join(rawDataURLRoot, dataDir);
       let files = await indexer.getFiles(data);
       files = files.map((file) => {
         let fileLink = path.join(linkDir, file);
