@@ -595,6 +595,10 @@ app.get("/production/list", async (req, res) => {
     }
     else {
       let files = await indexer.getFiles(data);
+      files = files.map((file) => {
+        let fileLink = path.join(linkDir, file);
+        return fileLink;
+      });
       reqData.code = 200;
       res.status(200)
       .json(files);
