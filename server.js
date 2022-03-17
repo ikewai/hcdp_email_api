@@ -578,7 +578,7 @@ app.post("/genzip/instant/splitlink", async (req, res) => {
 });
 
 
-app.get("production/list", async (req, res) => {
+app.get("/production/list", async (req, res) => {
   await handleReq(req, res, async (reqData) => {
     let data = req.query.data;
     if(!Array.isArray(data)) {
