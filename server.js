@@ -252,6 +252,7 @@ app.get("/raster", async (req, res) => {
     }];
     
     let files = await indexer.getFiles(data);
+    reqData.files = files.length;
     let file = null;
     //should only be exactly one file
     if(files.length == 0 && returnEmptyNotFound) {
@@ -341,6 +342,7 @@ app.post("/genzip/email", async (req, res) => {
       
       //get files
       let files = await indexer.getFiles(data);
+      reqData.files = files.length;
 
       let zipPath = "";
       let zipProc = child_process.spawn("sh", ["./zipgen.sh", downloadRoot, zipName, ...files]);
@@ -440,6 +442,7 @@ app.post("/genzip/instant/content", async (req, res) => {
     }
     else {
       let files = await indexer.getFiles(data);
+      reqData.files = files.length;
       if(files.length > 0) {
         res.contentType("application/zip");
   
@@ -495,6 +498,7 @@ app.post("/genzip/instant/link", async (req, res) => {
     }
     else {
       let files = await indexer.getFiles(data);
+      reqData.files = files.length;
       res.contentType("application/zip");
 
       let zipProc = child_process.spawn("sh", ["./zipgen.sh", downloadRoot, zipName, ...files]);
@@ -544,6 +548,7 @@ app.post("/genzip/instant/splitlink", async (req, res) => {
     }
     else {
       let files = await indexer.getFiles(data);
+      reqData.files = files.length;
       res.contentType("application/zip");
       let zipProc = child_process.spawn("sh", ["./zipgen_parts.sh", downloadRoot, ...files]);
       let zipOutput = "";
@@ -595,6 +600,7 @@ app.get("/production/list", async (req, res) => {
     }
     else {
       let files = await indexer.getFiles(data);
+      reqData.files = files.length;
       files = files.map((file) => {
         file = path.relative(dataRoot, file);
         let fileLink = path.join(urlRoot, file);
@@ -651,6 +657,7 @@ app.get("/raw/list", async (req, res) => {
         let fileLink = path.join(linkDir, file);
         return fileLink;
       });
+      reqData.files = files.length;
       reqData.code = 200;
       res.status(200)
       .json(files);
