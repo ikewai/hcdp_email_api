@@ -130,6 +130,15 @@ async function handleSubprocess(subprocess, dataHandler) {
 }
 
 
+async function readdir(dir) {
+  return new Promise((resolve, reject) => {
+    fs.readdir(dir, (err, files) => {
+      resolve({err, files});
+    });
+  });
+}
+
+
 async function sendEmail(transporterOptions, mailOptions) {
 
   combinedMailOptions = Object.assign({}, mailOptionsBase, mailOptions);
@@ -639,28 +648,23 @@ app.get("/raw/list", async (req, res) => {
     let sysDir = path.join(rawDataRoot, dataDir);
     let linkDir = path.join(rawDataURLRoot, dataDir);
 
-    fs.readdir(sysDir, (err, files) => {
-      //no dir for requested date, just return empty
-      if(err && err.code == "ENOENT") {
-        files = [];
-      }
-      else if(err) {
-        //set failure and code in status
-        reqData.success = false;
-        reqData.code = 500;
-        //resources not found
-        return res.status(500)
-        .send("An error occured while retrieving the requested data.");
-      }
+    const { err, files } = await readdir(sysDir);
 
-      files = files.map((file) => {
-        let fileLink = path.join(linkDir, file);
-        return fileLink;
-      });
-      reqData.files = files.length;
-      reqData.code = 200;
-      res.status(200)
-      .json(files);
+    //no dir for requested date, just return empty
+    if(err && err.code == "ENOENT") {
+      files = [];
+    }
+    else if(err) {
+      throw err;
+    }
+
+    files = files.map((file) => {
+      let fileLink = path.join(linkDir, file);
+      return fileLink;
     });
+    reqData.files = files.length;
+    reqData.code = 200;
+    res.status(200)
+    .json(files);
   });
 });
