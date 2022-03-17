@@ -581,6 +581,7 @@ app.post("/genzip/instant/splitlink", async (req, res) => {
 app.get("/production/list", async (req, res) => {
   await handleReq(req, res, async (reqData) => {
     let data = req.query.data;
+    data = JSON.parse(data);
     if(!Array.isArray(data)) {
       //set failure and code in status
       reqData.success = false;
