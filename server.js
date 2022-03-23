@@ -60,7 +60,8 @@ process.env["NODE_ENV"] = "production";
 
 const mongoose = require("mongoose");
 const MongoClient = require('mongodb').MongoClient;
-const mongoUrl = process.env.MONGO_URL || `mongodb://hawaiimeta:password@172.17.0.2:27017`;
+const password = config.password;
+const mongoUrl = process.env.MONGO_URL || `mongodb://hawaiimeta:${password}@172.17.0.2:27017`;
 const connectOptions = {
   useNewUrlParser: true,
   useUnifiedTopology: true
