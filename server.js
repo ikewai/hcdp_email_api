@@ -8,6 +8,8 @@ const child_process = require("child_process");
 const indexer = require("./fileIndexer");
 const moment = require("moment");
 const path = require("path");
+const { DBManager } = require("dbManager");
+const sanitize = require("mongo-sanitize");
 //add timestamps to output
 require("console-stamp")(console);
 
@@ -29,6 +31,7 @@ const downloadDir = config.downloadDir;
 const userLog = config.userLog;
 const whitelist = config.whitelist;
 const administrators = config.administrators;
+const dbConfig = config.dbConfig;
 
 const rawDataRoot = `${dataRoot}${rawDataDir}`;
 const rawDataURLRoot = `${urlRoot}${rawDataDir}`;
@@ -42,7 +45,7 @@ const transporterOptions = {
   host: smtp,
   port: smtpPort,
   secure: false
-}
+};
 
 //gmail attachment limit
 const ATTACHMENT_MAX_MB = 25;
@@ -50,35 +53,12 @@ const ATTACHMENT_MAX_MB = 25;
 process.env["NODE_TLS_REJECT_UNAUTHORIZED"] = 0;
 process.env["NODE_ENV"] = "production";
 
+const { server, port, username, password, db, collection, connectionRetryLimit, queryRetryLimit } = dbConfig;
+const dbManager = DBManager(server, port, username, password, db, collection, connectionRetryLimit, queryRetryLimit);
+
 ////////////////////////////////
 //////////server setup//////////
 ////////////////////////////////
-
-////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////// db test ////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////////////////
-
-const mongoose = require("mongoose");
-const MongoClient = require('mongodb').MongoClient;
-const password = config.password;
-const mongoUrl = process.env.MONGO_URL || `mongodb://hawaiimeta:${password}@172.17.0.2:27017`;
-const connectOptions = {
-  useNewUrlParser: true,
-  useUnifiedTopology: true
-};
-
-mongoose.connect(mongoUrl, connectOptions)
-.then((connection) => {
-  console.log("connected?");
-})
-.catch((e) => {
-  console.error(e);
-  throw e;
-});
-
-////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////// db test ////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////////////////
 
 const app = express();
 
@@ -164,9 +144,45 @@ async function readdir(dir) {
   });
 }
 
+function validateTokenAccess(token, permission) {
+  valid = false;
+  allowed = false;
+  let tokenInfo = whitelist[token];
+  if(tokenInfo) {
+    valid = true;
+    //actions permissions user is authorzized for
+    const authorized = tokenInfo.permissions;
+    //check if authorized permissions for this token contains required permission for this request
+    allowed = authorized.includes(permission);
+  }
+  return {
+    valid,
+    allowed
+  }
+}
+
+function validateToken(req, permission) {
+  let tokenData = {
+    valid: false,
+    allowed: false,
+    token: ""
+  };
+  let auth = req.get("authorization");
+  if(auth) {
+    let authPattern = /^Bearer (.+)$/;
+    let match = auth.match(authPattern);
+    if(match) {
+      tokenData.token = match[1];
+      //get tokens access rules
+      let access = validateTokenAccess(tokenData.token, permission);
+      //assign access info to data object
+      Object.assign(tokenData, access);
+    }
+  }
+  return tokenData;
+}
 
 async function sendEmail(transporterOptions, mailOptions) {
-
   combinedMailOptions = Object.assign({}, mailOptionsBase, mailOptions);
 
   let transporter = nodemailer.createTransport(transporterOptions);
@@ -202,7 +218,7 @@ function logReq(data) {
   });
 }
 
-async function handleReq(req, res, handler) {
+async function handleReq(req, res, permission, handler) {
   //note include success since 202 status might not indicate success in generating downloa package
   let reqData = {
     user: "",
@@ -214,23 +230,24 @@ async function handleReq(req, res, handler) {
     token: ""
   };
   try {
-    authorized = false;
-    let auth = req.get("authorization");
-    if(auth) {
-      let authPattern = /^Bearer (.+)$/;
-      let match = auth.match(authPattern);
-      if(match) {
-        reqData.token = match[1];
-        authorized = whitelist.includes(reqData.token);
-      }
-    }
-    if(authorized) {
+    const tokenData = validateToken(req, permission);
+    const { valid, allowed, token } = tokenData;
+    reqData.token = token;
+    //token was valid and user is allowed to perform this action, send to handler
+    if(valid && allowed) {
       await handler(reqData);
     }
-    else {
+    //token was not provided or not in whitelist, return 401
+    else if(!valid) {
       reqData.code = 401;
       res.status(401)
       .send("User not authorized. Please provide a valid API token in the request header. If you do not have an API token one can be requested from the administrators.");
+    }
+    //token was valid in whitelist but does not have permission to access this endpoint, return 403
+    else {
+      reqData.code = 403;
+      res.status(403)
+      .send("User does not have permission to perform this action.");
     }
   }
   catch(e) {
@@ -272,9 +289,64 @@ async function handleReq(req, res, handler) {
   logReq(reqData);
 }
 
+app.post("/db/replace", async (req, res) => {
+  const permission = "db";
+  await handleReq(req, res, permission, async (reqData) => {
+    const uuid = req.body.uuid;
+    let value = req.body.value;
+
+    if(typeof uuid !== "string" || value === undefined) {
+      //set failure and code in status
+      reqData.success = false;
+      reqData.code = 400;
+
+      //send error
+      res.status(400)
+      .send(
+        `Request body should include the following fields: \n\
+        uuid: A string representing the uuid of the document to have it's value replaced \n\
+        value: The new value to set the document's 'value' field to`
+      );
+    }
+
+    //sanitize value object to ensure no $ fields since this can be an arbitrary object
+    value = sanitize(value);
+    //note this only replaces value, should not be wrapped with name
+    let replaced = await dbManager.replaceRecord(uuid, value);
+    reqData.code = 200;
+    res.status(200)
+    .send(replaced);
+  });
+});
+
+app.post("/db/delete", async (req, res) => {
+  const permission = "db";
+  await handleReq(req, res, permission, async (reqData) => {
+    const uuid = req.body.uuid;
+
+    if(typeof uuid !== "string") {
+      //set failure and code in status
+      reqData.success = false;
+      reqData.code = 400;
+
+      //send error
+      res.status(400)
+      .send(
+        `Request body should include the following fields: \n\
+        uuid: A string representing the uuid of the document to have it's value replaced`
+      );
+    }
+
+    let deleted = await dbManager.deleteRecord(uuid);
+    reqData.code = 200;
+    res.status(200)
+    .send(deleted);
+  });
+});
 
 app.get("/raster", async (req, res) => {
-  await handleReq(req, res, async (reqData) => {
+  const permission = "basic";
+  await handleReq(req, res, permission, async (reqData) => {
     //destructure query
     let {date, returnEmptyNotFound, ...properties} = req.query;
 
@@ -313,13 +385,13 @@ app.get("/raster", async (req, res) => {
       .sendFile(file);
     }
   });
-
 });
 
 
 //should move file indexing
 app.post("/genzip/email", async (req, res) => {
-  await handleReq(req, res, async (reqData) => {
+  const permission = "basic";
+  await handleReq(req, res, permission, async (reqData) => {
     let email = req.body.email;
     let data = req.body.data;
     let zipName = req.body.name || defaultZipName;
@@ -456,7 +528,8 @@ app.post("/genzip/email", async (req, res) => {
 
 
 app.post("/genzip/instant/content", async (req, res) => {
-  await handleReq(req, res, async (reqData) => {
+  const permission = "basic";
+  await handleReq(req, res, permission, async (reqData) => {
     let email = req.body.email;
     let data = req.body.data;
 
@@ -509,7 +582,8 @@ app.post("/genzip/instant/content", async (req, res) => {
 
 
 app.post("/genzip/instant/link", async (req, res) => {
-  await handleReq(req, res, async (reqData) => {
+  const permission = "basic";
+  await handleReq(req, res, permission, async (reqData) => {
     let zipName = defaultZipName;
     let email = req.body.email;
     let data = req.body.data;
@@ -562,7 +636,8 @@ app.post("/genzip/instant/link", async (req, res) => {
 
 
 app.post("/genzip/instant/splitlink", async (req, res) => {
-  await handleReq(req, res, async (reqData) => {
+  const permission = "basic";
+  await handleReq(req, res, permission, async (reqData) => {
     let email = req.body.email;
     let data = req.body.data;
 
@@ -620,7 +695,8 @@ app.post("/genzip/instant/splitlink", async (req, res) => {
 
 
 app.get("/production/list", async (req, res) => {
-  await handleReq(req, res, async (reqData) => {
+  const permission = "basic";
+  await handleReq(req, res, permission, async (reqData) => {
     let data = req.query.data;
     data = JSON.parse(data);
     if(!Array.isArray(data)) {
@@ -651,7 +727,8 @@ app.get("/production/list", async (req, res) => {
 
 
 app.get("/raw/list", async (req, res) => {
-  await handleReq(req, res, async (reqData) => {
+  const permission = "basic";
+  await handleReq(req, res, permission, async (reqData) => {
     let date = req.query.date;
 
     if(!date) {

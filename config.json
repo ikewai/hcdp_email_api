@@ -11,10 +11,24 @@
     "dataRoot": "/data/",
     "urlRoot": "https://ikeauth.its.hawaii.edu/files/v2/download/public/system/ikewai-annotated-data/HCDP/",
     "userLog": "/logs/userlog.txt",
-    "whitelist": [],
+    "whitelist": {
+        "token": {
+            "permissions": ["basic", "db"]
+        }
+    },
     "administrators": ["mcleanj@hawaii.edu", "seanbc@hawaii.edu"],
     "email": {
         "from": "no-reply-hcdp@hawaii.edu",
         "subject": "HCDP Data"
+    },
+    "dbConfig": {
+        "server": "agavepersist.its.hawaii.edu",
+        "port": 27017,
+        "username": "username",
+        "password": "password",
+        "db": "api",
+        "collection": "metadata",
+        "connectionRetryLimit": 3,
+        "queryRetryLimit": 3
     }
 }
