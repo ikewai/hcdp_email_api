@@ -8,7 +8,7 @@ const child_process = require("child_process");
 const indexer = require("./fileIndexer");
 const moment = require("moment");
 const path = require("path");
-const urlJoin = require("url-join");
+import urlJoin from 'url-join';
 //add timestamps to output
 require("console-stamp")(console);
 
