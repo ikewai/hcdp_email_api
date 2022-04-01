@@ -8,7 +8,6 @@ const child_process = require("child_process");
 const indexer = require("./fileIndexer");
 const moment = require("moment");
 const path = require("path");
-import urlJoin from 'url-join';
 //add timestamps to output
 require("console-stamp")(console);
 
@@ -614,7 +613,7 @@ app.get("/production/list", async (req, res) => {
       reqData.files = files.length;
       files = files.map((file) => {
         file = path.relative(dataRoot, file);
-        let fileLink = urlJoin(urlRoot, file);
+        let fileLink = path.join(urlRoot, file);
         return fileLink;
       });
       reqData.code = 200;
@@ -648,7 +647,7 @@ app.get("/raw/list", async (req, res) => {
 
     let dataDir = path.join(year, month, day);
     let sysDir = path.join(rawDataRoot, dataDir);
-    let linkDir = urlJoin(rawDataURLRoot, dataDir);
+    let linkDir = path.join(rawDataURLRoot, dataDir);
 
     let { err, files } = await readdir(sysDir);
 
@@ -661,7 +660,7 @@ app.get("/raw/list", async (req, res) => {
     }
 
     files = files.map((file) => {
-      let fileLink = urlJoin(linkDir, file);
+      let fileLink = path.join(linkDir, file);
       return fileLink;
     });
     reqData.files = files.length;
