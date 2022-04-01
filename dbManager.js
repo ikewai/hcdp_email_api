@@ -1,6 +1,6 @@
 const { MongoClient } = require("mongodb");
 
-export class DBManager {
+class DBManager {
     constructor(server, port, username, password, dbName, collectionName, connectionRetryLimit, queryRetryLimit) {
         const encodedUsername = encodeURIComponent(username);
         const encodedPassword = encodeURIComponent(password);
@@ -111,3 +111,5 @@ export class DBManager {
         this.client.close();
     }
 }
+
+exports.DBManager = DBManager;
