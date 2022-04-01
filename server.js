@@ -54,8 +54,7 @@ const ATTACHMENT_MAX_MB = 25;
 process.env["NODE_TLS_REJECT_UNAUTHORIZED"] = 0;
 process.env["NODE_ENV"] = "production";
 
-const { server, port, username, password, db, collection, connectionRetryLimit, queryRetryLimit } = dbConfig;
-const dbManager = DBManager(server, port, username, password, db, collection, connectionRetryLimit, queryRetryLimit);
+const dbManager = DBManager(dbConfig.server, dbConfig.port, dbConfig.username, dbConfig.password, dbConfig.db, dbConfig.collection, dbConfig.connectionRetryLimit, dbConfig.queryRetryLimit);
 
 ////////////////////////////////
 //////////server setup//////////
@@ -255,7 +254,7 @@ async function handleReq(req, res, permission, handler) {
     //set failure occured in request
     reqData.success = false;
     let errorMsg = `method: ${reqData.method}\n\
-      endpoint: ${reqData.path}\n\
+      endpoint: ${reqData.endpoint}\n\
       error: ${e}`;
     let htmlErrorMsg = errorMsg.replace(/\n/g, "<br>");
     console.error(`An unexpected error occured:\n${errorMsg}`);
