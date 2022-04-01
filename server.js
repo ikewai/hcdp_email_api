@@ -53,7 +53,7 @@ const ATTACHMENT_MAX_MB = 25;
 process.env["NODE_TLS_REJECT_UNAUTHORIZED"] = 0;
 process.env["NODE_ENV"] = "production";
 
-const dbManager = DBManager.DBManager(dbConfig.server, dbConfig.port, dbConfig.username, dbConfig.password, dbConfig.db, dbConfig.collection, dbConfig.connectionRetryLimit, dbConfig.queryRetryLimit);
+const dbManager = new DBManager.DBManager(dbConfig.server, dbConfig.port, dbConfig.username, dbConfig.password, dbConfig.db, dbConfig.collection, dbConfig.connectionRetryLimit, dbConfig.queryRetryLimit);
 
 ////////////////////////////////
 //////////server setup//////////
