@@ -8,7 +8,7 @@ const child_process = require("child_process");
 const indexer = require("./fileIndexer");
 const moment = require("moment");
 const path = require("path");
-const { DBManager } = require("dbManager");
+const { DBManager } = require("./dbManager");
 const sanitize = require("mongo-sanitize");
 const urlJoin = require("url-join");
 //add timestamps to output
