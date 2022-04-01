@@ -8,7 +8,7 @@ const child_process = require("child_process");
 const indexer = require("./fileIndexer");
 const moment = require("moment");
 const path = require("path");
-const { DBManager } = require("./dbManager");
+const DBManager = require("./dbManager");
 const sanitize = require("mongo-sanitize");
 const urlJoin = require("url-join");
 //add timestamps to output
@@ -54,7 +54,7 @@ const ATTACHMENT_MAX_MB = 25;
 process.env["NODE_TLS_REJECT_UNAUTHORIZED"] = 0;
 process.env["NODE_ENV"] = "production";
 
-const dbManager = DBManager(dbConfig.server, dbConfig.port, dbConfig.username, dbConfig.password, dbConfig.db, dbConfig.collection, dbConfig.connectionRetryLimit, dbConfig.queryRetryLimit);
+const dbManager = DBManager.DBManager(dbConfig.server, dbConfig.port, dbConfig.username, dbConfig.password, dbConfig.db, dbConfig.collection, dbConfig.connectionRetryLimit, dbConfig.queryRetryLimit);
 
 ////////////////////////////////
 //////////server setup//////////
