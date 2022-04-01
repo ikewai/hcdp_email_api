@@ -1,12 +1,13 @@
 {
-  "name": "email_server",
-  "version": "0.0.1",
-  "description": "Simple email server.",
+  "name": "hcdp_api",
+  "version": "1.0.0",
+  "description": "HCDP API.",
   "main": "server.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "author": "Sean Cleveland",
+  "type": "module",
+  "author": "Jared McLean",
   "license": "ISC",
   "dependencies": {
     "compression": "^1.7.4",
