@@ -314,7 +314,7 @@ app.post("/db/replace", async (req, res) => {
     let replaced = await dbManager.replaceRecord(uuid, value);
     reqData.code = 200;
     res.status(200)
-    .send(replaced);
+    .send(replaced.toString());
   });
 });
 
@@ -339,7 +339,7 @@ app.post("/db/delete", async (req, res) => {
     let deleted = await dbManager.deleteRecord(uuid);
     reqData.code = 200;
     res.status(200)
-    .send(deleted);
+    .send(deleted.toString());
   });
 });
 
