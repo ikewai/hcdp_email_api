@@ -53,7 +53,7 @@ const ATTACHMENT_MAX_MB = 25;
 process.env["NODE_TLS_REJECT_UNAUTHORIZED"] = 0;
 process.env["NODE_ENV"] = "production";
 
-const dbManager = DBManager.DBManager(dbConfig.server, dbConfig.port, dbConfig.username, dbConfig.password, dbConfig.db, dbConfig.collection, dbConfig.connectionRetryLimit, dbConfig.queryRetryLimit);
+const dbManager = new DBManager.DBManager(dbConfig.server, dbConfig.port, dbConfig.username, dbConfig.password, dbConfig.db, dbConfig.collection, dbConfig.connectionRetryLimit, dbConfig.queryRetryLimit);
 
 ////////////////////////////////
 //////////server setup//////////
@@ -334,7 +334,7 @@ app.post("/db/replace", async (req, res) => {
     let replaced = await dbManager.replaceRecord(uuid, value);
     reqData.code = 200;
     res.status(200)
-    .send(replaced);
+    .send(replaced.toString());
   });
 });
 
@@ -359,7 +359,7 @@ app.post("/db/delete", async (req, res) => {
     let deleted = await dbManager.deleteRecord(uuid);
     reqData.code = 200;
     res.status(200)
-    .send(deleted);
+    .send(deleted.toString());
   });
 });
 

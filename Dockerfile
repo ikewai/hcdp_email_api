@@ -12,6 +12,7 @@ COPY package*.json ./
 COPY config.json ./
 COPY server.js ./
 COPY fileIndexer.js ./
+COPY dbManager.js ./
 COPY csvProcessor.js ./
 COPY zipgen.sh ./
 COPY zipgen_parts.sh ./
