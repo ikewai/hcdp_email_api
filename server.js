@@ -122,12 +122,17 @@ for(let signal in signals) {
 /////////////////////////////
 
 
-async function handleSubprocess(subprocess, dataHandler) {
+async function handleSubprocess(subprocess, dataHandler, errHandler) {
   return new Promise((resolve, reject) => {
+    if(!errHandler) {
+      errHandler = () => {};
+    }
+    if(!dataHandler) {
+      dataHandler = () => {};
+    }
     //write content to res
-    subprocess.stdout.on("data", (data) => {
-      dataHandler(data);
-    });
+    subprocess.stdout.on("data", dataHandler);
+    subprocess.stderr.on("data", errHandler);
     subprocess.on("exit", (code) => {
       resolve(code);
     })
@@ -310,13 +315,18 @@ app.get("/raster/timeseries", async (req, res) => {
     let files = await indexer.getFiles(data);
     let zipProc = child_process.spawn("python3", ["./reader.py", index, ...files]);
 
-    data = "";
+    vals = "";
+    err = "";
     let code = await handleSubprocess(zipProc, (data) => {
-      zipPath += data.toString();
+      vals += data.toString();
+    }, (data) => {
+      err += data.toString();
     });
+    console.log(vals);
+    console.error(err);
     if(code !== 0) {
-      console.error(`subprocess exited with code ${code}`)
-
+      console.error(`subprocess exited with code ${code}`);
+      throw new Error("whats the problem?");
     }
     else {
       data = JSON.parse(data);
