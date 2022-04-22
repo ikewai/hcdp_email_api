@@ -315,8 +315,7 @@ app.get("/raster/timeseries", async (req, res) => {
       zipPath += data.toString();
     });
     if(code !== 0) {
-      serverError = `Failed to generate download package for user ${email}. Zip process failed with code ${code}.`
-      clientError = "There was an error generating your HCDP download package.";
+      console.error(`subprocess exited with code ${code}`)
 
     }
     else {
