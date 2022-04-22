@@ -290,21 +290,43 @@ async function handleReq(req, res, permission, handler) {
 
 
 app.get("/raster/timeseries", async (req, res) => {
-  let index = req.query.index;
-  let start = req.query.start;
-  let end = req.query.end;
-  let dataset = req.query.dataset;
-  dataset = JSON.parse(dataset);
-  let data = [{
-    files: ["data_map"],
-    range: {
-      start: date,
-      end: date
-    },
-    ...properties
-  }];
+  const permission = "basic";
+  await handleReq(req, res, permission, async (reqData) => {
+    let index = req.query.index;
+    let start = req.query.start;
+    let end = req.query.end;
+    let dataset = req.query.dataset;
+    dataset = JSON.parse(dataset);
+    let data = [{
+      files: ["data_map"],
+      range: {
+        start: start,
+        end: end
+      },
+      extent: "statewide",
+      ...dataset
+    }];
+    
+    let files = await indexer.getFiles(data);
+    let zipProc = child_process.spawn("python3", ["./reader.py", index, ...files]);
+
+    data = "";
+    let code = await handleSubprocess(zipProc, (data) => {
+      zipPath += data.toString();
+    });
+    if(code !== 0) {
+      serverError = `Failed to generate download package for user ${email}. Zip process failed with code ${code}.`
+      clientError = "There was an error generating your HCDP download package.";
+
+    }
+    else {
+      data = JSON.parse(data);
+      reqData.code = 200;
+      res.status(200)
+      .send(data);
+    }
+  });
   
-  let files = await indexer.getFiles(data);
 });
 
 
