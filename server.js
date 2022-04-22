@@ -288,6 +288,26 @@ async function handleReq(req, res, permission, handler) {
   logReq(reqData);
 }
 
+
+app.get("/raster/timeseries", async (req, res) => {
+  let index = req.query.index;
+  let start = req.query.start;
+  let end = req.query.end;
+  let dataset = req.query.dataset;
+  dataset = JSON.parse(dataset);
+  let data = [{
+    files: ["data_map"],
+    range: {
+      start: date,
+      end: date
+    },
+    ...properties
+  }];
+  
+  let files = await indexer.getFiles(data);
+});
+
+
 app.post("/db/replace", async (req, res) => {
   const permission = "db";
   await handleReq(req, res, permission, async (reqData) => {
