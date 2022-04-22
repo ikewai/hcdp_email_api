@@ -3,7 +3,8 @@ FROM node:16
 RUN apt-get update \
 && apt-get install -y zip \
 && apt-get install -y uuid-runtime \
-&& apt-get install python3
+&& apt-get install python3 \
+&& apt-get install python3-pip
 
 RUN pip3 install imagecodecs
 
