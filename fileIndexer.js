@@ -43,6 +43,74 @@ const emptyIndex = {
     statewide: "/data/empty/statewide_hi_NA.tif"
 };
 
+
+async function getFilesWildcard(data) {
+
+}
+
+function createDateGroups(period, range) {
+    let dateGroups = {};
+    let start = range.start;
+    let end = range.end;
+    let startDate = new moment(start);
+    let endDate = new moment(end);
+
+    uncoveredDates = [startDate, endDate, null, null];
+
+    periods = ["year", "month", "day"];
+    group = periods[0];
+    for(let i = 0; i < periods.length; i++) {
+        
+        let data = getGroupsBetween(uncoveredDates[0], uncoveredDates[1], group);
+        dateGroups[group] = data.periods;
+        uncoveredDates[1] = data.coverage[0];
+
+        if(uncoveredDates[2]) {
+            data = getGroupsBetween(uncoveredDates[2], uncoveredDates[3], group);
+            dateGroups[group] = dateGroups[group].concat(data.periods);
+        }
+
+        uncoveredDates[2] = data.coverage[1];
+    }
+
+    return dates;
+}
+
+function getGroupsBetween(start, end, period) {
+    periods = [];
+    coverage = [];
+    date = start.clone();
+    //move to start of period
+    date.startOf(period);
+    //if start of period is same as start date start there, otherwise advance by one period (initial not fully covered)
+    if(!date.isSame(start, period)) {
+        date.add(1, year);
+    }
+    coverage.push(date.clone());
+    //need to see if period completely enclosed, so go to end of period
+    date.endOf(period);
+    //get 
+    while(date.isSameOrBefore(end)) {
+        let clone = date.clone();
+        //go to the start for simplicity (zero out lower properties)
+        clone.startOf(period);
+        periods.push(clone);
+        date.add(1, period);
+    }
+    //end of coverage (exclusive)
+    date.startOf(period);
+    coverage.push(date);
+    //note coverage is [)
+    data = {
+        periods,
+        coverage
+    };
+    return covered;
+}
+
+
+
+
 async function getFiles(data) {
     let files = [];
     //at least for now just catchall and return files found before failure, maybe add more catching/skipping later, or 400?
