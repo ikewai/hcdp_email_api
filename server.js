@@ -151,9 +151,11 @@ async function readdir(dir) {
 function validateTokenAccess(token, permission) {
   valid = false;
   allowed = false;
+  user = "";
   let tokenInfo = whitelist[token];
   if(tokenInfo) {
     valid = true;
+    user = tokenInfo.user | "";
     //actions permissions user is authorzized for
     const authorized = tokenInfo.permissions;
     //check if authorized permissions for this token contains required permission for this request
@@ -161,7 +163,9 @@ function validateTokenAccess(token, permission) {
   }
   return {
     valid,
-    allowed
+    allowed,
+    token,
+    user
   }
 }
 
@@ -169,18 +173,16 @@ function validateToken(req, permission) {
   let tokenData = {
     valid: false,
     allowed: false,
-    token: ""
+    token: "",
+    user: ""
   };
   let auth = req.get("authorization");
   if(auth) {
     let authPattern = /^Bearer (.+)$/;
     let match = auth.match(authPattern);
     if(match) {
-      tokenData.token = match[1];
       //get tokens access rules
-      let access = validateTokenAccess(tokenData.token, permission);
-      //assign access info to data object
-      Object.assign(tokenData, access);
+      tokenData = validateTokenAccess(match[1], permission);
     }
   }
   return tokenData;
@@ -212,9 +214,9 @@ async function sendEmail(transporterOptions, mailOptions) {
 
 
 function logReq(data) {
-  const { user, code, success, files, method, endpoint, token } = data;
+  const { user, code, success, sizeF, method, endpoint, token, sizeB, tokenUser } = data;
   const timestamp = new Date().toLocaleString("sv-SE", {timeZone:"Pacific/Honolulu"});
-  let dataString = `[${timestamp}] ${method}:${endpoint}:${token}:${code}:${success}:${user}:${files}\n`
+  let dataString = `[${timestamp}] ${method}:${endpoint}:${user}:${tokenUser}:${token}:${code}:${success}:${sizeB}:${sizeF}\n`
   fs.appendFile(userLog, dataString, (err) => {
     if(err) {
       console.error(`Failed to write userlog.\nError: ${err}`);
@@ -223,20 +225,24 @@ function logReq(data) {
 }
 
 async function handleReq(req, res, permission, handler) {
-  //note include success since 202 status might not indicate success in generating downloa package
+  //note include success since 202 status might not indicate success in generating download package
+  //note sizeB will be 0 for everything but download packages
   let reqData = {
     user: "",
     code: 0,
     success: true,
-    files: 0,
+    sizeF: 0,
     method: req.method,
     endpoint: req.path,
-    token: ""
+    token: "",
+    sizeB: 0,
+    tokenUser: ""
   };
   try {
     const tokenData = validateToken(req, permission);
-    const { valid, allowed, token } = tokenData;
+    const { valid, allowed, token, user } = tokenData;
     reqData.token = token;
+    reqData.tokenUser = user;
     //token was valid and user is allowed to perform this action, send to handler
     if(valid && allowed) {
       await handler(reqData);
@@ -297,44 +303,47 @@ async function handleReq(req, res, permission, handler) {
 app.get("/raster/timeseries", async (req, res) => {
   const permission = "basic";
   await handleReq(req, res, permission, async (reqData) => {
-    let index = req.query.index;
-    let start = req.query.start;
-    let end = req.query.end;
-    let dataset = req.query.dataset;
-    dataset = JSON.parse(dataset);
-    let data = [{
-      files: ["data_map"],
-      range: {
-        start: start,
-        end: end
-      },
-      extent: "statewide",
-      ...dataset
-    }];
+    reqData.code = 501;
+    res.status(501)
+    .end();
+    // let index = req.query.index;
+    // let start = req.query.start;
+    // let end = req.query.end;
+    // let dataset = req.query.dataset;
+    // dataset = JSON.parse(dataset);
+    // let data = [{
+    //   files: ["data_map"],
+    //   range: {
+    //     start: start,
+    //     end: end
+    //   },
+    //   extent: "statewide",
+    //   ...dataset
+    // }];
     
-    let files = await indexer.getFiles(data);
-    //maybe update to use file groups
-    let zipProc = child_process.spawn("python3", ["./reader.py", index, ...files]);
+    // let files = await indexer.getFiles(data);
+    // //maybe update to use file groups
+    // let zipProc = child_process.spawn("python3", ["./reader.py", index, ...files]);
 
-    vals = "";
-    err = "";
-    let code = await handleSubprocess(zipProc, (data) => {
-      vals += data.toString();
-    }, (data) => {
-      err += data.toString();
-    });
-    console.log(vals);
-    console.error(err);
-    if(code !== 0) {
-      console.error(`subprocess exited with code ${code}`);
-      throw new Error("whats the problem?");
-    }
-    else {
-      data = JSON.parse(data);
-      reqData.code = 200;
-      res.status(200)
-      .send(data);
-    }
+    // vals = "";
+    // err = "";
+    // let code = await handleSubprocess(zipProc, (data) => {
+    //   vals += data.toString();
+    // }, (data) => {
+    //   err += data.toString();
+    // });
+    // console.log(vals);
+    // console.error(err);
+    // if(code !== 0) {
+    //   console.error(`subprocess exited with code ${code}`);
+    //   throw new Error("whats the problem?");
+    // }
+    // else {
+    //   data = JSON.parse(data);
+    //   reqData.code = 200;
+    //   res.status(200)
+    //   .send(data);
+    // }
   });
   
 });
@@ -411,7 +420,7 @@ app.get("/raster", async (req, res) => {
     }];
     
     let files = await indexer.getFiles(data);
-    reqData.files = files.length;
+    reqData.sizeF = files.length;
     let file = null;
     //should only be exactly one file
     if(files.length == 0 && returnEmptyNotFound) {
@@ -473,13 +482,6 @@ app.post("/genzip/email", async (req, res) => {
       res.status(202)
       .send("Request received. Generating download package");
 
-      //note no good way to validate email address, should have something in app saying that if email does not come to verify spelling
-      //email should arrive in the next few minutes, if email does not arrive within 2 hours we may have been unable to send the email, check for typos, try again, or contact the site administrators
-
-      /////////////////////////////////////
-      // generate package and send email //
-      /////////////////////////////////////
-
       let handleError = async (clientError, serverError) => {
         //set failure in status
         reqData.success = false;
@@ -498,90 +500,99 @@ app.post("/genzip/email", async (req, res) => {
         //throw server error to be handled by main error handler
         throw new Error(serverError);
       }
-      
-      //get files
-      let files = await indexer.getFileGroups(data);
-      console.log(files);
-      reqData.files = files.length;
-
-      let zipPath = "";
-      let zipProc;
+      //wrap in try catch so send error email if anything unexpected goes wrong
       try {
+        //note no good way to validate email address, should have something in app saying that if email does not come to verify spelling
+        //email should arrive in the next few minutes, if email does not arrive within 2 hours we may have been unable to send the email, check for typos, try again, or contact the site administrators
+
+        /////////////////////////////////////
+        // generate package and send email //
+        /////////////////////////////////////
+        
+        //get files
+        let files = await indexer.getFileGroups(data);
+        console.log(files);
+        reqData.sizeF = files.length;
+
+        let zipPath = "";
+        let zipProc;
         zipProc = child_process.spawn("sh", ["./zipgen.sh", downloadRoot, zipName, ...files]);
+
+        let code = await handleSubprocess(zipProc, (data) => {
+          zipPath += data.toString();
+        });
+
+        if(code !== 0) {
+          serverError = `Failed to generate download package for user ${email}. Zip process failed with code ${code}.`
+          clientError = "There was an error generating your HCDP download package.";
+          handleError(clientError, serverError);
+        }
+        else {
+          let zipDec = zipPath.split("/");
+          let zipRoot = zipDec.slice(0, -1).join("/");
+          let zipExt = zipDec.slice(-2).join("/");
+
+          //get package size
+          let fstat = fs.statSync(zipPath);
+          let fsizeB = fstat.size;
+          //set size of package for logging
+          reqData.sizeB = fsizeB;
+          let fsizeMB = fsizeB / (1024 * 1024);
+
+          let attachFile = fsizeMB < ATTACHMENT_MAX_MB;
+
+          let mailRes;
+
+          if(attachFile) {
+            attachments = [{
+              filename: zipName,
+              content: fs.createReadStream(zipPath)
+            }];
+            let mailOptions = {
+              to: email,
+              attachments: attachments,
+              text: "Your HCDP data package is attached.",
+              html: "<p>Your HCDP data package is attached.</p>"
+            };
+            
+            mailOptions = Object.assign({}, mailOptionsBase, mailOptions);
+            mailRes = await sendEmail(transporterOptions, mailOptions);
+            //if an error occured fall back to link and try one more time
+            if(!mailRes.success) {
+              attachFile = false;
+            }
+          }
+
+          //recheck, state may change if fallback on error
+          if(!attachFile) {
+            //create download link and send in message body
+            let downloadLink = downloadURLRoot + zipExt;
+            let mailOptions = {
+              to: email,
+              text: "Your HCDP download package is ready. Please go to " + downloadLink + " to download it. This link will expire in three days, please download your data in that time.",
+              html: "<p>Your HCDP download package is ready. Please click <a href=\"" + downloadLink + "\">here</a> to download it. This link will expire in three days, please download your data in that time.</p>"
+            };
+            mailRes = await sendEmail(transporterOptions, mailOptions);
+          }
+          //cleanup file if attached
+          //otherwise should be cleaned by chron task
+          //no need error handling, if error chron should handle later
+          else {
+            child_process.exec("rm -r " + zipRoot);
+          }
+
+          //if unsuccessful attempt to send error email
+          if(!mailRes.success) {
+            let serverError = "Failed to send message to user " + email + ". Error: " + mailRes.error.toString();
+            let clientError = "There was an error sending your HCDP download package to this email address.";
+            handleError(clientError, serverError);
+          }
+        }
       }
       catch(e) {
         serverError = `Failed to generate download package for user ${email}. Spawn process failed with error ${e.toString()}.`
         clientError = "There was an error generating your HCDP download package.";
         handleError(clientError, serverError);
-      }
-      
-
-      let code = await handleSubprocess(zipProc, (data) => {
-        zipPath += data.toString();
-      });
-
-      if(code !== 0) {
-        serverError = `Failed to generate download package for user ${email}. Zip process failed with code ${code}.`
-        clientError = "There was an error generating your HCDP download package.";
-        handleError(clientError, serverError);
-      }
-      else {
-        let zipDec = zipPath.split("/");
-        let zipRoot = zipDec.slice(0, -1).join("/");
-        let zipExt = zipDec.slice(-2).join("/");
-
-        let fstat = fs.statSync(zipPath);
-        let fsizeB = fstat.size;
-        let fsizeMB = fsizeB / (1024 * 1024);
-
-        let attachFile = fsizeMB < ATTACHMENT_MAX_MB;
-
-        let mailRes;
-
-        if(attachFile) {
-          attachments = [{
-            filename: zipName,
-            content: fs.createReadStream(zipPath)
-          }];
-          let mailOptions = {
-            to: email,
-            attachments: attachments,
-            text: "Your HCDP data package is attached.",
-            html: "<p>Your HCDP data package is attached.</p>"
-          };
-          
-          mailOptions = Object.assign({}, mailOptionsBase, mailOptions);
-          mailRes = await sendEmail(transporterOptions, mailOptions);
-          //if an error occured fall back to link and try one more time
-          if(!mailRes.success) {
-            attachFile = false;
-          }
-        }
-
-        //recheck, state may change if fallback on error
-        if(!attachFile) {
-          //create download link and send in message body
-          let downloadLink = downloadURLRoot + zipExt;
-          let mailOptions = {
-            to: email,
-            text: "Your HCDP download package is ready. Please go to " + downloadLink + " to download it. This link will expire in three days, please download your data in that time.",
-            html: "<p>Your HCDP download package is ready. Please click <a href=\"" + downloadLink + "\">here</a> to download it. This link will expire in three days, please download your data in that time.</p>"
-          };
-          mailRes = await sendEmail(transporterOptions, mailOptions);
-        }
-        //cleanup file if attached
-        //otherwise should be cleaned by chron task
-        //no need error handling, if error chron should handle later
-        else {
-          child_process.exec("rm -r " + zipRoot);
-        }
-
-        //if unsuccessful attempt to send error email
-        if(!mailRes.success) {
-          let serverError = "Failed to send message to user " + email + ". Error: " + mailRes.error.toString();
-          let clientError = "There was an error sending your HCDP download package to this email address.";
-          handleError(clientError, serverError);
-        }
       }
     }
   });
@@ -612,13 +623,18 @@ app.post("/genzip/instant/content", async (req, res) => {
     }
     else {
       let files = await indexer.getFileGroups(data);
-      reqData.files = files.length;
+      reqData.sizeF = files.length;
       if(files.length > 0) {
         res.contentType("application/zip");
   
         let zipProc = child_process.spawn("zip", ["-qq", "-r", "-", ...files]);
 
         let code = await handleSubprocess(zipProc, (data) => {
+          //get data chunk size
+          let dataSizeB = data.length;
+          //add size of data chunk
+          reqData.sizeB += dataSizeB;
+          //write data to stream
           res.write(data);
         });
         //if zip process failed throw error for handling by main error handler
@@ -669,7 +685,7 @@ app.post("/genzip/instant/link", async (req, res) => {
     }
     else {
       let files = await indexer.getFileGroups(data);
-      reqData.files = files.length;
+      reqData.sizeF = files.length;
       res.contentType("application/zip");
 
       let zipProc = child_process.spawn("sh", ["./zipgen.sh", downloadRoot, zipName, ...files]);
@@ -687,6 +703,13 @@ app.post("/genzip/instant/link", async (req, res) => {
         let zipDec = zipPath.split("/");
         let zipExt = zipDec.slice(-2).join("/");
         let downloadLink = downloadURLRoot + zipExt;
+
+        //get package size
+        let fstat = fs.statSync(zipPath);
+        let fsizeB = fstat.size;
+        //set size of package for logging
+        reqData.sizeB = fsizeB;
+
         reqData.code = 200;
         res.status(200)
         .send(downloadLink);
@@ -720,7 +743,7 @@ app.post("/genzip/instant/splitlink", async (req, res) => {
     }
     else {
       let files = await indexer.getFileGroups(data);
-      reqData.files = files.length;
+      reqData.sizeF = files.length;
       res.contentType("application/zip");
       let zipProc = child_process.spawn("sh", ["./zipgen_parts.sh", downloadRoot, ...files]);
       let zipOutput = "";
@@ -739,8 +762,19 @@ app.post("/genzip/instant/splitlink", async (req, res) => {
         let uuid = parts[0];
         for(let i = 1; i < parts.length; i++) {
           let fpart = parts[i];
-          let fname = downloadURLRoot + uuid + "/" + fpart;
+          //get subpath from uuid
+          let uuidDir = path.join(uuid, fpart);
+          //note, do not use path.join on urls
+          let fname = downloadURLRoot + uuidDir;
           fileParts.push(fname);
+
+          //get part path
+          let partPath = path.join(downloadRoot, uuidDir);
+          //get part size
+          let fstat = fs.statSync(partPath);
+          let fsizeB = fstat.size;
+          //add part size
+          reqData.sizeB += fsizeB;
         }
 
         let data = {
@@ -773,7 +807,7 @@ app.get("/production/list", async (req, res) => {
     }
     else {
       let files = await indexer.getFiles(data);
-      reqData.files = files.length;
+      reqData.sizeF = files.length;
       files = files.map((file) => {
         file = path.relative(dataRoot, file);
         let fileLink = `${urlRoot}${file}`;
@@ -827,7 +861,7 @@ app.get("/raw/list", async (req, res) => {
       let fileLink = `${linkDir}${file}`;
       return fileLink;
     });
-    reqData.files = files.length;
+    reqData.sizeF = files.length;
     reqData.code = 200;
     res.status(200)
     .json(files);
