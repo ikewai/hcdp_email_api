@@ -197,7 +197,7 @@ async function getFileGroups(data) {
             }
 
             //strip leading underscore from fname
-            fnameComplete = fnameComplete.substring(1);
+            fname = fname.substring(1);
 
             if(period && range) {
                 let dateParts = getFolderAndFileDateParts(period, range);
