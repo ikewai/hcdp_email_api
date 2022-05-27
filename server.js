@@ -511,7 +511,6 @@ app.post("/genzip/email", async (req, res) => {
         
         //get files
         let files = await indexer.getFileGroups(data);
-        console.log(files);
         reqData.sizeF = files.length;
 
         let zipPath = "";
