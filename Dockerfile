@@ -2,11 +2,7 @@ FROM node:16
 
 RUN apt-get update \
 && apt-get install -y zip \
-&& apt-get install -y uuid-runtime \
-&& apt-get install -y python3 \
-&& apt-get install -y python3-pip
-
-# RUN pip3 install imagecodecs
+&& apt-get install -y uuid-runtime
 
 # Create app directory
 WORKDIR /usr/src/app
@@ -16,10 +12,10 @@ COPY package*.json ./
 COPY config.json ./
 COPY server.js ./
 COPY fileIndexer.js ./
+COPY dbManager.js ./
 COPY csvProcessor.js ./
 COPY zipgen.sh ./
 COPY zipgen_parts.sh ./
-COPY reader.py ./
 
 
 RUN npm install
