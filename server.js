@@ -501,10 +501,20 @@ app.post("/genzip/email", async (req, res) => {
       
       //get files
       let files = await indexer.getFileGroups(data);
+      console.log(files);
       reqData.files = files.length;
 
       let zipPath = "";
-      let zipProc = child_process.spawn("sh", ["./zipgen.sh", downloadRoot, zipName, ...files]);
+      let zipProc;
+      try {
+        zipProc = child_process.spawn("sh", ["./zipgen.sh", downloadRoot, zipName, ...files]);
+      }
+      catch(e) {
+        serverError = `Failed to generate download package for user ${email}. Spawn process failed with error ${e.toString()}.`
+        clientError = "There was an error generating your HCDP download package.";
+        handleError(clientError, serverError);
+      }
+      
 
       let code = await handleSubprocess(zipProc, (data) => {
         zipPath += data.toString();
