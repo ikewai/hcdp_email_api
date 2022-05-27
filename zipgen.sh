@@ -16,7 +16,7 @@ then
     touch $file
 else
     #-m flag deletes source files, should retain by default
-    zip -qq $file $@
+    zip -qq -r $file $@
 fi
 
 if [ $? -eq 0 ] && [ -f "$file" ]

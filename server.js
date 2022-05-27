@@ -313,6 +313,7 @@ app.get("/raster/timeseries", async (req, res) => {
     }];
     
     let files = await indexer.getFiles(data);
+    //maybe update to use file groups
     let zipProc = child_process.spawn("python3", ["./reader.py", index, ...files]);
 
     vals = "";
@@ -499,7 +500,7 @@ app.post("/genzip/email", async (req, res) => {
       }
       
       //get files
-      let files = await indexer.getFiles(data);
+      let files = await indexer.getFileGroups(data);
       reqData.files = files.length;
 
       let zipPath = "";
@@ -600,12 +601,12 @@ app.post("/genzip/instant/content", async (req, res) => {
       );
     }
     else {
-      let files = await indexer.getFiles(data);
+      let files = await indexer.getFileGroups(data);
       reqData.files = files.length;
       if(files.length > 0) {
         res.contentType("application/zip");
   
-        let zipProc = child_process.spawn("zip", ["-qq", "-", ...files]);
+        let zipProc = child_process.spawn("zip", ["-qq", "-r", "-", ...files]);
 
         let code = await handleSubprocess(zipProc, (data) => {
           res.write(data);
@@ -657,7 +658,7 @@ app.post("/genzip/instant/link", async (req, res) => {
       );
     }
     else {
-      let files = await indexer.getFiles(data);
+      let files = await indexer.getFileGroups(data);
       reqData.files = files.length;
       res.contentType("application/zip");
 
@@ -708,7 +709,7 @@ app.post("/genzip/instant/splitlink", async (req, res) => {
       );
     }
     else {
-      let files = await indexer.getFiles(data);
+      let files = await indexer.getFileGroups(data);
       reqData.files = files.length;
       res.contentType("application/zip");
       let zipProc = child_process.spawn("sh", ["./zipgen_parts.sh", downloadRoot, ...files]);

@@ -16,7 +16,7 @@ then
     touch $file
 else
     #-m flag deletes source files, should retain by default
-    zip -qq - $@ | split -b 4m -d - $file_base
+    zip -qq -r - $@ | split -b 4m -d - $file_base
 fi
 
 if [ $? -eq 0 ]
