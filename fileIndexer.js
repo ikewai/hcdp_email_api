@@ -265,7 +265,7 @@ async function getFileGroups(data) {
             }
         }
     }
-    catch(e) {}
+    catch(e) { console.error(e) }
     return files;
 }
 
