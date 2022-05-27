@@ -177,6 +177,7 @@ function getFolderAndFileDateParts(period, range) {
 
 
 async function getFileGroups(data) {
+    console.log(data);
     let files = [];
     //at least for now just catchall and return files found before failure, maybe add more catching/skipping later, or 400?
     try {
@@ -200,6 +201,7 @@ async function getFileGroups(data) {
 
             if(period && range) {
                 let dateParts = getFolderAndFileDateParts(period, range);
+                console.log(dateParts);
                 for(let ftype of ftypes) {
                     //add folder groups
                     let fdirType = path.join(fdir, ftype);
