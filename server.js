@@ -214,7 +214,6 @@ async function sendEmail(transporterOptions, mailOptions) {
 
 
 function logReq(data) {
-  console.log("data:\n", data);
   const { user, code, success, sizeF, method, endpoint, token, sizeB, tokenUser } = data;
   const timestamp = new Date().toLocaleString("sv-SE", {timeZone:"Pacific/Honolulu"});
   let dataString = `[${timestamp}] ${method}:${endpoint}:${user}:${tokenUser}:${token}:${code}:${success}:${sizeB}:${sizeF}\n`
