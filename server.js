@@ -510,13 +510,12 @@ app.post("/genzip/email", async (req, res) => {
         // generate package and send email //
         /////////////////////////////////////
         
-        //get files
-        let files = await indexer.getFileGroups(data);
-        reqData.sizeF = files.length;
-
+        //get paths
+        let { paths, numFiles } = await indexer.getPaths(data);
+        reqData.sizeF = numFiles;
         let zipPath = "";
         let zipProc;
-        zipProc = child_process.spawn("sh", ["./zipgen.sh", downloadRoot, zipName, ...files]);
+        zipProc = child_process.spawn("sh", ["./zipgen.sh", downloadRoot, zipName, ...paths]);
 
         let code = await handleSubprocess(zipProc, (data) => {
           zipPath += data.toString();
@@ -622,12 +621,12 @@ app.post("/genzip/instant/content", async (req, res) => {
       );
     }
     else {
-      let files = await indexer.getFileGroups(data);
-      reqData.sizeF = files.length;
-      if(files.length > 0) {
+      let { paths, numFiles } = await indexer.getPaths(data);
+      reqData.sizeF = numFiles;
+      if(paths.length > 0) {
         res.contentType("application/zip");
   
-        let zipProc = child_process.spawn("zip", ["-qq", "-r", "-", ...files]);
+        let zipProc = child_process.spawn("zip", ["-qq", "-r", "-", ...paths]);
 
         let code = await handleSubprocess(zipProc, (data) => {
           //get data chunk size
@@ -684,11 +683,11 @@ app.post("/genzip/instant/link", async (req, res) => {
       );
     }
     else {
-      let files = await indexer.getFileGroups(data);
-      reqData.sizeF = files.length;
+      let { paths, numFiles } = await indexer.getPaths(data);
+      reqData.sizeF = numFiles;
       res.contentType("application/zip");
 
-      let zipProc = child_process.spawn("sh", ["./zipgen.sh", downloadRoot, zipName, ...files]);
+      let zipProc = child_process.spawn("sh", ["./zipgen.sh", downloadRoot, zipName, ...paths]);
       let zipPath = "";
 
       //write stdout (should be file name) to output accumulator
@@ -742,10 +741,10 @@ app.post("/genzip/instant/splitlink", async (req, res) => {
       );
     }
     else {
-      let files = await indexer.getFileGroups(data);
-      reqData.sizeF = files.length;
+      let { paths, numFiles } = await indexer.getPaths(data);
+      reqData.sizeF = numFiles;
       res.contentType("application/zip");
-      let zipProc = child_process.spawn("sh", ["./zipgen_parts.sh", downloadRoot, ...files]);
+      let zipProc = child_process.spawn("sh", ["./zipgen_parts.sh", downloadRoot, ...paths]);
       let zipOutput = "";
 
       //write stdout (should be file name) to output accumulator

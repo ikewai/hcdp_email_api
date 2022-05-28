@@ -139,7 +139,6 @@ function getFolderAndFileDateParts(period, range) {
     for(let i = 0; i < periods.length; i++) {
         let group = periods[i];
         let groupData = groups[group];
-        console.log(groupData);
 
         if(group == period) {
             for(let date of groupData) {
@@ -161,7 +160,6 @@ function getFolderAndFileDateParts(period, range) {
         }
         else {
             for(let date of groupData) {
-                console.log(date);
                 let folderPart = createDateString(date, group, "/");
                 folderDateParts.push(folderPart);
             }
@@ -176,9 +174,29 @@ function getFolderAndFileDateParts(period, range) {
 }
 
 
-async function getFileGroups(data) {
-    console.log(data);
-    let files = [];
+async function countFiles(path) {
+    let fcount = 0;
+    try {
+        let stats = await fs.promises.lstat(path);
+        if(stats.isDirectory()) {
+            let content = await fs.promises.readdir(path);
+            for(let item of content) {
+                fcount += await countFiles(item);
+            }
+        }
+        else if(stats.isFile()) {
+            fcount = 1;
+        }
+    }
+    //just catch errors and return 0 (should mean the path does not exist)
+    catch(e) {}
+    return fcount;
+}
+
+
+async function getPaths(data) {
+    let paths = [];
+    let totalFiles = 0;
     //at least for now just catchall and return files found before failure, maybe add more catching/skipping later, or 400?
     try {
         for(let item of data) {
@@ -199,18 +217,24 @@ async function getFileGroups(data) {
             //strip leading underscore from fname
             fname = fname.substring(1);
 
+            const handlePath = (path) => {
+                //validate path exists and get number of files it contains
+                let numFiles = await countFiles(path);
+                //if numFiles is 0 should mean the path does not exist
+                if(numFiles) {
+                    totalFiles += numFiles;
+                    paths.push(path);
+                }
+            }
+
             if(period && range) {
                 let dateParts = getFolderAndFileDateParts(period, range);
-                console.log(dateParts);
                 for(let ftype of ftypes) {
                     //add folder groups
                     let fdirType = path.join(fdir, ftype);
                     for(folderDatePart of dateParts.folderDateParts) {
                         let fdirFull = path.join(fdirType, folderDatePart);
-                        //add dir if exists
-                        if(await validate(fdirFull)) {
-                            files.push(fdirFull);
-                        }
+                        handlePath(fdirFull);
                     }
 
                     //add individual files
@@ -221,10 +245,7 @@ async function getFileGroups(data) {
                         for(folderDatePart of dateParts.aggregateFolders) {
                             //combine dir with date part and add folder to list
                             let fdirFull = path.join(fdirType, folderDatePart);
-                            //add dir if exists
-                            if(await validate(fdirFull)) {
-                                files.push(fdirFull);
-                            }
+                            handlePath(fdirFull);
                         }
                     }
                     //otherwise create file name
@@ -238,11 +259,7 @@ async function getFileGroups(data) {
                             let fnameFull = `${fname}_${ftype}_${fileDatePart}.${details.ext}`;
                             //combine dir and file name
                             let fpathFull = path.join(fdirFull, fnameFull);
-                            //add file if exists
-                            if(await validate(fpathFull)) {
-                                files.push(fpathFull);
-                            }
-                            
+                            handlePath(fpathFull);
                         }
                     }
                 }
@@ -257,154 +274,22 @@ async function getFileGroups(data) {
                     let fnameComplete = `${fname}_${ftype}.${details.ext}`;
                     //construct complete file path
                     let fpath = path.join(fdirComplete, fnameComplete);
-                    //validate file exists and append to file list if it does
-                    if(await validateFile(fpath)) {
-                        files.push(fpath);
-                    }
+                    handlePath(fpath);
                 }
             }
         }
     }
-    catch(e) { console.error(e) }
-    return files;
+    catch(e) { }
+    return {
+        numFiles: totalFiles,
+        paths
+    };
 }
 
 
 //////////////////////////////////////////////////////////
 ////////////////////// new ///////////////////////////////
 //////////////////////////////////////////////////////////
-
-
-
-
-
-
-
-// async function getFilesWildcard(data) {
-//     let files = [];
-//     //at least for now just catchall and return files found before failure, maybe add more catching/skipping later, or 400?
-//     try {
-//         for(let item of data) {
-//             let fdir = root;
-//             let fname = ""
-//             let period = item.period;
-//             let range = item.range;
-//             let ftypes = item.files;
-//             //add properties to path in order of hierarchy
-//             for(let property of hierarchy) {
-//                 let value = item[property];
-//                 if(value !== undefined) {
-//                     fdir = path.join(fdir, value);
-//                     fname = `${fname}_${value}`;
-//                 }
-//             }
-//             if(period && range) {
-//                 //expand out dates
-//                 dates = expandDates(period, range);
-//                 for(date of dates) {
-//                     for(let ftype of ftypes) {
-//                         let dirPeriod = shiftPeriod(period, 1);
-//                         //add file and date part of fdir
-//                         let fdirComplete = path.join(fdir, ftype, createDateString(date, dirPeriod, "/"));
-//                         //add fname end to fname
-//                         let fnameComplete = `${fname}_${getFnameEnd(ftype, period, date)}`;
-//                         //strip leading underscore
-//                         fnameComplete = fnameComplete.substring(1);
-//                         //construct complete file path
-//                         let fpath = path.join(fdirComplete, fnameComplete);
-//                         //validate file exists and push to file list if it does
-//                         if(await validate(fpath)) {
-//                             files.push(fpath);
-//                         }
-//                     }
-//                 } 
-//             }
-//             //no date component
-//             else {
-//                 for(let ftype of ftypes) {
-//                     //add file part to path
-//                     let fdirComplete = path.join(fdir, ftype);
-//                     //add fname end to fname
-//                     let fnameComplete = `${fname}_${getFnameEnd(ftype, undefined, undefined)}`;
-//                     //strip leading underscore
-//                     fnameComplete = fnameComplete.substring(1);
-//                     //construct complete file path
-//                     let fpath = path.join(fdirComplete, fnameComplete);
-//                     //validate file exists and append to file list if it does
-//                     if(await validate(fpath)) {
-//                         files.push(fpath);
-//                     }
-//                 }
-//             }
-//         }
-//     }
-//     catch(e) {}
-//     return files;
-// }
-
-// function createDateGroups(period, range) {
-//     let dateGroups = {};
-//     let start = range.start;
-//     let end = range.end;
-//     let startDate = new moment(start);
-//     let endDate = new moment(end);
-
-//     let uncoveredDates = [startDate, endDate, null, null];
-
-//     let periods = ["year", "month", "day"];
-//     for(let i = 0; i < periods.length; i++) {
-//         let group = periods[i];
-        
-//         let data = getGroupsBetween(uncoveredDates[0], uncoveredDates[1], group);
-//         dateGroups[group] = data.periods;
-//         uncoveredDates[1] = data.coverage[0];
-
-//         if(uncoveredDates[2]) {
-//             data = getGroupsBetween(uncoveredDates[2], uncoveredDates[3], group);
-//             dateGroups[group] = dateGroups[group].concat(data.periods);
-//         }
-
-//         if(group == period) {
-//             break;
-//         }
-
-//         uncoveredDates[2] = data.coverage[1];
-//     }
-
-//     return dateGroups;
-// }
-
-// function getGroupsBetween(start, end, period) {
-//     periods = [];
-//     coverage = [];
-//     date = start.clone();
-//     //move to start of period
-//     date.startOf(period);
-//     //if start of period is same as start date start there, otherwise advance by one period (initial not fully covered)
-//     if(!date.isSame(start, period)) {
-//         date.add(1, year);
-//     }
-//     coverage.push(date.clone());
-//     //need to see if period completely enclosed, so go to end of period
-//     date.endOf(period);
-//     //get 
-//     while(date.isSameOrBefore(end)) {
-//         let clone = date.clone();
-//         //go to the start for simplicity (zero out lower properties)
-//         clone.startOf(period);
-//         periods.push(clone);
-//         date.add(1, period);
-//     }
-//     //end of coverage (exclusive)
-//     date.startOf(period);
-//     coverage.push(date);
-//     //note coverage is [)
-//     data = {
-//         periods,
-//         coverage
-//     };
-//     return covered;
-// }
 
 
 
@@ -564,4 +449,4 @@ async function validate(file) {
 
 exports.getFiles = getFiles;
 exports.getEmpty = getEmpty;
-exports.getFileGroups = getFileGroups;
+exports.getPaths = getPaths;
