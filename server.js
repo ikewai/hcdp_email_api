@@ -156,6 +156,7 @@ function validateTokenAccess(token, permission) {
   if(tokenInfo) {
     valid = true;
     console.log(tokenInfo);
+    console.log(tokenInfo.user);
     user = tokenInfo.user | "";
     console.log(user);
     //actions permissions user is authorzized for
