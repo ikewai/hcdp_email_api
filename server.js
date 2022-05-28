@@ -149,9 +149,9 @@ async function readdir(dir) {
 }
 
 function validateTokenAccess(token, permission) {
-  valid = false;
-  allowed = false;
-  user = "";
+  let valid = false;
+  let allowed = false;
+  let user = "";
   let tokenInfo = whitelist[token];
   if(tokenInfo) {
     valid = true;
