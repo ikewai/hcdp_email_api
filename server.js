@@ -155,7 +155,9 @@ function validateTokenAccess(token, permission) {
   let tokenInfo = whitelist[token];
   if(tokenInfo) {
     valid = true;
+    console.log(tokenInfo);
     user = tokenInfo.user | "";
+    console.log(user);
     //actions permissions user is authorzized for
     const authorized = tokenInfo.permissions;
     //check if authorized permissions for this token contains required permission for this request
