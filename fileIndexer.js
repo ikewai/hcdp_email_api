@@ -217,7 +217,7 @@ async function getPaths(data) {
             //strip leading underscore from fname
             fname = fname.substring(1);
 
-            const handlePath = (path) => {
+            const handlePath = async (path) => {
                 //validate path exists and get number of files it contains
                 let numFiles = await countFiles(path);
                 //if numFiles is 0 should mean the path does not exist
@@ -234,7 +234,7 @@ async function getPaths(data) {
                     let fdirType = path.join(fdir, ftype);
                     for(folderDatePart of dateParts.folderDateParts) {
                         let fdirFull = path.join(fdirType, folderDatePart);
-                        handlePath(fdirFull);
+                        await handlePath(fdirFull);
                     }
 
                     //add individual files
@@ -245,7 +245,7 @@ async function getPaths(data) {
                         for(folderDatePart of dateParts.aggregateFolders) {
                             //combine dir with date part and add folder to list
                             let fdirFull = path.join(fdirType, folderDatePart);
-                            handlePath(fdirFull);
+                            await handlePath(fdirFull);
                         }
                     }
                     //otherwise create file name
@@ -259,7 +259,7 @@ async function getPaths(data) {
                             let fnameFull = `${fname}_${ftype}_${fileDatePart}.${details.ext}`;
                             //combine dir and file name
                             let fpathFull = path.join(fdirFull, fnameFull);
-                            handlePath(fpathFull);
+                            await handlePath(fpathFull);
                         }
                     }
                 }
@@ -274,7 +274,7 @@ async function getPaths(data) {
                     let fnameComplete = `${fname}_${ftype}.${details.ext}`;
                     //construct complete file path
                     let fpath = path.join(fdirComplete, fnameComplete);
-                    handlePath(fpath);
+                    await handlePath(fpath);
                 }
             }
         }
