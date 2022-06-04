@@ -260,6 +260,7 @@ async function getPaths(data) {
                             let fnameFull = `${fname}_${ftype}_${fileDatePart}.${details.ext}`;
                             //combine dir and file name
                             let fpathFull = path.join(fdirFull, fnameFull);
+                            console.log("path", fpathFull);
                             await handlePath(fpathFull);
                         }
                     }
