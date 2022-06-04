@@ -281,7 +281,7 @@ async function getPaths(data) {
         }
     }
     catch(e) { }
-    console.log(paths, numFiles);
+    console.log(paths, totalFiles);
     return {
         numFiles: totalFiles,
         paths
