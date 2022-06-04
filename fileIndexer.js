@@ -229,7 +229,6 @@ async function getPaths(data) {
 
             if(period && range) {
                 let dateParts = getFolderAndFileDateParts(period, range);
-                console.log(dateParts);
                 for(let ftype of ftypes) {
                     //add folder groups
                     let fdirType = path.join(fdir, ftype);
@@ -260,7 +259,6 @@ async function getPaths(data) {
                             let fnameFull = `${fname}_${ftype}_${fileDatePart}.${details.ext}`;
                             //combine dir and file name
                             let fpathFull = path.join(fdirFull, fnameFull);
-                            console.log("path", fpathFull);
                             await handlePath(fpathFull);
                         }
                     }
@@ -282,7 +280,6 @@ async function getPaths(data) {
         }
     }
     catch(e) { }
-    console.log(paths, totalFiles);
     return {
         numFiles: totalFiles,
         paths
