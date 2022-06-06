@@ -352,6 +352,14 @@ app.get("/raster/timeseries", async (req, res) => {
 app.post("/db/replace", async (req, res) => {
   const permission = "db";
   await handleReq(req, res, permission, async (reqData) => {
+    //if the body is a string attempt to parse as JSON
+    if(typeof req.body === "string") {
+      try {
+        req.body = JSON.parse(req.body);
+      }
+      catch(e) {}
+    }
+
     const uuid = req.body.uuid;
     let value = req.body.value;
 
@@ -382,6 +390,14 @@ app.post("/db/replace", async (req, res) => {
 app.post("/db/delete", async (req, res) => {
   const permission = "db";
   await handleReq(req, res, permission, async (reqData) => {
+    //if the body is a string attempt to parse as JSON
+    if(typeof req.body === "string") {
+      try {
+        req.body = JSON.parse(req.body);
+      }
+      catch(e) {}
+    }
+
     const uuid = req.body.uuid;
 
     if(typeof uuid !== "string") {
@@ -451,6 +467,14 @@ app.get("/raster", async (req, res) => {
 app.post("/genzip/email", async (req, res) => {
   const permission = "basic";
   await handleReq(req, res, permission, async (reqData) => {
+    //if the body is a string attempt to parse as JSON
+    if(typeof req.body === "string") {
+      try {
+        req.body = JSON.parse(req.body);
+      }
+      catch(e) {}
+    }
+
     let email = req.body.email;
     let data = req.body.data;
     let zipName = req.body.name || defaultZipName;
@@ -603,6 +627,14 @@ app.post("/genzip/email", async (req, res) => {
 app.post("/genzip/instant/content", async (req, res) => {
   const permission = "basic";
   await handleReq(req, res, permission, async (reqData) => {
+    //if the body is a string attempt to parse as JSON
+    if(typeof req.body === "string") {
+      try {
+        req.body = JSON.parse(req.body);
+      }
+      catch(e) {}
+    }
+
     let email = req.body.email;
     let data = req.body.data;
 
@@ -662,6 +694,14 @@ app.post("/genzip/instant/content", async (req, res) => {
 app.post("/genzip/instant/link", async (req, res) => {
   const permission = "basic";
   await handleReq(req, res, permission, async (reqData) => {
+    //if the body is a string attempt to parse as JSON
+    if(typeof req.body === "string") {
+      try {
+        req.body = JSON.parse(req.body);
+      }
+      catch(e) {}
+    }
+
     let zipName = defaultZipName;
     let email = req.body.email;
     let data = req.body.data;
@@ -723,6 +763,14 @@ app.post("/genzip/instant/link", async (req, res) => {
 app.post("/genzip/instant/splitlink", async (req, res) => {
   const permission = "basic";
   await handleReq(req, res, permission, async (reqData) => {
+    //if the body is a string attempt to parse as JSON
+    if(typeof req.body === "string") {
+      try {
+        req.body = JSON.parse(req.body);
+      }
+      catch(e) {}
+    }
+
     let email = req.body.email;
     let data = req.body.data;
 
