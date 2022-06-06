@@ -468,6 +468,7 @@ app.post("/genzip/email", async (req, res) => {
   const permission = "basic";
   await handleReq(req, res, permission, async (reqData) => {
     console.log(typeof req.body);
+    console.log(JSON.stringify(req.body));
     //if the body is a string attempt to parse as JSON
     if(typeof req.body === "string") {
       try {
