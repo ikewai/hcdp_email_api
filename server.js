@@ -448,13 +448,16 @@ app.get("/raster", async (req, res) => {
 });
 
 
-//should move file indexing
 app.post("/genzip/email", async (req, res) => {
   const permission = "basic";
   await handleReq(req, res, permission, async (reqData) => {
     let email = req.body.email;
     let data = req.body.data;
     let zipName = req.body.name || defaultZipName;
+
+    console.log(req.body);
+    console.log(email);
+    console.log(data);
 
     if(email) {
       reqData.user = email;
