@@ -175,16 +175,16 @@ function getFolderAndFileDateParts(period, range) {
 }
 
 
-async function countFiles(path) {
+async function countFiles(root) {
     let fcount = 0;
     try {
-        let stats = await fs.promises.lstat(path);
+        let stats = await fs.promises.lstat(root);
         if(stats.isDirectory()) {
             console.log("dir");
-            let content = await fs.promises.readdir(path);
+            let content = await fs.promises.readdir(root);
             console.log(content);
             for(let item of content) {
-                let subpath = path.join(path, item);
+                let subpath = path.join(root, item);
                 fcount += await countFiles(subpath);
             }
         }
