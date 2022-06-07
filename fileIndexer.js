@@ -184,7 +184,8 @@ async function countFiles(path) {
             let content = await fs.promises.readdir(path);
             console.log(content);
             for(let item of content) {
-                fcount += await countFiles(item);
+                let subpath = path.join(path, item);
+                fcount += await countFiles(subpath);
             }
         }
         else if(stats.isFile()) {
