@@ -180,7 +180,9 @@ async function countFiles(path) {
     try {
         let stats = await fs.promises.lstat(path);
         if(stats.isDirectory()) {
+            console.log("dir");
             let content = await fs.promises.readdir(path);
+            console.log(content);
             for(let item of content) {
                 fcount += await countFiles(item);
             }
@@ -190,7 +192,7 @@ async function countFiles(path) {
         }
     }
     //just catch errors and return 0 (should mean the path does not exist)
-    catch(e) {}
+    catch(e) {console.error(e);}
     return fcount;
 }
 
