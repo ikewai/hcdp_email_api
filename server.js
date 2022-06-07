@@ -76,7 +76,7 @@ const server = https.createServer(options, app)
   }
 });
 
-app.use(express.json());
+//app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 //compress all HTTP responses
 app.use(compression());
