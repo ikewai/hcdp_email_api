@@ -221,6 +221,7 @@ async function getPaths(data) {
             const handlePath = async (path) => {
                 //validate path exists and get number of files it contains
                 let numFiles = await countFiles(path);
+                console.log(path, numFiles);
                 //if numFiles is 0 should mean the path does not exist
                 if(numFiles) {
                     totalFiles += numFiles;
