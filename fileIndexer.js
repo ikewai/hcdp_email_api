@@ -230,6 +230,7 @@ async function getPaths(data) {
 
             if(period && range) {
                 let dateParts = getFolderAndFileDateParts(period, range);
+                console.log(dateParts);
                 for(let ftype of ftypes) {
                     //add folder groups
                     let fdirType = path.join(fdir, ftype);
