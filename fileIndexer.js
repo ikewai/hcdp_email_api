@@ -130,6 +130,7 @@ function getGroupsBetween(start, end, period) {
 
 
 function getFolderAndFileDateParts(period, range) {
+    console.log(range);
     let groups = createDateGroups(period, range);
     let folderDateParts = [];
     let aggregateFolders = new Set();
