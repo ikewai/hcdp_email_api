@@ -130,7 +130,6 @@ function getGroupsBetween(start, end, period) {
 
 
 function getFolderAndFileDateParts(period, range) {
-    console.log(range);
     let groups = createDateGroups(period, range);
     let folderDateParts = [];
     let aggregateFolders = new Set();
@@ -180,9 +179,7 @@ async function countFiles(root) {
     try {
         let stats = await fs.promises.lstat(root);
         if(stats.isDirectory()) {
-            console.log("dir");
             let content = await fs.promises.readdir(root);
-            console.log(content);
             for(let item of content) {
                 let subpath = path.join(root, item);
                 fcount += await countFiles(subpath);
@@ -224,7 +221,6 @@ async function getPaths(data) {
             const handlePath = async (path) => {
                 //validate path exists and get number of files it contains
                 let numFiles = await countFiles(path);
-                console.log(path, numFiles);
                 //if numFiles is 0 should mean the path does not exist
                 if(numFiles) {
                     totalFiles += numFiles;
@@ -234,7 +230,6 @@ async function getPaths(data) {
 
             if(period && range) {
                 let dateParts = getFolderAndFileDateParts(period, range);
-                console.log(dateParts);
                 for(let ftype of ftypes) {
                     //add folder groups
                     let fdirType = path.join(fdir, ftype);
