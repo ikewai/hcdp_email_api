@@ -3,6 +3,8 @@ const fs = require("fs");
 const path = require("path");
 
 
+
+
 //data root
 const root = "/data/production";
 //property hierarchy (followed by file and date parts)
@@ -201,81 +203,91 @@ async function getPaths(data) {
     //at least for now just catchall and return files found before failure, maybe add more catching/skipping later, or 400?
     try {
         for(let item of data) {
-            let fdir = root;
-            let fname = "";
-            let period = item.period;
-            let range = item.range;
-            let ftypes = item.files;
-            //add properties to path in order of hierarchy
-            for(let property of hierarchy) {
-                let value = item[property];
-                if(value !== undefined) {
-                    fdir = path.join(fdir, value);
-                    fname = `${fname}_${value}`;
+            //use simplified version for getting ds data
+            if(item.datatype == "downscaling_temperature" || item.datatype == "downscaling_rainfall") {
+                let file = getDSFile(item);
+                if(await validate(file)) {
+                    paths.push(file);
+                    totalFiles += 1;
                 }
             }
-
-            //strip leading underscore from fname
-            fname = fname.substring(1);
-
-            const handlePath = async (path) => {
-                //validate path exists and get number of files it contains
-                let numFiles = await countFiles(path);
-                //if numFiles is 0 should mean the path does not exist
-                if(numFiles) {
-                    totalFiles += numFiles;
-                    paths.push(path);
-                }
-            }
-
-            if(period && range) {
-                let dateParts = getFolderAndFileDateParts(period, range);
-                for(let ftype of ftypes) {
-                    //add folder groups
-                    let fdirType = path.join(fdir, ftype);
-                    for(folderDatePart of dateParts.folderDateParts) {
-                        let fdirFull = path.join(fdirType, folderDatePart);
-                        await handlePath(fdirFull);
+            else {
+                let fdir = root;
+                let fname = "";
+                let period = item.period;
+                let range = item.range;
+                let ftypes = item.files;
+                //add properties to path in order of hierarchy
+                for(let property of hierarchy) {
+                    let value = item[property];
+                    if(value !== undefined) {
+                        fdir = path.join(fdir, value);
+                        fname = `${fname}_${value}`;
                     }
-
-                    //add individual files
-                    let details = fileDetails[ftype];
-                    //note this is only set up for single tier agg, need to update if can be aggregated further
-                    //if aggregated file then just add aggregated folders
-                    if(details.agg) {
-                        for(folderDatePart of dateParts.aggregateFolders) {
-                            //combine dir with date part and add folder to list
+                }
+    
+                //strip leading underscore from fname
+                fname = fname.substring(1);
+    
+                const handlePath = async (path) => {
+                    //validate path exists and get number of files it contains
+                    let numFiles = await countFiles(path);
+                    //if numFiles is 0 should mean the path does not exist
+                    if(numFiles) {
+                        totalFiles += numFiles;
+                        paths.push(path);
+                    }
+                }
+    
+                if(period && range) {
+                    let dateParts = getFolderAndFileDateParts(period, range);
+                    for(let ftype of ftypes) {
+                        //add folder groups
+                        let fdirType = path.join(fdir, ftype);
+                        for(folderDatePart of dateParts.folderDateParts) {
                             let fdirFull = path.join(fdirType, folderDatePart);
                             await handlePath(fdirFull);
                         }
-                    }
-                    //otherwise create file name
-                    else {
-                        for(fileDateComponents of dateParts.fileDateParts) {
-                            //deconstruct components
-                            let [ folderDatePart, fileDatePart ] = fileDateComponents;
-                            //create full dir
-                            let fdirFull = path.join(fdirType, folderDatePart);
-                            //create full file name
-                            let fnameFull = `${fname}_${ftype}_${fileDatePart}.${details.ext}`;
-                            //combine dir and file name
-                            let fpathFull = path.join(fdirFull, fnameFull);
-                            await handlePath(fpathFull);
+    
+                        //add individual files
+                        let details = fileDetails[ftype];
+                        //note this is only set up for single tier agg, need to update if can be aggregated further
+                        //if aggregated file then just add aggregated folders
+                        if(details.agg) {
+                            for(folderDatePart of dateParts.aggregateFolders) {
+                                //combine dir with date part and add folder to list
+                                let fdirFull = path.join(fdirType, folderDatePart);
+                                await handlePath(fdirFull);
+                            }
+                        }
+                        //otherwise create file name
+                        else {
+                            for(fileDateComponents of dateParts.fileDateParts) {
+                                //deconstruct components
+                                let [ folderDatePart, fileDatePart ] = fileDateComponents;
+                                //create full dir
+                                let fdirFull = path.join(fdirType, folderDatePart);
+                                //create full file name
+                                let fnameFull = `${fname}_${ftype}_${fileDatePart}.${details.ext}`;
+                                //combine dir and file name
+                                let fpathFull = path.join(fdirFull, fnameFull);
+                                await handlePath(fpathFull);
+                            }
                         }
                     }
                 }
-            }
-            //no date component
-            else {
-                for(let ftype of ftypes) {
-                    let details = fileDetails[ftype];
-                    //add file part to path
-                    let fdirComplete = path.join(fdir, ftype);
-                    //add fname end to fname
-                    let fnameComplete = `${fname}_${ftype}.${details.ext}`;
-                    //construct complete file path
-                    let fpath = path.join(fdirComplete, fnameComplete);
-                    await handlePath(fpath);
+                //no date component
+                else {
+                    for(let ftype of ftypes) {
+                        let details = fileDetails[ftype];
+                        //add file part to path
+                        let fdirComplete = path.join(fdir, ftype);
+                        //add fname end to fname
+                        let fnameComplete = `${fname}_${ftype}.${details.ext}`;
+                        //construct complete file path
+                        let fpath = path.join(fdirComplete, fnameComplete);
+                        await handlePath(fpath);
+                    }
                 }
             }
         }
@@ -300,54 +312,63 @@ async function getFiles(data) {
     //at least for now just catchall and return files found before failure, maybe add more catching/skipping later, or 400?
     try {
         for(let item of data) {
-            let fdir = root;
-            let fname = ""
-            let period = item.period;
-            let range = item.range;
-            let ftypes = item.files;
-            //add properties to path in order of hierarchy
-            for(let property of hierarchy) {
-                let value = item[property];
-                if(value !== undefined) {
-                    fdir = path.join(fdir, value);
-                    fname = `${fname}_${value}`;
+            //use simplified version for getting ds data
+            if(item.datatype == "downscaling_temperature" || item.datatype == "downscaling_rainfall") {
+                let file = getDSFile(item);
+                if(await validate(file)) {
+                    files.push(file);
                 }
             }
-            if(period && range) {
-                //expand out dates
-                dates = expandDates(period, range);
-                for(date of dates) {
+            else {
+                let fdir = root;
+                let fname = ""
+                let period = item.period;
+                let range = item.range;
+                let ftypes = item.files;
+                //add properties to path in order of hierarchy
+                for(let property of hierarchy) {
+                    let value = item[property];
+                    if(value !== undefined) {
+                        fdir = path.join(fdir, value);
+                        fname = `${fname}_${value}`;
+                    }
+                }
+                if(period && range) {
+                    //expand out dates
+                    dates = expandDates(period, range);
+                    for(date of dates) {
+                        for(let ftype of ftypes) {
+                            let dirPeriod = shiftPeriod(period, 1);
+                            //add file and date part of fdir
+                            let fdirComplete = path.join(fdir, ftype, createDateString(date, dirPeriod, "/"));
+                            //add fname end to fname
+                            let fnameComplete = `${fname}_${getFnameEnd(ftype, period, date)}`;
+                            //strip leading underscore
+                            fnameComplete = fnameComplete.substring(1);
+                            //construct complete file path
+                            let fpath = path.join(fdirComplete, fnameComplete);
+                            //validate file exists and push to file list if it does
+                            if(await validate(fpath)) {
+                                files.push(fpath);
+                            }
+                        }
+                    } 
+                }
+                //no date component
+                else {
                     for(let ftype of ftypes) {
-                        let dirPeriod = shiftPeriod(period, 1);
-                        //add file and date part of fdir
-                        let fdirComplete = path.join(fdir, ftype, createDateString(date, dirPeriod, "/"));
+                        //add file part to path
+                        let fdirComplete = path.join(fdir, ftype);
                         //add fname end to fname
-                        let fnameComplete = `${fname}_${getFnameEnd(ftype, period, date)}`;
+                        let fnameComplete = `${fname}_${getFnameEnd(ftype, undefined, undefined)}`;
                         //strip leading underscore
                         fnameComplete = fnameComplete.substring(1);
                         //construct complete file path
                         let fpath = path.join(fdirComplete, fnameComplete);
-                        //validate file exists and push to file list if it does
+                        //validate file exists and append to file list if it does
                         if(await validate(fpath)) {
                             files.push(fpath);
                         }
-                    }
-                } 
-            }
-            //no date component
-            else {
-                for(let ftype of ftypes) {
-                    //add file part to path
-                    let fdirComplete = path.join(fdir, ftype);
-                    //add fname end to fname
-                    let fnameComplete = `${fname}_${getFnameEnd(ftype, undefined, undefined)}`;
-                    //strip leading underscore
-                    fnameComplete = fnameComplete.substring(1);
-                    //construct complete file path
-                    let fpath = path.join(fdirComplete, fnameComplete);
-                    //validate file exists and append to file list if it does
-                    if(await validate(fpath)) {
-                        files.push(fpath);
                     }
                 }
             }
@@ -447,6 +468,40 @@ async function validate(file) {
         });
     });
 }
+
+
+
+//should update everything to use this, for now just use for ds data
+const hierarchies = {
+    ds_rainfall: ["dsm", "season", "period"],
+    ds_temperature: ["dsm", "period"]
+}
+
+//expand to allow different units to be grabbed, for now just mm and celcius
+function getDSFile(properties) {
+    let file_suffix;
+    let hierarchy = this.hierarchies[properties.datatype];
+    let values = [properties.datatype];
+    let period = properties.period;
+    for(let property of hierarchy) {
+        let value = properties[property];
+        values.push(value);
+    }
+    if(period != present) {
+        let model = properties.model;
+        this.values.push(model);
+        file_suffix = properties.datatype == "downscaling_temperature" ? "prediction_mm.tif" : "prediction_celcius.tif"
+    }
+    else {
+        file_suffix = properties.datatype == "downscaling_temperature" ? "mm.tif" : "celcius.tif"
+    }
+    let subpath = values.join("/");
+    values.push(file_suffix);
+    let fname = values.join("_");
+    let path = path.join(root, subpath, fname);
+    return path;
+}
+
 
 exports.getFiles = getFiles;
 exports.getEmpty = getEmpty;

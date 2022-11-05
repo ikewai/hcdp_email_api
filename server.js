@@ -216,7 +216,7 @@ async function sendEmail(transporterOptions, mailOptions) {
 function logReq(data) {
   const { user, code, success, sizeF, method, endpoint, token, sizeB, tokenUser } = data;
   const timestamp = new Date().toLocaleString("sv-SE", {timeZone:"Pacific/Honolulu"});
-  let dataString = `[${timestamp}] ${method}:${endpoint}:${user}:${tokenUser}:${token}:${code}:${success}:${sizeB}:${sizeF}\n`
+  let dataString = `[${timestamp}] ${method}:${endpoint}:${user}:${tokenUser}:${token}:${code}:${success}:${sizeB}:${sizeF}\n`;
   fs.appendFile(userLog, dataString, (err) => {
     if(err) {
       console.error(`Failed to write userlog.\nError: ${err}`);
