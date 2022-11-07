@@ -375,7 +375,7 @@ async function getFiles(data) {
             }
         }
     }
-    catch(e) {}
+    catch(e) { console.log(e); }
     return files;
 }
 
