@@ -481,7 +481,7 @@ const hierarchies = {
 //expand to allow different units to be grabbed, for now just mm and celcius
 function getDSFile(properties) {
     let file_suffix;
-    let hierarchy = this.hierarchies[properties.datatype];
+    let hierarchy = hierarchies[properties.datatype];
     let values = [properties.datatype];
     let period = properties.period;
     for(let property of hierarchy) {
@@ -490,7 +490,7 @@ function getDSFile(properties) {
     }
     if(period != present) {
         let model = properties.model;
-        this.values.push(model);
+        values.push(model);
         file_suffix = properties.datatype == "downscaling_temperature" ? "prediction_mm.tif" : "prediction_celcius.tif"
     }
     else {
