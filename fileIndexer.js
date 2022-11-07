@@ -474,8 +474,8 @@ async function validate(file) {
 
 //should update everything to use this, for now just use for ds data
 const hierarchies = {
-    ds_rainfall: ["dsm", "season", "period"],
-    ds_temperature: ["dsm", "period"]
+    downscaling_rainfall: ["dsm", "season", "period"],
+    downscaling_temperature: ["dsm", "period"]
 }
 
 //expand to allow different units to be grabbed, for now just mm and celcius
