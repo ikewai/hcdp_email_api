@@ -484,6 +484,7 @@ function getDSFile(properties) {
     let hierarchy = hierarchies[properties.datatype];
     let values = [properties.datatype];
     let period = properties.period;
+    console.log(hierarchy);
     for(let property of hierarchy) {
         let value = properties[property];
         values.push(value);
