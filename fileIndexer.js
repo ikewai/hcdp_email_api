@@ -500,9 +500,9 @@ function getDSFile(properties) {
     let subpath = values.join("/");
     values.push(file_suffix);
     let fname = values.join("_");
-    let path = path.join(root, subpath, fname);
-    console.log(path);
-    return path;
+    let fpath = path.join(root, subpath, fname);
+    console.log(fpath);
+    return fpath;
 }
 
 
