@@ -292,7 +292,7 @@ async function getPaths(data) {
             }
         }
     }
-    catch(e) { }
+    catch(e) { console.log(e); }
     return {
         numFiles: totalFiles,
         paths
