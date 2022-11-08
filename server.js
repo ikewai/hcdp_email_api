@@ -769,7 +769,7 @@ app.post("/genzip/instant/splitlink", async (req, res) => {
 
 
       console.log(paths);
-      
+
       reqData.sizeF = numFiles;
       res.contentType("application/zip");
       let zipProc = child_process.spawn("sh", ["./zipgen_parts.sh", downloadRoot, productionRoot, ...paths]);
@@ -779,6 +779,7 @@ app.post("/genzip/instant/splitlink", async (req, res) => {
       let code = await handleSubprocess(zipProc, (data) => {
         zipOutput += data.toString();
       });
+      console.log(zipOutput);
 
       if(code !== 0) {
         throw new Error("Zip process failed with code " + code);
