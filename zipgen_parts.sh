@@ -19,7 +19,7 @@ then
 else
     cd ziproot
     #-m flag deletes source files, should retain by default
-    zip -qq -r - $@ | split -b 4m -d - $file_base
+    zip -r - $@ | split -b 4m -d - $file_base
 fi
 
 if [ $? -eq 0 ]
