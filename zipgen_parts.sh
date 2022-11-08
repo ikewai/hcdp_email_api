@@ -17,9 +17,9 @@ then
     file=${file_base}00
     touch $file
 else
-    cd ziproot
+    cd $ziproot
     #-m flag deletes source files, should retain by default
-    zip -r - $@ | split -b 4m -d - $file_base
+    zip -qq -r - $@ | split -b 4m -d - $file_base
 fi
 
 if [ $? -eq 0 ]

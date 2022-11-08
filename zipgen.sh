@@ -16,7 +16,7 @@ if [ $# -eq 0 ]
 then
     touch $file
 else
-    cd ziproot
+    cd $ziproot
     #-m flag deletes source files, should retain by default
     zip -qq -r $file $@
 fi
