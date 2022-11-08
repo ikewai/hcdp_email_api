@@ -9,6 +9,7 @@
     "rawDataDir": "raw/",
     "downloadDir": "downloads/",
     "productionDir": "production/",
+    "licenseFile": "production/LICENSE.txt",
     "dataRoot": "/data/",
     "urlRoot": "https://ikeauth.its.hawaii.edu/files/v2/download/public/system/ikewai-annotated-data/HCDP/",
     "userLog": "/logs/userlog.txt",

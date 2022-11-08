@@ -32,13 +32,14 @@ const whitelist = config.whitelist;
 const administrators = config.administrators;
 const dbConfig = config.dbConfig;
 const productionDir = config.productionDir;
+const licensePath = config.licenseFile;
 
 const rawDataRoot = `${dataRoot}${rawDataDir}`;
 const rawDataURLRoot = `${urlRoot}${rawDataDir}`;
 const downloadRoot = `${dataRoot}${downloadDir}`;
 const downloadURLRoot = `${urlRoot}${downloadDir}`;
 const productionRoot = `${dataRoot}${productionDir}`;
-
+const licenseFile = `${dataRoot}${licensePath}`;
 
 const transporterOptions = {
   host: smtp,
@@ -510,8 +511,13 @@ app.post("/genzip/email", async (req, res) => {
         //get paths
         let { paths, numFiles } = await indexer.getPaths(productionRoot, data);
         //add license file
-        paths.push("LICENSE.txt");
+        paths.push(licenseFile);
         numFiles += 1;
+
+        //make relative so zip doesn't include production path
+        paths = paths.map((file) => {
+          return path.relative(productionRoot, file);
+        });
 
         reqData.sizeF = numFiles;
         let zipPath = "";
@@ -686,8 +692,13 @@ app.post("/genzip/instant/link", async (req, res) => {
     else {
       let { paths, numFiles } = await indexer.getPaths(productionRoot, data);
       //add license file
-      paths.push("LICENSE.txt");
+      paths.push(licenseFile);
       numFiles += 1;
+
+      //make relative so zip doesn't include production path
+      paths = paths.map((file) => {
+        return path.relative(productionRoot, file);
+      });
 
       reqData.sizeF = numFiles;
       res.contentType("application/zip");
@@ -748,8 +759,13 @@ app.post("/genzip/instant/splitlink", async (req, res) => {
     else {
       let { paths, numFiles } = await indexer.getPaths(productionRoot, data);
       //add license file
-      paths.push("LICENSE.txt");
+      paths.push(licenseFile);
       numFiles += 1;
+
+      //make relative so zip doesn't include production path
+      paths = paths.map((file) => {
+        return path.relative(productionRoot, file);
+      });
 
       reqData.sizeF = numFiles;
       res.contentType("application/zip");
