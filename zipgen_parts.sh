@@ -3,7 +3,6 @@
 uuid=$(uuidgen)
 froot=$1; shift
 ziproot=$1; shift
-echo $ziproot
 
 dir=$froot$uuid
 
