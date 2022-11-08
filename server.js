@@ -767,6 +767,9 @@ app.post("/genzip/instant/splitlink", async (req, res) => {
         return path.relative(productionRoot, file);
       });
 
+
+      console.log(paths);
+      
       reqData.sizeF = numFiles;
       res.contentType("application/zip");
       let zipProc = child_process.spawn("sh", ["./zipgen_parts.sh", downloadRoot, productionRoot, ...paths]);
