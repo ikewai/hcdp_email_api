@@ -8,6 +8,7 @@
     "defaultZipName": "HCDP_data.zip",
     "rawDataDir": "raw/",
     "downloadDir": "downloads/",
+    "productionDir": "production/",
     "dataRoot": "/data/",
     "urlRoot": "https://ikeauth.its.hawaii.edu/files/v2/download/public/system/ikewai-annotated-data/HCDP/",
     "userLog": "/logs/userlog.txt",

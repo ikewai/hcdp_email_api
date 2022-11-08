@@ -26,19 +26,18 @@ const defaultZipName = config.defaultZipName;
 const dataRoot = config.dataRoot;
 const urlRoot = config.urlRoot;
 const rawDataDir = config.rawDataDir;
-const sourceDataDir = config.sourceDataDir;
 const downloadDir = config.downloadDir;
 const userLog = config.userLog;
 const whitelist = config.whitelist;
 const administrators = config.administrators;
 const dbConfig = config.dbConfig;
+const productionDir = config.productionDir;
 
 const rawDataRoot = `${dataRoot}${rawDataDir}`;
 const rawDataURLRoot = `${urlRoot}${rawDataDir}`;
-const sourceDataRoot = `${dataRoot}${sourceDataDir}`;
-const sourceDataURLRoot = `${urlRoot}${sourceDataDir}`;
 const downloadRoot = `${dataRoot}${downloadDir}`;
 const downloadURLRoot = `${urlRoot}${downloadDir}`;
+const productionRoot = `${dataRoot}${productionDir}`;
 
 
 const transporterOptions = {
@@ -419,7 +418,7 @@ app.get("/raster", async (req, res) => {
       ...properties
     }];
     
-    let files = await indexer.getFiles(data);
+    let files = await indexer.getFiles(productionDir, data);
     reqData.sizeF = files.length;
     let file = null;
     //should only be exactly one file
@@ -509,11 +508,15 @@ app.post("/genzip/email", async (req, res) => {
         /////////////////////////////////////
         
         //get paths
-        let { paths, numFiles } = await indexer.getPaths(data);
+        let { paths, numFiles } = await indexer.getPaths(productionDir, data);
+        //add license file
+        paths.push("LICENSE.txt");
+        numFiles += 1;
+
         reqData.sizeF = numFiles;
         let zipPath = "";
         let zipProc;
-        zipProc = child_process.spawn("sh", ["./zipgen.sh", downloadRoot, zipName, ...paths]);
+        zipProc = child_process.spawn("sh", ["./zipgen.sh", downloadRoot, productionDir, zipName, ...paths]);
 
         let code = await handleSubprocess(zipProc, (data) => {
           zipPath += data.toString();
@@ -619,7 +622,7 @@ app.post("/genzip/instant/content", async (req, res) => {
       );
     }
     else {
-      let { paths, numFiles } = await indexer.getPaths(data);
+      let { paths, numFiles } = await indexer.getPaths(productionDir, data);
       reqData.sizeF = numFiles;
       if(paths.length > 0) {
         res.contentType("application/zip");
@@ -681,11 +684,15 @@ app.post("/genzip/instant/link", async (req, res) => {
       );
     }
     else {
-      let { paths, numFiles } = await indexer.getPaths(data);
+      let { paths, numFiles } = await indexer.getPaths(productionDir, data);
+      //add license file
+      paths.push("LICENSE.txt");
+      numFiles += 1;
+
       reqData.sizeF = numFiles;
       res.contentType("application/zip");
 
-      let zipProc = child_process.spawn("sh", ["./zipgen.sh", downloadRoot, zipName, ...paths]);
+      let zipProc = child_process.spawn("sh", ["./zipgen.sh", downloadRoot, productionDir, zipName, ...paths]);
       let zipPath = "";
 
       //write stdout (should be file name) to output accumulator
@@ -739,10 +746,14 @@ app.post("/genzip/instant/splitlink", async (req, res) => {
       );
     }
     else {
-      let { paths, numFiles } = await indexer.getPaths(data);
+      let { paths, numFiles } = await indexer.getPaths(productionDir, data);
+      //add license file
+      paths.push("LICENSE.txt");
+      numFiles += 1;
+
       reqData.sizeF = numFiles;
       res.contentType("application/zip");
-      let zipProc = child_process.spawn("sh", ["./zipgen_parts.sh", downloadRoot, ...paths]);
+      let zipProc = child_process.spawn("sh", ["./zipgen_parts.sh", downloadRoot, productionDir, ...paths]);
       let zipOutput = "";
 
       //write stdout (should be file name) to output accumulator
@@ -803,7 +814,7 @@ app.get("/production/list", async (req, res) => {
       );
     }
     else {
-      let files = await indexer.getFiles(data);
+      let files = await indexer.getFiles(productionDir, data);
       reqData.sizeF = files.length;
       files = files.map((file) => {
         file = path.relative(dataRoot, file);

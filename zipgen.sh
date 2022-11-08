@@ -2,6 +2,7 @@
 
 uuid=$(uuidgen)
 froot=$1; shift
+ziproot=$1; shift
 out_name=$1; shift
 
 dir=$froot$uuid
@@ -15,6 +16,7 @@ if [ $# -eq 0 ]
 then
     touch $file
 else
+    cd ziproot
     #-m flag deletes source files, should retain by default
     zip -qq -r $file $@
 fi

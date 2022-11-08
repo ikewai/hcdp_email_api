@@ -3,10 +3,6 @@ const fs = require("fs");
 const path = require("path");
 
 
-
-
-//data root
-const root = "/data/production";
 //property hierarchy (followed by file and date parts)
 const hierarchy = ["datatype", "production", "aggregation", "period", "extent", "fill"];
 //details on file name period aggregations and file extensions
@@ -197,7 +193,7 @@ async function countFiles(root) {
 }
 
 
-async function getPaths(data) {
+async function getPaths(root, data) {
     let paths = [];
     let totalFiles = 0;
     //at least for now just catchall and return files found before failure, maybe add more catching/skipping later, or 400?
@@ -205,7 +201,7 @@ async function getPaths(data) {
         for(let item of data) {
             //use simplified version for getting ds data
             if(item.datatype == "downscaling_temperature" || item.datatype == "downscaling_rainfall") {
-                let file = getDSFile(item);
+                let file = getDSFile(root, item);
                 if(await validate(file)) {
                     paths.push(file);
                     totalFiles += 1;
@@ -292,7 +288,7 @@ async function getPaths(data) {
             }
         }
     }
-    catch(e) { console.log(e); }
+    catch(e) {}
     return {
         numFiles: totalFiles,
         paths
@@ -307,15 +303,14 @@ async function getPaths(data) {
 
 
 
-async function getFiles(data) {
+async function getFiles(root, data) {
     let files = [];
     //at least for now just catchall and return files found before failure, maybe add more catching/skipping later, or 400?
     try {
         for(let item of data) {
-            console.log(item.datatype);
             //use simplified version for getting ds data
             if(item.datatype == "downscaling_temperature" || item.datatype == "downscaling_rainfall") {
-                let file = getDSFile(item);
+                let file = getDSFile(root, item);
                 if(await validate(file)) {
                     files.push(file);
                 }
@@ -375,7 +370,7 @@ async function getFiles(data) {
             }
         }
     }
-    catch(e) { console.log(e); }
+    catch(e) {}
     return files;
 }
 
@@ -452,6 +447,7 @@ function expandDates(period, range) {
 
 //validate file or dir exists
 async function validate(file) {
+    file = path.join(file);
     return new Promise((resolve, reject) => {
         fs.lstat(file, (e, stats) => {
             if(e) {
@@ -479,12 +475,11 @@ const hierarchies = {
 }
 
 //expand to allow different units to be grabbed, for now just mm and celcius
-function getDSFile(properties) {
+function getDSFile(root, properties) {
     let file_suffix;
     let hierarchy = hierarchies[properties.datatype];
     let values = [properties.datatype];
     let period = properties.period;
-    console.log(hierarchy);
     for(let property of hierarchy) {
         let value = properties[property];
         values.push(value);
@@ -501,7 +496,6 @@ function getDSFile(properties) {
     values.push(file_suffix);
     let fname = values.join("_");
     let fpath = path.join(root, subpath, fname);
-    console.log(fpath);
     return fpath;
 }
 
