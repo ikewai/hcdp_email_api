@@ -790,6 +790,10 @@ app.post("/genzip/instant/splitlink", async (req, res) => {
         let uuid = parts[0];
         for(let i = 1; i < parts.length; i++) {
           let fpart = parts[i];
+          //make sure not empty
+          if(fpart == "") {
+            break;
+          }
           //get subpath from uuid
           let uuidDir = path.join(uuid, fpart);
           //note, do not use path.join on urls
