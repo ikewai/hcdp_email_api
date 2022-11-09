@@ -343,7 +343,6 @@ async function getFiles(root, data) {
                             fnameComplete = fnameComplete.substring(1);
                             //construct complete file path
                             let fpath = path.join(fdirComplete, fnameComplete);
-                            console.log(fpath);
                             //validate file exists and push to file list if it does
                             if(await validate(fpath)) {
                                 files.push(fpath);
