@@ -487,7 +487,7 @@ function getDSFile(root, properties) {
     if(period != "present") {
         let model = properties.model;
         values.push(model);
-        file_suffix = properties.datatype == "downscaling_rainfall" ? "prediction_mm.tif" : "prediction_celcius.tif"
+        file_suffix = "change_percent.tif"//properties.datatype == "downscaling_rainfall" ? "prediction_mm.tif" : "prediction_celcius.tif"
     }
     else {
         file_suffix = properties.datatype == "downscaling_rainfall" ? "mm.tif" : "celcius.tif"
