@@ -304,6 +304,7 @@ async function getPaths(root, data) {
 
 
 async function getFiles(root, data) {
+    return [path.join(root, "ndvi/16day/statewide/data_map/2021/12/ndvi_16day_statewide_data_map_2021_12_19.tif")];
     let files = [];
     //at least for now just catchall and return files found before failure, maybe add more catching/skipping later, or 400?
     try {
