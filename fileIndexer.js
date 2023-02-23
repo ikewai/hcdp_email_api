@@ -239,23 +239,21 @@ function convert(data) {
 }
 
 async function getPaths(root, data) {
-    //maintain compatibility, only convert if new style TEMP
-    if(data[0]?.fileData) {
-        data = convert(data);
-        console.log(data);
-    }
     let paths = [];
     let totalFiles = 0;
     //at least for now just catchall and return files found before failure, maybe add more catching/skipping later, or 400?
     try {
+        //maintain compatibility, only convert if new style TEMP
+        if(data[0]?.fileData) {
+            data = convert(data);
+            console.log(data);
+        }
         for(let item of data) {
             //use simplified version for getting ds data
             if(item.datatype == "downscaling_temperature" || item.datatype == "downscaling_rainfall") {
-                let file = getDSFile(root, item);
-                if(await validate(file)) {
-                    paths.push(file);
-                    totalFiles += 1;
-                }
+                let files = await getDSFiles(root, item);
+                paths.concat(files);
+                totalFiles += files.length;
             }
             else {
                 let fdir = root;
@@ -383,10 +381,7 @@ async function getFiles(root, data) {
         for(let item of data) {
             //use simplified version for getting ds data
             if(item.datatype == "downscaling_temperature" || item.datatype == "downscaling_rainfall") {
-                let file = getDSFile(root, item);
-                if(await validate(file)) {
-                    files.push(file);
-                }
+                files.concat(await getDSFiles(root, item));
             }
             else {
                 let fdir = root;
@@ -548,8 +543,10 @@ const hierarchies = {
 }
 
 //expand to allow different units to be grabbed, for now just mm and celcius
-function getDSFile(root, properties) {
+async function getDSFiles(root, properties) {
     console.log(properties);
+    let files = [];
+    let fileTags = properties.files;
     let file_suffix;
     let hierarchy = hierarchies[properties.datatype];
     let values = [properties.datatype];
@@ -559,44 +556,39 @@ function getDSFile(root, properties) {
         values.push(value);
     }
 
-    //this is a mess
     ////MAKE THIS MORE COHESIVE////
-    let unit;
-    if(properties.unit) {
-        unit = properties.unit;
+    let units;
+    if(properties.units) {
+        units = properties.units;
     }
     //defaults
     else if(properties.datatype == "downscaling_rainfall") {
-        unit = "mm";
+        units = "mm";
     }
     else {
-        unit = "celcius";
+        units = "celcius";
     }
-    if(period != "present") {
-        let model = properties.model;
-        values.push(model);
-        if(properties.type == "percent" || properties.type == "absolute") {
-            if(properties.type == "percent") {
-                unit = "percent";
-            }
-            file_suffix = "change";
+    for(let file of fileTags) {
+        if(file == "data_map_change") {
+            file_suffix = `change_${units}.tif`;
+        }
+        else if(period != "present") {
+            file_suffix = `prediction_${units}.tif`;
         }
         else {
-            file_suffix = "prediction";
+            file_suffix = `${units}.tif`;
         }
-        file_suffix += `_${unit}.tif`;
-    }
-    else {
-        file_suffix = `${unit}.tif`;
+        let subpath = values.join("/");
+        values.push(file_suffix);
+        let fname = values.join("_");
+        let fpath = path.join(root, subpath, fname);
+        if(await validate(fpath)) {
+            files.push(fpath);
+        }
     }
     ///////////////////////////////
-
-    let subpath = values.join("/");
-    values.push(file_suffix);
-    let fname = values.join("_");
-    let fpath = path.join(root, subpath, fname);
-    console.log(fpath);
-    return fpath;
+    console.log(files);
+    return files;
 }
 
 
