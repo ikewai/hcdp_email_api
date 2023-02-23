@@ -208,7 +208,6 @@ function combinations(variants) {
 
 //TEMP
 function convert(data) {
-    console.log(data);
     // {
     //     files: ["data_map"],
     //     range: {
@@ -219,19 +218,21 @@ function convert(data) {
     //   }
     let converted = [];
     for(let item of data) {
-        let convertedBase = {
-            datatype: item.datatype,
-            range: {
-                start: item.dates?.start,
-                end: item.dates?.end
-            },
-            ...item.params
-        }
         for(let fileItem of item.fileData) {
-            console.log(fileItem);
             files = fileItem.files;
             let expanded = combinations(fileItem.fileParams);
-            console.log("!!", expanded);
+            for(obj of expanded) {
+                let convertedItem = {
+                    files,
+                    range: {
+                        start: item.dates?.start,
+                        end: item.dates?.end
+                    },
+                    ...item.params,
+                    ...obj
+                };
+                converted.push(convertedItem);
+            }
         }
     }
     return converted;
@@ -241,6 +242,7 @@ async function getPaths(root, data) {
     //maintain compatibility, only convert if new style TEMP
     if(data[0]?.fileData) {
         data = convert(data);
+        console.log(data);
     }
     let paths = [];
     let totalFiles = 0;
