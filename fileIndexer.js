@@ -571,10 +571,10 @@ async function getDSFiles(root, properties) {
     }
     for(let file of fileTags) {
         if(file == "data_map_change") {
+            values.push(properties.model);
             file_suffix = `change_${units}.tif`;
         }
         else if(period != "present") {
-            console.log(properties.model);
             values.push(properties.model);
             file_suffix = `prediction_${units}.tif`;
         }
