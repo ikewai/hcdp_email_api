@@ -214,6 +214,7 @@ function convert(data) {
             ...item.params
         }
         for(let fileItem of item.fileData) {
+            console.log(fileItem);
             files = fileItem.files;
             
         }
