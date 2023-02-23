@@ -192,8 +192,40 @@ async function countFiles(root) {
     return fcount;
 }
 
+//TEMP
+function convert(data) {
+    console.log(data);
+    // {
+    //     files: ["data_map"],
+    //     range: {
+    //       start: date,
+    //       end: date
+    //     },
+    //     ...properties
+    //   }
+    let converted = [];
+    for(let item of data) {
+        let convertedBase = {
+            datatype: item.datatype,
+            range: {
+                start: item.dates?.start,
+                end: item.dates?.end
+            },
+            ...item.params
+        }
+        for(let fileItem of item.fileData) {
+            files = fileItem.files;
+            
+        }
+    }
+    return converted;
+}
 
 async function getPaths(root, data) {
+    //maintain compatibility, only convert if new style TEMP
+    if(data[0]?.fileData) {
+        data = convert(data);
+    }
     let paths = [];
     let totalFiles = 0;
     //at least for now just catchall and return files found before failure, maybe add more catching/skipping later, or 400?
@@ -288,7 +320,7 @@ async function getPaths(root, data) {
             }
         }
     }
-    catch(e) {}
+    catch(e) {console.log(e);}
     return {
         numFiles: totalFiles,
         paths
