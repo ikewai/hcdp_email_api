@@ -230,10 +230,7 @@ function convert(data) {
         for(let fileItem of item.fileData) {
             console.log(fileItem);
             files = fileItem.files;
-            let expanded = combinations({
-                debug : ["on", "off"],
-                locale : ["de_DE", "en_US", "fr_FR"],
-              });
+            let expanded = combinations(fileItem.fileParams);
             console.log("!!", expanded);
         }
     }
