@@ -306,7 +306,7 @@ async function getPaths(root, data) {
 // }
 
 async function getFiles(root, data) {
-    // let files = [];
+    let files = [];
     // try {
     //     for(let item of data) {
     //         switch(item.datatype) {
