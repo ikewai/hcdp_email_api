@@ -537,7 +537,7 @@ function getDSFile(root, properties) {
         file_suffix += `_${unit}.tif`;
     }
     else {
-        file_suffix = properties.datatype == `${unit}.tif`;
+        file_suffix = `${unit}.tif`;
     }
     ///////////////////////////////
 
