@@ -499,6 +499,7 @@ const hierarchies = {
 
 //expand to allow different units to be grabbed, for now just mm and celcius
 function getDSFile(root, properties) {
+    console.log(properties);
     let file_suffix;
     let hierarchy = hierarchies[properties.datatype];
     let values = [properties.datatype];
