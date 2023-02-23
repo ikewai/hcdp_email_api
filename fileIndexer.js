@@ -197,13 +197,14 @@ function combinations(variants) {
     return (function recurse(keys) {
         if (!keys.length) return [{}];
         let result = recurse(keys.slice(1));
-        return variants[keys[0]].reduce((acc, value) =>
-            acc.concat(result.map((item) => {
-                Object.assign({}, item, { [keys[0]]: value }) ;
-            })
-        ),[]);
+        return variants[keys[0]].reduce( (acc, value) =>
+            acc.concat( result.map( item => 
+                Object.assign({}, item, { [keys[0]]: value }) 
+            ) ),
+            []
+        );
     })(Object.keys(variants));
-}  
+} 
 
 //TEMP
 function convert(data) {
