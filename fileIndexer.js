@@ -246,7 +246,9 @@ async function getPaths(root, data) {
         //maintain compatibility, only convert if new style TEMP
         if(data[0]?.fileData) {
             data = convert(data);
+            console.log("---");
             console.log(data);
+            console.log("---");
         }
         for(let item of data) {
             //use simplified version for getting ds data
@@ -585,7 +587,7 @@ async function getDSFiles(root, properties) {
         values.push(file_suffix);
         let fname = values.join("_");
         let fpath = path.join(root, subpath, fname);
-        console.log(fpath);
+        //console.log(fpath);
         if(await validate(fpath)) {
             files.push(fpath);
         }
