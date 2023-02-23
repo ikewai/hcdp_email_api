@@ -246,9 +246,6 @@ async function getPaths(root, data) {
         //maintain compatibility, only convert if new style TEMP
         if(data[0]?.fileData) {
             data = convert(data);
-            console.log("---");
-            console.log(data);
-            console.log("---");
         }
         for(let item of data) {
             //use simplified version for getting ds data
@@ -338,7 +335,7 @@ async function getPaths(root, data) {
             }
         }
     }
-    catch(e) {console.log(e);}
+    catch(e) {}
     return {
         numFiles: totalFiles,
         paths
@@ -440,8 +437,7 @@ async function getFiles(root, data) {
             }
         }
     }
-    catch(e) {console.log(e)}
-    console.log(files);
+    catch(e) {};
     return files;
 }
 
@@ -547,7 +543,6 @@ const hierarchies = {
 
 //expand to allow different units to be grabbed, for now just mm and celcius
 async function getDSFiles(root, properties) {
-    console.log(properties);
     let files = [];
     let fileTags = properties.files;
     let file_suffix;
@@ -587,13 +582,11 @@ async function getDSFiles(root, properties) {
         values.push(file_suffix);
         let fname = values.join("_");
         let fpath = path.join(root, subpath, fname);
-        //console.log(fpath);
         if(await validate(fpath)) {
             files.push(fpath);
         }
     }
     ///////////////////////////////
-    console.log(files);
     return files;
 }
 
