@@ -229,7 +229,7 @@ function convert(data) {
         for(let fileItem of item.fileData) {
             console.log(fileItem);
             files = fileItem.files;
-            let expanded = combinations(fileitem.fileParams);
+            let expanded = combinations(fileItem.fileParams);
             console.log("!!", expanded);
         }
     }
