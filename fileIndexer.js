@@ -508,14 +508,39 @@ function getDSFile(root, properties) {
         let value = properties[property];
         values.push(value);
     }
+
+    //this is a mess
+    ////MAKE THIS MORE COHESIVE////
+    let unit;
+    if(properties.unit) {
+        unit = properties.unit;
+    }
+    //defaults
+    else if(properties.datatype == "downscaling_rainfall") {
+        unit = "mm";
+    }
+    else {
+        unit = "celcius";
+    }
     if(period != "present") {
         let model = properties.model;
         values.push(model);
-        file_suffix = "change_percent.tif"//properties.datatype == "downscaling_rainfall" ? "prediction_mm.tif" : "prediction_celcius.tif"
+        if(properties.type == "percent" || properties.type == "absolute") {
+            if(properties.type == "percent") {
+                unit = "percent";
+            }
+            file_suffix = "change";
+        }
+        else {
+            file_suffix = "prediction";
+        }
+        file_suffix += `_${unit}.tif`;
     }
     else {
-        file_suffix = properties.datatype == "downscaling_rainfall" ? "mm.tif" : "celcius.tif"
+        file_suffix = properties.datatype == `${unit}.tif`;
     }
+    ///////////////////////////////
+
     let subpath = values.join("/");
     values.push(file_suffix);
     let fname = values.join("_");
