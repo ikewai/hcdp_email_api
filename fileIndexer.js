@@ -223,7 +223,6 @@ function convert(data) {
             let expanded = combinations(fileItem.fileParams);
             for(obj of expanded) {
                 let convertedItem = {
-                    datatype: item.datatype,
                     files,
                     range: {
                         start: item.dates?.start,
