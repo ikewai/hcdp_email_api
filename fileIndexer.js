@@ -574,6 +574,7 @@ async function getDSFiles(root, properties) {
             file_suffix = `change_${units}.tif`;
         }
         else if(period != "present") {
+            console.log(properties.model);
             values.push(properties.model);
             file_suffix = `prediction_${units}.tif`;
         }
