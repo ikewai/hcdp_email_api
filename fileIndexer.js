@@ -439,6 +439,7 @@ async function getFiles(root, data) {
         }
     }
     catch(e) {console.log(e)}
+    console.log(files);
     return files;
 }
 
