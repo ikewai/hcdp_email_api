@@ -410,7 +410,11 @@ app.get("/raster", async (req, res) => {
     //destructure query
     let {date, returnEmptyNotFound, ...properties} = req.query;
     fileType = "data_map";
-    if(properties.type == "percent" || properties.type == "absolute") {
+    if(properties.type == "percent") {
+      fileType = "data_map_change";
+      properties.units = "percent";
+    }
+    else if(properties.type == "absolute") {
       fileType = "data_map_change";
     }
 
