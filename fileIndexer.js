@@ -252,7 +252,7 @@ async function getPaths(root, data) {
             //use simplified version for getting ds data
             if(item.datatype == "downscaling_temperature" || item.datatype == "downscaling_rainfall") {
                 let files = await getDSFiles(root, item);
-                paths.concat(files);
+                paths = paths.concat(files);
                 totalFiles += files.length;
             }
             else {
@@ -381,7 +381,7 @@ async function getFiles(root, data) {
         for(let item of data) {
             //use simplified version for getting ds data
             if(item.datatype == "downscaling_temperature" || item.datatype == "downscaling_rainfall") {
-                files.concat(await getDSFiles(root, item));
+                files = files.concat(await getDSFiles(root, item));
             }
             else {
                 let fdir = root;
