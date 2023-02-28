@@ -913,25 +913,27 @@ app.get("/apistats", async (req, res) => {
     const logfileOld = "/logs/userlog_old_2.txt";
     const logscript = "/logs/utils/gen_report_json.sh";
     const logscriptOld = "/logs/utils/gen_report_old_json.sh";
-    let procs = [child_process.spawn("sh", [logscript, logfile]), child_process.spawn("sh", [logscriptOld, logfileOld])];
-    let resData = [];
-    for(let proc of procs) {
-      let output = "";
-      //write stdout (should be file name) to output accumulator
-      let code = await handleSubprocess(proc, (data) => {
-        output += data.toString();
+    let procHandles = [child_process.spawn("sh", [logscript, logfile]), child_process.spawn("sh", [logscriptOld, logfileOld])].map((proc) => {
+      return new Promise(() => {
+        let output = "";
+        handleSubprocess(proc, (data) => {
+          output += data.toString();
+        }).then((code) => {
+          if(code == 0) {
+            console.log(output);
+            //strip out emails, can use this for additional processing if expanded on, don't want to provide to the public
+            let json = JSON.parse(output);
+            delete json.unique_emails;
+            resData.push(JSON.stringify(json));
+          }
+        });
       });
-      console.log(code);
-      if(code == 0) {
-        console.log(output);
-        //strip out emails, can use this for additional processing if expanded on, don't want to provide to the public
-        let json = JSON.parse(output);
-        delete json.unique_emails;
-        resData.push(JSON.stringify(json)); 
-      }
-    }
-    res.status(200)
-    .json(resData);
+    });
+    Promise.all(procHandles).then(() => {
+      res.status(200)
+      .json(resData);
+    });
+    
   }
   catch(e) {
     console.log(e);
