@@ -930,7 +930,9 @@ app.get("/apistats", async (req, res) => {
           }
           resolve();
         }
-        catch {}
+        catch {
+          resolve();
+        }
       });
     });
     Promise.all(procHandles).then(() => {
