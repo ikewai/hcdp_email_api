@@ -125,23 +125,18 @@ for(let signal in signals) {
 
 async function handleSubprocess(subprocess, dataHandler, errHandler) {
   return new Promise((resolve, reject) => {
-    try {
-      if(!errHandler) {
-        errHandler = () => {};
-      }
-      if(!dataHandler) {
-        dataHandler = () => {};
-      }
-      //write content to res
-      subprocess.stdout.on("data", dataHandler);
-      subprocess.stderr.on("data", errHandler);
-      subprocess.on("exit", (code) => {
-        resolve(code);
-      });
+    if(!errHandler) {
+      errHandler = () => {};
     }
-    catch(e) {
-      console.log(e);
+    if(!dataHandler) {
+      dataHandler = () => {};
     }
+    //write content to res
+    subprocess.stdout.on("data", dataHandler);
+    subprocess.stderr.on("data", errHandler);
+    subprocess.on("exit", (code) => {
+      resolve(code);
+    });
   });
 }
 
@@ -926,21 +921,17 @@ app.get("/apistats", async (req, res) => {
       let code = await handleSubprocess(proc, (data) => {
         output += data.toString();
       });
-
-      if(code !== 0) {
-        res.status(500)
-        .send("An unexpected error occurred");
-      }
-      else {
+      console.log(code);
+      if(code == 0) {
         console.log(output);
         //strip out emails, can use this for additional processing if expanded on, don't want to provide to the public
         let json = JSON.parse(output);
         delete json.unique_emails;
-        resData.push(JSON.stringify(json));
-        res.status(200)
-        .json(resData);
+        resData.push(JSON.stringify(json)); 
       }
     }
+    res.status(200)
+    .json(resData);
   }
   catch(e) {
     console.log(e);
