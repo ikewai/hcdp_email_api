@@ -914,8 +914,7 @@ app.get("/apistats", async (req, res) => {
     const logscript = "/logs/utils/gen_report_json.sh";
     const logscriptOld = "/logs/utils/gen_report_old_json.sh";
     resData = [];
-    //, child_process.spawn("/bin/bash", [logscriptOld, logfileOld])
-    let procHandles = [child_process.spawn("/bin/bash", [logscript, logfile])].map((proc) => {
+    let procHandles = [child_process.spawn("/bin/bash", [logscript, logfile]), child_process.spawn("/bin/bash", [logscriptOld, logfileOld])].map((proc) => {
       return new Promise((resolve, reject) => {
         console.log("-");
         let output = "";
