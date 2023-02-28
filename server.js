@@ -934,30 +934,4 @@ app.get("/apistats", async (req, res) => {
       .json(resData);
     }
   }
-
- 
-
-  
-  
-
-  let data = [{
-    coverage: ["2022-03-16 18:27:40", "2022-05-27 18:05:11"],
-    requests: 122575,
-    files_processed: 1036124,
-    downloads: 250,
-    files_downloaded: 640162,
-    num_unique_emails: 53,
-    unique_emails: ["a", "b", "c"]
-  }, {
-    coverage: ["2022-05-27 18:12:19", "2023-02-17 14:36:11"],
-    requests: 125198,
-    files_processed: 10633848,
-    downloads: 774,
-    files_downloaded: 1088466,
-    bytes: 211667373492,
-    num_unique_emails: 152,
-    unique_emails: ["a", "b", "c"]
-  }]
-  res.status(200)
-  .json(data);
 });
