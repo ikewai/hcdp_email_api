@@ -926,6 +926,7 @@ app.get("/apistats", async (req, res) => {
       .send("An unexpected error occurred");
     }
     else {
+      console.log(output);
       //strip out emails, can use this for additional processing if expanded on, don't want to provide to the public
       let json = JSON.parse(output);
       delete json.unique_emails;
