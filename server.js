@@ -10,6 +10,7 @@ const moment = require("moment");
 const path = require("path");
 const DBManager = require("./dbManager");
 const sanitize = require("mongo-sanitize");
+const { json } = require("express");
 //add timestamps to output
 require("console-stamp")(console);
 
@@ -906,6 +907,39 @@ app.get("/raw/list", async (req, res) => {
 
 app.get("/apistats", async (req, res) => {
   //start with no params, might want to add date range, need to modify scripts or otherwise make additional processing
+  //should migrate log locations to config
+  const logfile = "/logs/userlog.txt";
+  const logfileOld = "/logs/userlog_old_2.txt";
+  const logscript = "logs/util/gen_report_json.sh";
+  const logscriptOld = "logs/util/gen_report_old_json.sh";
+  let procs = [child_process.spawn("sh", [logscript, logfile]), child_process.spawn("sh", [logscriptOld, logfileOld])];
+  let resData = [];
+  for(let proc of procs) {
+    let output = "";
+    //write stdout (should be file name) to output accumulator
+    let code = await handleSubprocess(proc, (data) => {
+      output += data.toString();
+    });
+
+    if(code !== 0) {
+      res.status(500)
+      .send("An unexpected error occurred");
+    }
+    else {
+      //strip out emails, can use this for additional processing if expanded on, don't want to provide to the public
+      let json = JSON.parse(output);
+      delete json.unique_emails;
+      resData.push(JSON.stringify(json));
+      res.status(200)
+      .json(resData);
+    }
+  }
+
+ 
+
+  
+  
+
   let data = [{
     coverage: ["2022-03-16 18:27:40", "2022-05-27 18:05:11"],
     requests: 122575,
