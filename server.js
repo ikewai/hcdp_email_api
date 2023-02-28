@@ -915,10 +915,13 @@ app.get("/apistats", async (req, res) => {
     const logscriptOld = "/logs/utils/gen_report_old_json.sh";
     let procHandles = [child_process.spawn("sh", [logscript, logfile]), child_process.spawn("sh", [logscriptOld, logfileOld])].map((proc) => {
       return new Promise(() => {
+        console.log("-");
         let output = "";
         handleSubprocess(proc, (data) => {
+          console.log("!", data);
           output += data.toString();
         }).then((code) => {
+          console.log("code!", code);
           if(code == 0) {
             console.log(output);
             //strip out emails, can use this for additional processing if expanded on, don't want to provide to the public
