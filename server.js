@@ -911,8 +911,8 @@ app.get("/apistats", async (req, res) => {
     //should migrate log locations to config
     const logfile = "/logs/userlog.txt";
     const logfileOld = "/logs/userlog_old_2.txt";
-    const logscript = "/logs/util/gen_report_json.sh";
-    const logscriptOld = "/logs/util/gen_report_old_json.sh";
+    const logscript = "/logs/utils/gen_report_json.sh";
+    const logscriptOld = "/logs/utils/gen_report_old_json.sh";
     let procs = [child_process.spawn("sh", [logscript, logfile]), child_process.spawn("sh", [logscriptOld, logfileOld])];
     let resData = [];
     for(let proc of procs) {
