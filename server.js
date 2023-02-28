@@ -916,14 +916,12 @@ app.get("/apistats", async (req, res) => {
     resData = [];
     let procHandles = [child_process.spawn("/bin/bash", [logscript, logfile]), child_process.spawn("/bin/bash", [logscriptOld, logfileOld])].map((proc) => {
       return new Promise((resolve, reject) => {
-        console.log("-");
         let output = "";
         handleSubprocess(proc, (data) => {
           output += data.toString();
         }).then((code) => {
-          console.log("code!", code);
           if(code == 0) {
-            console.log(output);
+            throw new Error("test");
             //strip out emails, can use this for additional processing if expanded on, don't want to provide to the public
             let json = JSON.parse(output);
             delete json.unique_emails;
@@ -936,10 +934,11 @@ app.get("/apistats", async (req, res) => {
     Promise.all(procHandles).then(() => {
       res.status(200)
       .json(resData);
+    }, (e) => {
+      throw new Error(e);
     });
   }
   catch(e) {
-    console.log(e);
     res.status(500)
     .send("An unexpected error occurred.");
   }
