@@ -915,7 +915,7 @@ app.get("/apistats", async (req, res) => {
     const logscriptOld = "/logs/utils/gen_report_old_json.sh";
     resData = [];
     let procHandles = [child_process.spawn("/bin/bash", [logscript, logfile]), child_process.spawn("/bin/bash", [logscriptOld, logfileOld])].map((proc) => {
-      return new Promise((resolve, reject) => {
+      return new Promise(async (resolve, reject) => {
         let output = "";
         let code = await handleSubprocess(proc, (data) => {
           output += data.toString();
