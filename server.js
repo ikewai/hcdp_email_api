@@ -922,7 +922,6 @@ app.get("/apistats", async (req, res) => {
             output += data.toString();
           });
           if(code == 0) {
-            throw new Error("test");
             //strip out emails, can use this for additional processing if expanded on, don't want to provide to the public
             let json = JSON.parse(output);
             delete json.unique_emails;
