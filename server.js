@@ -917,18 +917,17 @@ app.get("/apistats", async (req, res) => {
     let procHandles = [child_process.spawn("/bin/bash", [logscript, logfile]), child_process.spawn("/bin/bash", [logscriptOld, logfileOld])].map((proc) => {
       return new Promise((resolve, reject) => {
         let output = "";
-        handleSubprocess(proc, (data) => {
+        let code = await handleSubprocess(proc, (data) => {
           output += data.toString();
-        }).then((code) => {
-          if(code == 0) {
-            throw new Error("test");
-            //strip out emails, can use this for additional processing if expanded on, don't want to provide to the public
-            let json = JSON.parse(output);
-            delete json.unique_emails;
-            resData.push(json);
-          }
-          resolve();
         });
+        if(code == 0) {
+          throw new Error("test");
+          //strip out emails, can use this for additional processing if expanded on, don't want to provide to the public
+          let json = JSON.parse(output);
+          delete json.unique_emails;
+          resData.push(json);
+        }
+        resolve();
       });
     });
     Promise.all(procHandles).then(() => {
