@@ -913,12 +913,12 @@ app.get("/apistats", async (req, res) => {
     const logfileOld = "/logs/userlog_old_2.txt";
     const logscript = "/logs/utils/gen_report_json.sh";
     const logscriptOld = "/logs/utils/gen_report_old_json.sh";
-    let procHandles = [child_process.spawn("/bin/bash", [logscript, logfile]), child_process.spawn("/bin/bash", [logscriptOld, logfileOld])].map((proc) => {
-      return new Promise(() => {
+    //, child_process.spawn("/bin/bash", [logscriptOld, logfileOld])
+    let procHandles = [child_process.spawn("/bin/bash", [logscript, logfile])].map((proc) => {
+      return new Promise((resolve, reject) => {
         console.log("-");
         let output = "";
         handleSubprocess(proc, (data) => {
-          console.log("!", data);
           output += data.toString();
         }).then((code) => {
           console.log("code!", code);
@@ -929,6 +929,7 @@ app.get("/apistats", async (req, res) => {
             delete json.unique_emails;
             resData.push(JSON.stringify(json));
           }
+          resolve();
         });
       });
     });
@@ -936,7 +937,6 @@ app.get("/apistats", async (req, res) => {
       res.status(200)
       .json(resData);
     });
-    
   }
   catch(e) {
     console.log(e);
