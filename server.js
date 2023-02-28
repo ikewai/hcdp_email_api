@@ -913,6 +913,7 @@ app.get("/apistats", async (req, res) => {
     const logfileOld = "/logs/userlog_old_2.txt";
     const logscript = "/logs/utils/gen_report_json.sh";
     const logscriptOld = "/logs/utils/gen_report_old_json.sh";
+    resData = [];
     //, child_process.spawn("/bin/bash", [logscriptOld, logfileOld])
     let procHandles = [child_process.spawn("/bin/bash", [logscript, logfile])].map((proc) => {
       return new Promise((resolve, reject) => {
