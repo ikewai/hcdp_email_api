@@ -125,18 +125,23 @@ for(let signal in signals) {
 
 async function handleSubprocess(subprocess, dataHandler, errHandler) {
   return new Promise((resolve, reject) => {
-    if(!errHandler) {
-      errHandler = () => {};
+    try {
+      if(!errHandler) {
+        errHandler = () => {};
+      }
+      if(!dataHandler) {
+        dataHandler = () => {};
+      }
+      //write content to res
+      subprocess.stdout.on("data", dataHandler);
+      subprocess.stderr.on("data", errHandler);
+      subprocess.on("exit", (code) => {
+        resolve(code);
+      });
     }
-    if(!dataHandler) {
-      dataHandler = () => {};
+    catch(e) {
+      console.log(e);
     }
-    //write content to res
-    subprocess.stdout.on("data", dataHandler);
-    subprocess.stderr.on("data", errHandler);
-    subprocess.on("exit", (code) => {
-      resolve(code);
-    })
   });
 }
 
