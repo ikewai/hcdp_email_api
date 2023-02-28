@@ -928,6 +928,9 @@ app.get("/apistats", async (req, res) => {
           resData.push(json);
         }
         resolve();
+      })
+      .catch((e) => {
+        throw new Error(e);
       });
     });
     Promise.all(procHandles).then(() => {
