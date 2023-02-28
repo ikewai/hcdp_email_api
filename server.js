@@ -919,7 +919,6 @@ app.get("/apistats", async (req, res) => {
         try {
           let output = "";
           let code = await handleSubprocess(proc, (data) => {
-            throw new Error("test");
             output += data.toString();
           });
           if(code == 0) {
