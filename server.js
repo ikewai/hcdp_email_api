@@ -944,3 +944,11 @@ app.get("/apistats", async (req, res) => {
     .send("An unexpected error occurred.");
   }
 });
+
+app.post("/addmetadata", async (req, res) => {
+  try {
+    console.log(req.body);
+    console.log(req.env);
+  }
+  catch {}
+});
