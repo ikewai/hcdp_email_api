@@ -947,8 +947,34 @@ app.get("/apistats", async (req, res) => {
 
 app.post("/addmetadata", async (req, res) => {
   try {
-    console.log(req.body);
-    console.log(req.env);
+    fetch("https://raw.githubusercontent.com/ikewai/hawaii_wx_station_mgmt_container/main/Hawaii_Master_Station_Meta.csv")
+    .then((res) => {
+      return res.text();
+    })
+    .then((data) => {
+      let config = {
+        replace_duplicates: true,
+        prop_translations: {
+            "SKN": "skn",
+            "Station.Name": "name",
+            "Observer": "observer",
+            "Network": "network",
+            "Island": "island",
+            "ELEV.m.": "elevation_m",
+            "LAT": "lat",
+            "LON": "lng",
+            "NCEI.id": "ncei_id",
+            "NWS.id": "nws_id",
+            "NESDIS.id": "nesdis_id",
+            "SCAN.id": "scan_id",
+            "SMART_NODE_RF.id": "smart_node_rf_id"
+        },
+        nodata: "NA",
+        id_field: "skn",
+        station_group: "hawaii_climate_primary"
+      }
+      console.log(data);
+    })
   }
   catch {}
 });
