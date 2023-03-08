@@ -946,6 +946,7 @@ app.get("/apistats", async (req, res) => {
 });
 
 app.post("/addmetadata", async (req, res) => {
+  console.log("rec");
   try {
     fetch("https://raw.githubusercontent.com/ikewai/hawaii_wx_station_mgmt_container/main/Hawaii_Master_Station_Meta.csv")
     .then((res) => {
@@ -976,5 +977,7 @@ app.post("/addmetadata", async (req, res) => {
       console.log(data);
     })
   }
-  catch {}
+  catch(e) {
+    console.log(e);
+  }
 });
