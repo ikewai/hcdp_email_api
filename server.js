@@ -954,7 +954,7 @@ app.post("/addmetadata", async (req, res) => {
       res.pipe(new detectDecodeStream({ defaultEncoding: "1255" }))
       .pipe(new csvReadableStream({ parseNumbers: true, parseBooleans: true, trim: true }))
       .on("data", (row) => {
-        console.log("row!", row);
+        //console.log("row!", row);
       })
       .on("end", () => {
         console.log("end!");
