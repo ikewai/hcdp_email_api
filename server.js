@@ -950,18 +950,21 @@ app.get("/apistats", async (req, res) => {
 app.post("/addmetadata", async (req, res) => {
   console.log("rec");
   try {
+    let rows = 0;
     https.get("https://raw.githubusercontent.com/ikewai/hawaii_wx_station_mgmt_container/main/Hawaii_Master_Station_Meta.csv", (res) => {
       res.pipe(new detectDecodeStream({ defaultEncoding: "1255" }))
       .pipe(new csvReadableStream({ parseNumbers: true, parseBooleans: true, trim: true }))
       .on("data", (row) => {
-        console.log("row!");
+        rows++;
       })
       .on("end", () => {
-        console.log("end!");
+        console.log(rows);
+        
       })
       .on("error", (e) => {
         console.log(e);
       });
+      
       // let data = "";
       // res.on("data", (chunk) => {
       //   data += chunk;
@@ -992,10 +995,13 @@ app.post("/addmetadata", async (req, res) => {
       //   console.log(data);
       // });
     });
-    
+    res.status(200)
+    .write("done");
       
   }
   catch(e) {
+    res.status(500)
+    .write("error");
     console.log(e);
   }
 });
