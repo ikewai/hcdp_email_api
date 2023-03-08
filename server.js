@@ -958,6 +958,9 @@ app.post("/addmetadata", async (req, res) => {
       })
       .on("end", () => {
         console.log("end!");
+      })
+      .on("error", (e) => {
+        console.log(e);
       });
       // let data = "";
       // res.on("data", (chunk) => {
