@@ -11,6 +11,8 @@ const path = require("path");
 const DBManager = require("./dbManager");
 const sanitize = require("mongo-sanitize");
 const { json } = require("express");
+const csvReadableStream = require('csv-reader');
+const detectDecodeStream = require('autodetect-decoder-stream');
 //add timestamps to output
 require("console-stamp")(console);
 
@@ -949,35 +951,43 @@ app.post("/addmetadata", async (req, res) => {
   console.log("rec");
   try {
     https.get("https://raw.githubusercontent.com/ikewai/hawaii_wx_station_mgmt_container/main/Hawaii_Master_Station_Meta.csv", (res) => {
-      let data = "";
-      res.on("data", (chunk) => {
-        data += chunk;
+      res.pipe(new detectDecodeStream({ defaultEncoding: "1255" }))
+      .pipe(new csvReadableStream({ parseNumbers: true, parseBooleans: true, trim: true }))
+      .on("data", (row) => {
+        console.log("row!", row);
+      })
+      .on("end", () => {
+        console.log("end!");
       });
+      // let data = "";
+      // res.on("data", (chunk) => {
+      //   data += chunk;
+      // });
 
-      res.on("end", () => {
-        let config = {
-          replace_duplicates: true,
-          prop_translations: {
-              "SKN": "skn",
-              "Station.Name": "name",
-              "Observer": "observer",
-              "Network": "network",
-              "Island": "island",
-              "ELEV.m.": "elevation_m",
-              "LAT": "lat",
-              "LON": "lng",
-              "NCEI.id": "ncei_id",
-              "NWS.id": "nws_id",
-              "NESDIS.id": "nesdis_id",
-              "SCAN.id": "scan_id",
-              "SMART_NODE_RF.id": "smart_node_rf_id"
-          },
-          nodata: "NA",
-          id_field: "skn",
-          station_group: "hawaii_climate_primary"
-        }
-        console.log(data);
-      });
+      // res.on("end", () => {
+      //   let config = {
+      //     replace_duplicates: true,
+      //     prop_translations: {
+      //         "SKN": "skn",
+      //         "Station.Name": "name",
+      //         "Observer": "observer",
+      //         "Network": "network",
+      //         "Island": "island",
+      //         "ELEV.m.": "elevation_m",
+      //         "LAT": "lat",
+      //         "LON": "lng",
+      //         "NCEI.id": "ncei_id",
+      //         "NWS.id": "nws_id",
+      //         "NESDIS.id": "nesdis_id",
+      //         "SCAN.id": "scan_id",
+      //         "SMART_NODE_RF.id": "smart_node_rf_id"
+      //     },
+      //     nodata: "NA",
+      //     id_field: "skn",
+      //     station_group: "hawaii_climate_primary"
+      //   }
+      //   console.log(data);
+      // });
     });
     
       
