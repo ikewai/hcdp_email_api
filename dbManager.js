@@ -261,6 +261,10 @@ class TapisManager {
             if(existingDocGroup) {
                 existingDoc = existingDocGroup[id];
             }
+            
+            // console.log(existingDoc);
+            // console.log(doc);
+            // console.log(idField, stationGroup, id);
             if(existingDoc) {
                 let identical = true;
                 //check if all properties are the same
@@ -278,14 +282,20 @@ class TapisManager {
                 //if they are not identical replace doc with the new one (otherwise do nothing)
                 if(!identical) {
                     console.log("Replace!");
+                    console.log(existingDoc);
+                    console.log(doc);
+                    
                     //await this.dbManager.replaceRecord(existingDoc.uuid, doc.value);
                 }
                 else {
-                    console.log("Already Exists!");
+                    //console.log("Already Exists!");
                 }
             }
             else {
-                // console.log("Create!");
+                console.log("Create!");
+                console.log(existingDoc);
+                console.log(doc);
+                
                 //await this.create(doc);
             }
         }
