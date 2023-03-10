@@ -14,6 +14,7 @@ const { json } = require("express");
 const csvReadableStream = require('csv-reader');
 const detectDecodeStream = require('autodetect-decoder-stream');
 const crypto = require('crypto');
+const bodyParser = require('body-parser');
 //add timestamps to output
 require("console-stamp")(console);
 
@@ -961,11 +962,16 @@ function signBlob(key, blob) {
 }
 
 //add github middleware with secret, doesn't use any user input but don't necessarily want this running arbitrarily and shouldn't need to
-app.post("/addmetadata", async (req, res, buffer) => {
-  try {
+app.post("/addmetadata", bodyParser.json({
+  verify: (req, re, buf) => {
     const receivedSig = req.headers['x-hub-signature'];
     const computedSig = signBlob(githubWebhookSecret, buffer);
     console.log(receivedSig == computedSig);
+  }
+}), async (req, res) => {
+  try {
+    
+    console.log(req.rawBody);
     
     // Only respond to github push events
     if(req.headers["x-github-event"] != "push") {
