@@ -976,6 +976,7 @@ app.post("/addmetadata", async (req, res) => {
           }
           header = [];
           for(property of header) {
+            console.log(property);
             let trans = translations[property] ? translations[property] : property;
             header.push(trans);
           }
