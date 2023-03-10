@@ -259,7 +259,6 @@ class TapisManager {
                 existingDoc = existingDocGroup[id];
             }
             
-            console.log(existingDocGroup);
             console.log(existingDoc);
             console.log(stationGroup, id);
             if(existingDoc) {
