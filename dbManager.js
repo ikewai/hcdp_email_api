@@ -132,27 +132,22 @@ class TapisManager {
     }
 
     async request(data, retries, errors) {
-        console.log("retries remaining", retries);
         if(!errors) {
             errors = [];
         }
         let { options, body } = data;
-        console.log(options, body);
         return new Promise((resolve, reject) => {
             if(retries < 0) {
                 console.log("error!", errors);
                 reject(errors);
             }
             else {
-                console.log("submit request");
                 const req = https.request(options, (res) => {
                     let responseData = "";
                     res.on("data", (chunk) => {
-                        console.log("request got data");
                         responseData += chunk;
                     });
                     res.on("end", () => {
-                        console.log("request complete", res.statusCode);
                         let codeGroup = Math.floor(res.statusCode / 100);
                         if(codeGroup != 2) {
                             let e = `Request responded with code ${res.statusCode}; message: ${responseData}`;
@@ -199,10 +194,8 @@ class TapisManager {
         let data = {
             options
         };
-        console.log("call request");
         return this.request(data, this.retryLimit).then((res) => {
             let resultList = JSON.parse(res.data).result;
-            console.log(resultList.length);
             return resultList;
         });
     }
@@ -222,7 +215,7 @@ class TapisManager {
             options,
             body: JSON.stringify(doc)
         };
-        return this.request(data, this.retryLimit);
+        return this.request(data, -1);
     }
 
     //get all metadata docs, index by id, more efficient than pulling one at a time
@@ -230,9 +223,7 @@ class TapisManager {
         let query = {
             name: "hcdp_station_metadata"
         };
-        console.log("call query");
         let metadataDocs = await this.queryData(query);
-        console.log("query complete");
         let indexedMetadata = {};
         for(let doc of metadataDocs) {
             let idField = doc.value.id_field;
@@ -247,57 +238,42 @@ class TapisManager {
     }
 
     async createMetadataDocs(docs) {
-        console.log("called create");
         let existingMetadata = await this.getMetadataDocs();
-        console.log("got existing");
         for(let doc of docs) {
             let idField = doc.value.id_field;
             let stationGroup = doc.value.station_group;
             let id = doc.value[idField];
             //check if metadata doc with group and id already exists
             let existingDocGroup = existingMetadata[stationGroup];
-            // console.log(Object.keys(existingDocGroup));
             let existingDoc;
             if(existingDocGroup) {
                 existingDoc = existingDocGroup[id];
             }
-            
-            // console.log(existingDoc);
-            // console.log(doc);
-            // console.log(idField, stationGroup, id);
             if(existingDoc) {
                 let identical = true;
                 //check if all properties are the same
                 if(Object.keys(existingDoc.value).length == Object.keys(doc.value).length) {
                     for(let property in existingDoc.value) {
                         if(existingDoc.value[property] !== doc.value[property]) {
-                            console.log("property mismatch!", property, existingDoc.value[property], doc.value[property]);
                             identical = false;
                             break;
                         }
                     }
                 }
                 else {
-                    console.log("length mismatch!", Object.keys(existingDoc.value).length, Object.keys(doc.value).length);
                     identical = false;
                 }
                 //if they are not identical replace doc with the new one (otherwise do nothing)
                 if(!identical) {
-                    console.log("Replace!");
-                    console.log(existingDoc.value);
-                    console.log(doc.value);
-                    
+                    console.log("Replace!");               
                     //await this.dbManager.replaceRecord(existingDoc.uuid, doc.value);
                 }
                 else {
-                    //console.log("Already Exists!");
+                    console.log("Already Exists!");
                 }
             }
             else {
-                console.log("Create!");
-                console.log(existingDoc.value);
-                console.log(doc.value);
-                
+                console.log("Create!");       
                 //await this.create(doc);
             }
         }
