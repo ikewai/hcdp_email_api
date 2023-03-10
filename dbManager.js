@@ -258,6 +258,10 @@ class TapisManager {
             if(existingDocGroup) {
                 existingDoc = existingDocGroup[id];
             }
+            console.log(existingDocs);
+            console.log(existingDoc);
+            console.log(existingDocGroup);
+            console.log(stationGroup, id);
             if(existingDoc) {
                 let identical = true;
                 //check if all properties are the same
