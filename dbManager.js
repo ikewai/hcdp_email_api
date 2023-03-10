@@ -137,6 +137,7 @@ class TapisManager {
             errors = [];
         }
         let { options, body } = data;
+        console.log(options, body);
         return new Promise((resolve, reject) => {
             if(retries < 0) {
                 console.log("error!", errors);
@@ -179,7 +180,7 @@ class TapisManager {
     }
 
     //error handling
-    async queryData(query, retries) {
+    async queryData(query) {
         let params = {
             q: query
         }
@@ -198,10 +199,10 @@ class TapisManager {
             options
         };
         console.log("call request");
-        return this.request(data, retries);
+        return this.request(data, this.retryLimit);
     }
 
-    create(doc, retries) {
+    create(doc) {
         const options = {
             protocol: this.tenantURL.protocol,
             hostname: this.tenantURL.hostname,
@@ -216,7 +217,7 @@ class TapisManager {
             options,
             body: JSON.stringify(doc)
         };
-        return this.request(data, retries);
+        return this.request(data, this.retryLimit);
     }
 
     //get all metadata docs, index by id, more efficient than pulling one at a time
