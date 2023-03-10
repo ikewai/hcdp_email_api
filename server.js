@@ -1035,6 +1035,7 @@ app.post("/addmetadata", async (req, res, buffer) => {
     .send("done");
   }
   catch(e) {
+    console.log(e);
     res.status(500)
     .send("An unexpected error occurred.");
   }
