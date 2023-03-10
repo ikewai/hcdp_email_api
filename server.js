@@ -963,6 +963,7 @@ function signBlob(key, blob) {
 
 //add github middleware with secret, doesn't use any user input but don't necessarily want this running arbitrarily and shouldn't need to
 app.post("/addmetadata", bodyParser.json({
+  limit: "10mb",
   verify: (req, res, buf) => {
     req.rawBody = buf;
     try {
