@@ -141,12 +141,15 @@ class TapisManager {
                 reject(errors);
             }
             else {
+                console.log("submit request");
                 const req = https.request(options, (res) => {
                     let responseData = "";
                     res.on("data", (chunk) => {
+                        console.log("request got data");
                         responseData += chunk;
                     });
                     res.on("end", () => {
+                        console.log("request complete");
                         let codeGroup = Math.floor(res.statusCode / 100);
                         if(codeGroup != 2) {
                             let e = `Request responded with code ${res.statusCode}; message: ${responseData}`;
@@ -192,6 +195,7 @@ class TapisManager {
         let data = {
             options
         };
+        console.log("call request");
         return this.request(data, retries);
     }
 
@@ -218,7 +222,9 @@ class TapisManager {
         let query = {
             name: "hcdp_station_metadata"
         };
+        console.log("call query");
         let metadataDocs = await this.queryData(query);
+        console.log("query complete");
         let indexedMetadata = {};
         for(let doc of metadataDocs) {
             let idField = doc.value.id_field;

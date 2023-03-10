@@ -1001,6 +1001,7 @@ app.post("/addmetadata", async (req, res) => {
         }
       })
       .on("end", () => {
+        console.log("end");
         tapisManager.createMetadataDocs(docs)
         .catch((e) => {
           console.log(e);
