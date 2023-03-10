@@ -181,6 +181,7 @@ class TapisManager {
 
     //error handling
     async queryData(query) {
+        console.log(query, JSON.stringify(query));
         let params = {
             q: JSON.stringify(query)
         };
