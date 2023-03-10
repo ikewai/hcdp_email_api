@@ -1,4 +1,7 @@
 const { MongoClient } = require("mongodb");
+const querystring = require('querystring');
+const https = require("https");
+
 
 class DBManager {
     constructor(server, port, username, password, dbName, collectionName, connectionRetryLimit, queryRetryLimit) {
@@ -112,4 +115,156 @@ class DBManager {
     }
 }
 
+class TapisManager {
+    constructor(tenantURL, token, retryLimit, dbManager) {
+        this.header = {
+            "Authorization": `Bearer ${token}`,
+            "Content-Type": "application/json"
+        }
+        this.tenantURL = tenantURL;
+        this.retryLimit = retryLimit;
+        this.dbManager = dbManager;
+    }
+
+    async request(data, retries, errors) {
+        if(!errors) {
+            errors = [];
+        }
+        let { options, body } = data;
+        return new Promise((resolve, reject) => {
+            if(retries < 0) {
+                reject(errors);
+            }
+            else {
+                const req = https.request(options, (res) => {
+                    let responseData = "";
+                    res.on("data", (chunk) => {
+                        responseData += chunk;
+                    });
+                    res.on("end", () => {
+                        let codeGroup = Math.floor(res.statusCode / 100);
+                        if(codeGroup != 2) {
+                            let e = `Request responded with code ${res.statusCode}; message: ${responseData}`;
+                            errors.push(e);
+                            return this.request(data, retries - 1, errors);
+                        }
+                        else {
+                            resolve({
+                                code: res.statusCode,
+                                data: responseData
+                            });
+                        }
+                    });
+                    res.on("error", (e) => {
+                        errors.push(e);
+                        return this.request(data, retries - 1, errors);
+                    });
+                });
+                if(body) {
+                    req.write(body);
+                }
+                req.end();
+            } 
+        });
+    }
+
+    //error handling
+    async queryData(query, retries) {
+        let params = {
+            q: query
+        }
+        const paramStr = querystring.stringify(params);
+        const options = {
+            protocol: "https",
+            hostname: this.tenantURL,
+            port: 443,
+            path: "/meta/v2/data?" + paramStr,
+            method: "GET",
+            headers: this.header
+        };
+        let data = {
+            options
+        };
+        return this.request(data, retries);
+    }
+
+    create(doc, retries) {
+        const options = {
+            protocol: "https",
+            hostname: this.tenantURL,
+            port: 443,
+            path: "/meta/v2/data",
+            method: "POST",
+            headers: this.header
+        };
+        let data = {
+            options,
+            body: JSON.stringify(doc)
+        };
+        return this.request(data, retries);
+    }
+
+    //get all metadata docs, index by id, more efficient than pulling one at a time
+    async getMetadataDocs() {
+        let query = {
+            name: "hcdp_station_metadata"
+        };
+        let metadataDocs = await this.queryData(query);
+        let indexedMetadata = {};
+        for(let doc of metadataDocs) {
+            let idField = doc.value.id_field;
+            let stationGroup = doc.value.station_group;
+            let id = doc.value[idField];
+            if(!indexedMetadata[stationGroup]) {
+                indexedMetadata[stationGroup] = {};
+            }
+            indexedMetadata[stationGroup][id] = doc;
+        }
+        return indexedMetadata;
+    }
+
+    async createMetadataDocs(docs) {
+        let existingMetadata = await this.getMetadataDocs();
+        for(let doc of docs) {
+            let idField = doc.value.id_field;
+            let stationGroup = doc.value.station_group;
+            let id = doc.value[idField];
+            //check if metadata doc with group and id already exists
+            let existingDocGroup = existingMetadata[stationGroup];
+            let existingDoc;
+            if(existingDocGroup) {
+                existingDoc = existingDocGroup[id];
+            }
+            if(existingDoc) {
+                let identical = true;
+                //check if all properties are the same
+                if(Object.keys(existingDoc.value).length == Object.keys(doc.value).length) {
+                    for(let property in existingDoc.value) {
+                        if(existingDoc.value[property] !== doc.value[property]) {
+                            identical = false;
+                            break;
+                        }
+                    }
+                }
+                else {
+                    identical = false;
+                }
+                //if they are not identical replace doc with the new one (otherwise do nothing)
+                if(!identical) {
+                    console.log("Replace!");
+                    //await this.dbManager.replaceRecord(existingDoc.uuid, doc.value);
+                }
+                else {
+                    console.log("Already Exists!");
+                }
+            }
+            else {
+                console.log("Create!");
+                //await this.create(doc);
+            }
+        }
+    }
+}
+
 exports.DBManager = DBManager;
+exports.TapisManager = TapisManager;

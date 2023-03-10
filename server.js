@@ -57,6 +57,7 @@ process.env["NODE_TLS_REJECT_UNAUTHORIZED"] = 0;
 process.env["NODE_ENV"] = "production";
 
 const dbManager = new DBManager.DBManager(dbConfig.server, dbConfig.port, dbConfig.username, dbConfig.password, dbConfig.db, dbConfig.collection, dbConfig.connectionRetryLimit, dbConfig.queryRetryLimit);
+const tapisManager = new DBManager.TapisManager(tenantURL, token, dbConfig.queryRetryLimit, dbManager);
 
 ////////////////////////////////
 //////////server setup//////////
@@ -950,50 +951,64 @@ app.get("/apistats", async (req, res) => {
 app.post("/addmetadata", async (req, res) => {
   console.log("rec");
   try {
-    let rows = 0;
+    let header = null;
     https.get("https://raw.githubusercontent.com/ikewai/hawaii_wx_station_mgmt_container/main/Hawaii_Master_Station_Meta.csv", (res) => {
+      let docs = [];
       res.pipe(new detectDecodeStream({ defaultEncoding: "1255" }))
       .pipe(new csvReadableStream({ parseNumbers: true, parseBooleans: true, trim: true }))
       .on("data", (row) => {
-        rows++;
+        if(header === null) {
+          let translations = {
+            "SKN": "skn",
+            "Station.Name": "name",
+            "Observer": "observer",
+            "Network": "network",
+            "Island": "island",
+            "ELEV.m.": "elevation_m",
+            "LAT": "lat",
+            "LON": "lng",
+            "NCEI.id": "ncei_id",
+            "NWS.id": "nws_id",
+            "NESDIS.id": "nesdis_id",
+            "SCAN.id": "scan_id",
+            "SMART_NODE_RF.id": "smart_node_rf_id"
+          }
+          header = [];
+          for(property of header) {
+            let trans = translations[property] ? translations[property] : property;
+            header.push(trans);
+          }
+          header = row;
+        }
+        else {
+          let data = {
+            station_group: "hawaii_climate_primary",
+            id_field: "skn"
+          };
+          for(let i = 0; i < header.length; i++) {
+            let property = header[i];
+            let value = row[i];
+            if(value != "NA") {
+              data[property] = value;
+            }
+          }
+          let doc = {
+            name: "hcdp_station_metadata",
+            value: data
+          };
+          docs.push(doc);
+        }
       })
       .on("end", () => {
-        console.log(rows);
-        
+        tapisManager.createMetadataDocs(docs)
+        .catch((e) => {
+          console.log(e);
+        });
+
       })
       .on("error", (e) => {
         console.log(e);
       });
-      
-      // let data = "";
-      // res.on("data", (chunk) => {
-      //   data += chunk;
-      // });
-
-      // res.on("end", () => {
-      //   let config = {
-      //     replace_duplicates: true,
-      //     prop_translations: {
-      //         "SKN": "skn",
-      //         "Station.Name": "name",
-      //         "Observer": "observer",
-      //         "Network": "network",
-      //         "Island": "island",
-      //         "ELEV.m.": "elevation_m",
-      //         "LAT": "lat",
-      //         "LON": "lng",
-      //         "NCEI.id": "ncei_id",
-      //         "NWS.id": "nws_id",
-      //         "NESDIS.id": "nesdis_id",
-      //         "SCAN.id": "scan_id",
-      //         "SMART_NODE_RF.id": "smart_node_rf_id"
-      //     },
-      //     nodata: "NA",
-      //     id_field: "skn",
-      //     station_group: "hawaii_climate_primary"
-      //   }
-      //   console.log(data);
-      // });
     });
     res.status(200)
     .write("done");

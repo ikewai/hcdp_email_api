@@ -32,5 +32,9 @@
         "collection": "metadata",
         "connectionRetryLimit": 3,
         "queryRetryLimit": 3
+    },
+    "tapisConfig": {
+        "tenantURL": "agaveauth.its.hawaii",
+        "token": "token"
     }
 }
