@@ -194,9 +194,11 @@ class TapisManager {
         let data = {
             options
         };
-        return this.request(data, this.retryLimit).then((res) => {
+        return this.request(data, -1).then((res) => {
             let resultList = JSON.parse(res.data).result;
             return resultList;
+        }, (e) => {
+            return Promise.reject(e);
         });
     }
 
@@ -215,7 +217,7 @@ class TapisManager {
             options,
             body: JSON.stringify(doc)
         };
-        return this.request(data, -1);
+        return this.request(data, this.retryLimit);
     }
 
     //get all metadata docs, index by id, more efficient than pulling one at a time
