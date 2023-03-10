@@ -255,7 +255,7 @@ class TapisManager {
             let id = doc.value[idField];
             //check if metadata doc with group and id already exists
             let existingDocGroup = existingMetadata[stationGroup];
-            console.log(Object.keys(existingDocGroup));
+            // console.log(Object.keys(existingDocGroup));
             let existingDoc;
             if(existingDocGroup) {
                 existingDoc = existingDocGroup[id];
@@ -288,7 +288,7 @@ class TapisManager {
                 }
             }
             else {
-                console.log("Create!");
+                // console.log("Create!");
                 //await this.create(doc);
             }
         }
