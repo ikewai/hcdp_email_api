@@ -183,7 +183,7 @@ class TapisManager {
     async queryData(query) {
         let params = {
             q: JSON.stringify(query),
-            limit: -1
+            limit: 1000000
         };
         const paramStr = querystring.stringify(params);
         const options = {
