@@ -975,7 +975,7 @@ app.post("/addmetadata", async (req, res) => {
             "SMART_NODE_RF.id": "smart_node_rf_id"
           }
           header = [];
-          for(property of header) {
+          for(property of row) {
             console.log(property);
             let trans = translations[property] ? translations[property] : property;
             header.push(trans);
