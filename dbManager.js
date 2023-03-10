@@ -152,7 +152,7 @@ class TapisManager {
                         responseData += chunk;
                     });
                     res.on("end", () => {
-                        console.log("request complete", res.statusCode, responseData);
+                        console.log("request complete", res.statusCode);
                         let codeGroup = Math.floor(res.statusCode / 100);
                         if(codeGroup != 2) {
                             let e = `Request responded with code ${res.statusCode}; message: ${responseData}`;
@@ -181,7 +181,6 @@ class TapisManager {
 
     //error handling
     async queryData(query) {
-        console.log(query, JSON.stringify(query));
         let params = {
             q: JSON.stringify(query)
         };
@@ -200,7 +199,9 @@ class TapisManager {
             options
         };
         console.log("call request");
-        return this.request(data, this.retryLimit);
+        return this.request(data, this.retryLimit).then((results) => {
+            return JSON.parse(results);
+        });
     }
 
     create(doc) {
