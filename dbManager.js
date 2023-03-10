@@ -199,9 +199,10 @@ class TapisManager {
             options
         };
         console.log("call request");
-        return this.request(data, this.retryLimit).then((results) => {
-            console.log(results.data.substring(0, 100));
-            return JSON.parse(results.data).result;
+        return this.request(data, this.retryLimit).then((res) => {
+            let resultList = JSON.parse(results.data).result;
+            console.log(resultList.length);
+            return resultList;
         });
     }
 
@@ -260,9 +261,9 @@ class TapisManager {
                 existingDoc = existingDocGroup[id];
             }
             
-            console.log(existingDoc);
-            console.log(doc);
-            console.log(idField, stationGroup, id);
+            // console.log(existingDoc);
+            // console.log(doc);
+            // console.log(idField, stationGroup, id);
             if(existingDoc) {
                 let identical = true;
                 //check if all properties are the same
