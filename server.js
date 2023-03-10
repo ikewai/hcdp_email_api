@@ -956,7 +956,8 @@ app.post("/addmetadata", async (req, res) => {
     https.get("https://raw.githubusercontent.com/ikewai/hawaii_wx_station_mgmt_container/main/Hawaii_Master_Station_Meta.csv", (res) => {
       let docs = [];
       res.pipe(new detectDecodeStream({ defaultEncoding: "1255" }))
-      .pipe(new csvReadableStream({ parseNumbers: true, parseBooleans: true, trim: true }))
+      //note old data does not parse numbers, maybe reprocess data with parsed numbers at some point, for now leave everything as strings though
+      .pipe(new csvReadableStream({ parseNumbers: false, parseBooleans: false, trim: true }))
       .on("data", (row) => {
         if(header === null) {
           let translations = {
