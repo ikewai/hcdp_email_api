@@ -284,8 +284,8 @@ class TapisManager {
                 //if they are not identical replace doc with the new one (otherwise do nothing)
                 if(!identical) {
                     console.log("Replace!");
-                    console.log(existingDoc);
-                    console.log(doc);
+                    console.log(existingDoc.value);
+                    console.log(doc.value);
                     
                     //await this.dbManager.replaceRecord(existingDoc.uuid, doc.value);
                 }
@@ -295,8 +295,8 @@ class TapisManager {
             }
             else {
                 console.log("Create!");
-                console.log(existingDoc);
-                console.log(doc);
+                console.log(existingDoc.value);
+                console.log(doc.value);
                 
                 //await this.create(doc);
             }
