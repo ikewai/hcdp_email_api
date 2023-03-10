@@ -233,7 +233,9 @@ class TapisManager {
     }
 
     async createMetadataDocs(docs) {
+        console.log("called create");
         let existingMetadata = await this.getMetadataDocs();
+        console.log("got existing");
         for(let doc of docs) {
             let idField = doc.value.id_field;
             let stationGroup = doc.value.station_group;

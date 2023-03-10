@@ -1011,7 +1011,7 @@ app.post("/addmetadata", async (req, res) => {
         console.log(e);
       });
     });
-    res.status(200)
+    res.status(202)
     .write("done");
       
   }
