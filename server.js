@@ -963,10 +963,15 @@ function signBlob(key, blob) {
 
 //add github middleware with secret, doesn't use any user input but don't necessarily want this running arbitrarily and shouldn't need to
 app.post("/addmetadata", bodyParser.json({
-  verify: (req, re, buf) => {
-    const receivedSig = req.headers['x-hub-signature'];
-    const computedSig = signBlob(githubWebhookSecret, buffer);
-    console.log(receivedSig == computedSig);
+  verify: (req, res, buf) => {
+    try {
+      const receivedSig = req.headers['x-hub-signature'];
+      const computedSig = signBlob(githubWebhookSecret, buf);
+      console.log(receivedSig == computedSig);
+    }
+    catch(e) {
+      console.error(e);
+    }
   }
 }), async (req, res) => {
   try {
