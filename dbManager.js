@@ -132,12 +132,14 @@ class TapisManager {
     }
 
     async request(data, retries, errors) {
+        console.log("retries remaining", retries);
         if(!errors) {
             errors = [];
         }
         let { options, body } = data;
         return new Promise((resolve, reject) => {
             if(retries < 0) {
+                console.log("error!", errors);
                 reject(errors);
             }
             else {
@@ -149,7 +151,7 @@ class TapisManager {
                         responseData += chunk;
                     });
                     res.on("end", () => {
-                        console.log("request complete");
+                        console.log("request complete", res.statusCode, responseData);
                         let codeGroup = Math.floor(res.statusCode / 100);
                         if(codeGroup != 2) {
                             let e = `Request responded with code ${res.statusCode}; message: ${responseData}`;
