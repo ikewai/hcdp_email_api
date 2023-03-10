@@ -121,7 +121,12 @@ class TapisManager {
             "Authorization": `Bearer ${token}`,
             "Content-Type": "application/json"
         }
-        this.tenantURL = tenantURL;
+        if(tenantURL.host) {
+            this.tenantURL = tenantURL;
+        }
+        else {
+            this.tenantURL = new URL(tenantURL);
+        }
         this.retryLimit = retryLimit;
         this.dbManager = dbManager;
     }
@@ -175,13 +180,15 @@ class TapisManager {
         }
         const paramStr = querystring.stringify(params);
         const options = {
-            protocol: "https",
-            hostname: this.tenantURL,
-            port: 443,
+            protocol: this.tenantURL.protocol,
+            hostname: this.tenantURL.hostname,
             path: "/meta/v2/data?" + paramStr,
             method: "GET",
             headers: this.header
         };
+        if(this.tenantURL.port) {
+            options.port = this.tenantURL.port;
+        }
         let data = {
             options
         };
@@ -190,13 +197,15 @@ class TapisManager {
 
     create(doc, retries) {
         const options = {
-            protocol: "https",
-            hostname: this.tenantURL,
-            port: 443,
+            protocol: this.tenantURL.protocol,
+            hostname: this.tenantURL.hostname,
             path: "/meta/v2/data",
             method: "POST",
             headers: this.header
         };
+        if(this.tenantURL.port) {
+            options.port = this.tenantURL.port;
+        }
         let data = {
             options,
             body: JSON.stringify(doc)

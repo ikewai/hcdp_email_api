@@ -34,7 +34,7 @@
         "queryRetryLimit": 3
     },
     "tapisConfig": {
-        "tenantURL": "agaveauth.its.hawaii",
+        "tenantURL": "https://agaveauth.its.hawaii",
         "token": "token"
     }
 }
