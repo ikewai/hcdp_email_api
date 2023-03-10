@@ -13,13 +13,14 @@ const sanitize = require("mongo-sanitize");
 const { json } = require("express");
 const csvReadableStream = require('csv-reader');
 const detectDecodeStream = require('autodetect-decoder-stream');
+const crypto = require('crypto');
 //add timestamps to output
 require("console-stamp")(console);
 
-const githubMiddleware = require('github-webhook-middleware')({
-  secret: config.githubWebhookSecret,
-  limit: "25mb", //webhook json payload size limit. Default is '100kb' (25mb is github max, should never get that big for metadata, but want to make sure larger commits are processed)
-});
+// const githubMiddleware = require('github-webhook-middleware')({
+//   secret: config.githubWebhookSecret,
+//   limit: "25mb", //webhook json payload size limit. Default is '100kb' (25mb is github max, should never get that big for metadata, but want to make sure larger commits are processed)
+// });
 
 const port = config.port;
 const smtp = config.smtp;
@@ -42,6 +43,7 @@ const dbConfig = config.dbConfig;
 const productionDir = config.productionDir;
 const licensePath = config.licenseFile;
 const tapisConfig = config.tapisConfig;
+const githubWebhookSecret = config.githubWebhookSecret;
 
 const rawDataRoot = `${dataRoot}${rawDataDir}`;
 const rawDataURLRoot = `${urlRoot}${rawDataDir}`;
@@ -954,9 +956,17 @@ app.get("/apistats", async (req, res) => {
   }
 });
 
+function signBlob(key, blob) {
+  return "sha1=" + crypto.createHmac("sha1", key).update(blob).digest("hex");
+}
+
 //add github middleware with secret, doesn't use any user input but don't necessarily want this running arbitrarily and shouldn't need to
-app.post("/addmetadata", githubMiddleware, async (req, res) => {
+app.post("/addmetadata", githubMiddleware, async (req, res, buffer) => {
   try {
+    const receivedSig = req.headers['x-hub-signature'];
+    const computedSig = signBlob(githubWebhookSecret, buffer);
+    console.log(receivedSig == computedSig);
+    
     // Only respond to github push events
     if(req.headers["x-github-event"] != "push") {
       return res.status(200).end();
