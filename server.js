@@ -16,6 +16,11 @@ const detectDecodeStream = require('autodetect-decoder-stream');
 //add timestamps to output
 require("console-stamp")(console);
 
+const githubMiddleware = require('github-webhook-middleware')({
+  secret: config.githubWebhookSecret,
+  limit: "25mb", //webhook json payload size limit. Default is '100kb' (25mb is github max, should never get that big for metadata, but want to make sure larger commits are processed)
+});
+
 const port = config.port;
 const smtp = config.smtp;
 const smtpPort = config.smtpPort;
@@ -54,7 +59,7 @@ const transporterOptions = {
 //gmail attachment limit
 const ATTACHMENT_MAX_MB = 25;
 
-process.env["NODE_TLS_REJECT_UNAUTHORIZED"] = 0;
+process.env["NODE_TLS_REJECT_UNAUTHORIZED"] = 1;
 process.env["NODE_ENV"] = "production";
 
 const dbManager = new DBManager.DBManager(dbConfig.server, dbConfig.port, dbConfig.username, dbConfig.password, dbConfig.db, dbConfig.collection, dbConfig.connectionRetryLimit, dbConfig.queryRetryLimit);
@@ -949,9 +954,13 @@ app.get("/apistats", async (req, res) => {
   }
 });
 
-app.post("/addmetadata", async (req, res) => {
-  console.log("rec");
+//add github middleware with secret, doesn't use any user input but don't necessarily want this running arbitrarily and shouldn't need to
+app.post("/addmetadata", githubMiddleware, async (req, res) => {
   try {
+    // Only respond to github push events
+    if(req.headers["x-github-event"] != "push") {
+      return res.status(200).end();
+    }
     let header = null;
     https.get("https://raw.githubusercontent.com/ikewai/hawaii_wx_station_mgmt_container/main/Hawaii_Master_Station_Meta.csv", (res) => {
       let docs = [];
@@ -976,9 +985,7 @@ app.post("/addmetadata", async (req, res) => {
             "SMART_NODE_RF.id": "smart_node_rf_id"
           }
           header = [];
-          console.log(row);
           for(property of row) {
-            console.log(property);
             let trans = translations[property] ? translations[property] : property;
             header.push(trans);
           }
@@ -1003,24 +1010,22 @@ app.post("/addmetadata", async (req, res) => {
         }
       })
       .on("end", () => {
-        console.log("end");
+        //if there are a lot may want to add ability to process in chunks in the future, only a few thousand at the moment so just process all at once
         tapisManager.createMetadataDocs(docs)
         .catch((e) => {
-          console.log(e);
+          console.error(`Metadata ingestion failed. Errors: ${e}`);
         });
 
       })
       .on("error", (e) => {
-        console.log(e);
+        console.error(`Failed to get/read master metadata file. Error: ${e}`);
       });
     });
     res.status(202)
-    .write("done");
-      
+    .send("done");
   }
   catch(e) {
     res.status(500)
-    .write("error");
-    console.log(e);
+    .send("An unexpected error occurred.");
   }
 });

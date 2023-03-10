@@ -239,6 +239,7 @@ class TapisManager {
         return indexedMetadata;
     }
 
+    //if there are a lot may want to add ability to process in chunks in the future, only a few thousand at the moment so just process all at once
     async createMetadataDocs(docs) {
         let existingMetadata = await this.getMetadataDocs();
         for(let doc of docs) {
@@ -266,17 +267,12 @@ class TapisManager {
                     identical = false;
                 }
                 //if they are not identical replace doc with the new one (otherwise do nothing)
-                if(!identical) {
-                    console.log("Replace!");               
-                    //await this.dbManager.replaceRecord(existingDoc.uuid, doc.value);
-                }
-                else {
-                    console.log("Already Exists!");
+                if(!identical) {        
+                    await this.dbManager.replaceRecord(existingDoc.uuid, doc.value);
                 }
             }
-            else {
-                console.log("Create!");       
-                //await this.create(doc);
+            else {      
+                await this.create(doc);
             }
         }
     }

@@ -36,5 +36,6 @@
     "tapisConfig": {
         "tenantURL": "https://agaveauth.its.hawaii",
         "token": "token"
-    }
+    },
+    "githubWebhookSecret": "secret"
 }
