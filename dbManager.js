@@ -182,8 +182,8 @@ class TapisManager {
     //error handling
     async queryData(query) {
         let params = {
-            q: query
-        }
+            q: JSON.stringify(query)
+        };
         const paramStr = querystring.stringify(params);
         const options = {
             protocol: this.tenantURL.protocol,
