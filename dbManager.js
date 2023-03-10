@@ -271,12 +271,14 @@ class TapisManager {
                 if(Object.keys(existingDoc.value).length == Object.keys(doc.value).length) {
                     for(let property in existingDoc.value) {
                         if(existingDoc.value[property] !== doc.value[property]) {
+                            console.log("property mismatch!", property, existingDoc.value[property], doc.value[property]);
                             identical = false;
                             break;
                         }
                     }
                 }
                 else {
+                    console.log("length mismatch!", Object.keys(existingDoc.value).length, Object.keys(doc.value).length);
                     identical = false;
                 }
                 //if they are not identical replace doc with the new one (otherwise do nothing)
