@@ -36,6 +36,7 @@ const administrators = config.administrators;
 const dbConfig = config.dbConfig;
 const productionDir = config.productionDir;
 const licensePath = config.licenseFile;
+const tapisConfig = config.tapisConfig;
 
 const rawDataRoot = `${dataRoot}${rawDataDir}`;
 const rawDataURLRoot = `${urlRoot}${rawDataDir}`;
@@ -57,7 +58,7 @@ process.env["NODE_TLS_REJECT_UNAUTHORIZED"] = 0;
 process.env["NODE_ENV"] = "production";
 
 const dbManager = new DBManager.DBManager(dbConfig.server, dbConfig.port, dbConfig.username, dbConfig.password, dbConfig.db, dbConfig.collection, dbConfig.connectionRetryLimit, dbConfig.queryRetryLimit);
-const tapisManager = new DBManager.TapisManager(tenantURL, token, dbConfig.queryRetryLimit, dbManager);
+const tapisManager = new DBManager.TapisManager(tapisConfig.tenantURL, tapisConfig.token, dbConfig.queryRetryLimit, dbManager);
 
 ////////////////////////////////
 //////////server setup//////////
