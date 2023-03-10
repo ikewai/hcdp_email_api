@@ -201,7 +201,7 @@ class TapisManager {
         console.log("call request");
         return this.request(data, this.retryLimit).then((results) => {
             console.log(results.data.substring(0, 100));
-            return JSON.parse(results.data);
+            return JSON.parse(results.data).result;
         });
     }
 
