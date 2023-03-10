@@ -182,7 +182,8 @@ class TapisManager {
     //error handling
     async queryData(query) {
         let params = {
-            q: JSON.stringify(query)
+            q: JSON.stringify(query),
+            limit: -1
         };
         const paramStr = querystring.stringify(params);
         const options = {
