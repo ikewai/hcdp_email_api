@@ -89,24 +89,8 @@ const server = https.createServer(options, app)
   }
 });
 
-app.use(bodyParser.json({
-  limit: "10mb",
-  verify: (req, res, buf) => {
-    console.log("?????????");
-    req.rawBody = buf;
-    try {
-      const receivedSig = req.headers['x-hub-signature'];
-      const computedSig = signBlob(githubWebhookSecret, buf);
-      console.log(receivedSig == computedSig);
-    }
-    catch(e) {
-      console.error(e);
-    }
-  }
-}));
-
 //app.use(express.json());
-//app.use(express.urlencoded({ extended: true }));
+app.use(express.urlencoded({ extended: true }));
 //compress all HTTP responses
 app.use(compression());
 
