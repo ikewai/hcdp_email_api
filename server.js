@@ -90,7 +90,6 @@ const server = https.createServer(options, app)
 });
 
 app.use(express.json());
-//app.use(express.urlencoded({ extended: true }));
 //compress all HTTP responses
 app.use(compression());
 
@@ -960,27 +959,28 @@ app.get("/apistats", async (req, res) => {
   }
 });
 
-function signBody(key, body) {
-  console.log(key, body);
-  return "sha1=" + crypto.createHmac("sha1", key).update(body).digest("hex");
+function signBlob(key, blob) {
+  return "sha1=" + crypto.createHmac("sha1", key).update(blob).digest("hex");
 }
 
-//add github middleware with secret, doesn't use any user input but don't necessarily want this running arbitrarily and shouldn't need to
-app.post("/addmetadata", express.raw({ limit: '50mb', type: () => true }), async (req, res) => {
+//add middleware to get raw body, don't actually need body data so no need to do anything fancy to get parsed body as well
+app.post("/addmetadata", express.raw({ limit: "50mb", type: () => true }), async (req, res) => {
   try {
-    console.log(req.headers);
-    console.log(req.headers['content-type']);
-    console.log(req.body);
+    //ensure this is coming from github by hashing with the webhook secret
     const receivedSig = req.headers['x-hub-signature'];
-    const computedSig = signBody(githubWebhookSecret, req.body);
-    console.log(receivedSig, computedSig);
-    console.log(receivedSig == computedSig);
-    
-    // Only respond to github push events
+    const computedSig = signBlob(githubWebhookSecret, req.body);
+    if(!crypto.timingSafeEqual(receivedSig, computedSig)) {
+      console.log(401);
+      return res.status(401).end();
+    }
+    //only process github push events
     if(req.headers["x-github-event"] != "push") {
+      console.log(200);
       return res.status(200).end();
     }
+    console.log("!");
     let header = null;
+    //might want to move file location/header translations to config
     https.get("https://raw.githubusercontent.com/ikewai/hawaii_wx_station_mgmt_container/main/Hawaii_Master_Station_Meta.csv", (res) => {
       let docs = [];
       res.pipe(new detectDecodeStream({ defaultEncoding: "1255" }))
@@ -1044,7 +1044,7 @@ app.post("/addmetadata", express.raw({ limit: '50mb', type: () => true }), async
     .send("done");
   }
   catch(e) {
-    console.log(e);
+    console.error(e);
     res.status(500)
     .send("An unexpected error occurred.");
   }
