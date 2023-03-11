@@ -105,8 +105,8 @@ app.use(bodyParser.json({
   }
 }));
 
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+//app.use(express.json());
+//app.use(express.urlencoded({ extended: true }));
 //compress all HTTP responses
 app.use(compression());
 
