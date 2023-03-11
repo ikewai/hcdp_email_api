@@ -95,12 +95,29 @@ app.use(express.urlencoded({ extended: true }));
 app.use(compression());
 
 app.use((req, res, next) => {
+  console.log("ran use");
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "GET, POST");
   res.setHeader("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, Authorization, Range, Content-Range, Cache-Control");
   //pass to next layer
   next();
 });
+
+app.use(bodyParser.json({
+  limit: "10mb",
+  verify: (req, res, buf) => {
+    console.log("?????????");
+    req.rawBody = buf;
+    try {
+      const receivedSig = req.headers['x-hub-signature'];
+      const computedSig = signBlob(githubWebhookSecret, buf);
+      console.log(receivedSig == computedSig);
+    }
+    catch(e) {
+      console.error(e);
+    }
+  }
+}));
 
 ////////////////////////////////
 ////////////////////////////////
