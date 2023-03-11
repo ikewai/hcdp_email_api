@@ -116,7 +116,7 @@ class DBManager {
 }
 
 class TapisManager {
-    constructor(tenantURL, token, retryLimit, key, cert, dbManager) {
+    constructor(tenantURL, token, retryLimit, dbManager) {
         this.header = {
             "Authorization": `Bearer ${token}`,
             "Content-Type": "application/json"
@@ -129,8 +129,6 @@ class TapisManager {
         }
         this.retryLimit = retryLimit;
         this.dbManager = dbManager;
-        this.key = key;
-        this.cert = cert;
     }
 
     async request(data, retries, errors) {
@@ -187,9 +185,7 @@ class TapisManager {
             hostname: this.tenantURL.hostname,
             path: "/meta/v2/data?" + paramStr,
             method: "GET",
-            headers: this.header,
-            key: this.key,
-            cert: this.cert
+            headers: this.header
         };
         if(this.tenantURL.port) {
             options.port = this.tenantURL.port;
@@ -211,9 +207,7 @@ class TapisManager {
             hostname: this.tenantURL.hostname,
             path: "/meta/v2/data",
             method: "POST",
-            headers: this.header,
-            key: this.key,
-            cert: this.cert
+            headers: this.header
         };
         if(this.tenantURL.port) {
             options.port = this.tenantURL.port;

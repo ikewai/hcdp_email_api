@@ -61,11 +61,11 @@ const transporterOptions = {
 //gmail attachment limit
 const ATTACHMENT_MAX_MB = 25;
 
-process.env["NODE_TLS_REJECT_UNAUTHORIZED"] = 1;
+process.env["NODE_TLS_REJECT_UNAUTHORIZED"] = 0;
 process.env["NODE_ENV"] = "production";
 
 const dbManager = new DBManager.DBManager(dbConfig.server, dbConfig.port, dbConfig.username, dbConfig.password, dbConfig.db, dbConfig.collection, dbConfig.connectionRetryLimit, dbConfig.queryRetryLimit);
-const tapisManager = new DBManager.TapisManager(tapisConfig.tenantURL, tapisConfig.token, dbConfig.queryRetryLimit, hskey, hscert, dbManager);
+const tapisManager = new DBManager.TapisManager(tapisConfig.tenantURL, tapisConfig.token, dbConfig.queryRetryLimit, dbManager);
 
 ////////////////////////////////
 //////////server setup//////////
