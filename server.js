@@ -986,6 +986,9 @@ app.post("/addmetadata", express.raw({ inflate: true, limit: '50mb', type: () =>
     console.log(req.headers);
     console.log(req.headers['content-type']);
     console.log(req.body);
+    const receivedSig = req.headers['x-hub-signature'];
+    const computedSig = signBlob(githubWebhookSecret, req.body);
+    console.log(receivedSig == computedSig);
     
     // Only respond to github push events
     if(req.headers["x-github-event"] != "push") {
