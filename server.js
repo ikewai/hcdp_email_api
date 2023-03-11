@@ -976,8 +976,8 @@ app.get("/apistats", async (req, res) => {
   }
 });
 
-function signBlob(key, blob) {
-  return "sha1=" + crypto.createHmac("sha1", key).update(blob).digest("hex");
+function signBody(key, body) {
+  return "sha1=" + crypto.createHmac("sha1", key).update(JSON.stringify(body)).digest("base64");
 }
 
 //add github middleware with secret, doesn't use any user input but don't necessarily want this running arbitrarily and shouldn't need to
@@ -987,7 +987,7 @@ app.post("/addmetadata", express.raw({ inflate: true, limit: '50mb', type: () =>
     console.log(req.headers['content-type']);
     console.log(req.body);
     const receivedSig = req.headers['x-hub-signature'];
-    const computedSig = signBlob(githubWebhookSecret, req.body);
+    const computedSig = signBody(githubWebhookSecret, req.body);
     console.log(receivedSig == computedSig);
     
     // Only respond to github push events
