@@ -138,7 +138,6 @@ class TapisManager {
         let { options, body } = data;
         return new Promise((resolve, reject) => {
             if(retries < 0) {
-                console.log("error!", errors);
                 reject(errors);
             }
             else {
@@ -194,7 +193,7 @@ class TapisManager {
         let data = {
             options
         };
-        return this.request(data, -1).then((res) => {
+        return this.request(data, this.retryLimit).then((res) => {
             let resultList = JSON.parse(res.data).result;
             return resultList;
         }, (e) => {
@@ -239,7 +238,6 @@ class TapisManager {
         return indexedMetadata;
     }
 
-    //if there are a lot may want to add ability to process in chunks in the future, only a few thousand at the moment so just process all at once
     async createMetadataDocs(docs) {
         let existingMetadata = await this.getMetadataDocs();
         for(let doc of docs) {

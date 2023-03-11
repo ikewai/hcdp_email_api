@@ -93,7 +93,6 @@ app.use(express.json());
 app.use(compression());
 
 app.use((req, res, next) => {
-  console.log("ran use");
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "GET, POST");
   res.setHeader("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, Authorization, Range, Content-Range, Cache-Control");
@@ -969,15 +968,12 @@ app.post("/addmetadata", express.raw({ limit: "50mb", type: () => true }), async
     const receivedSig = req.headers['x-hub-signature'];
     const computedSig = signBlob(githubWebhookSecret, req.body);
     if(!safeCompare(receivedSig, computedSig)) {
-      console.log(401);
       return res.status(401).end();
     }
     //only process github push events
     if(req.headers["x-github-event"] != "push") {
-      console.log(200);
       return res.status(200).end();
     }
-    console.log("!");
     let header = null;
     //might want to move file location/header translations to config
     https.get("https://raw.githubusercontent.com/ikewai/hawaii_wx_station_mgmt_container/main/Hawaii_Master_Station_Meta.csv", (res) => {
@@ -1040,10 +1036,10 @@ app.post("/addmetadata", express.raw({ limit: "50mb", type: () => true }), async
       });
     });
     res.status(202)
-    .send("done");
+    .send("Metadata update processing.");
   }
   catch(e) {
-    console.error(e);
+    console.error(`An unexpected error occurred while processing the metadata request. Error: ${e}`);
     res.status(500)
     .send("An unexpected error occurred.");
   }
