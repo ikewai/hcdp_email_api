@@ -18,7 +18,7 @@
     "express": "^4.17.1",
     "express-mongo-sanitize": "^2.2.0",
     "github-webhook-middleware": "^0.0.2",
-    "moment": "^2.29.1",
+    "moment": "^2.29.4",
     "mongo-sanitize": "^1.1.0",
     "mongodb": "^3.7.3",
     "nodemailer": "^6.6.1",
