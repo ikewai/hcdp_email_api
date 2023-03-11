@@ -266,16 +266,13 @@ class TapisManager {
                 }
                 //if they are not identical replace doc with the new one (otherwise do nothing)
                 if(!identical) {        
-                    console.log("replace");
                     await this.dbManager.replaceRecord(existingDoc.uuid, doc.value);
                 }
             }
             else {     
-                console.log("create"); 
                 await this.create(doc);
             }
         }
-        console.log("done!!");
     }
 }
 
