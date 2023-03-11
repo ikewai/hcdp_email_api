@@ -10,11 +10,10 @@ const moment = require("moment");
 const path = require("path");
 const DBManager = require("./dbManager");
 const sanitize = require("mongo-sanitize");
-const { json } = require("express");
 const csvReadableStream = require('csv-reader');
 const detectDecodeStream = require('autodetect-decoder-stream');
 const crypto = require('crypto');
-const bodyParser = require('body-parser');
+const safeCompare = require('safe-compare');
 //add timestamps to output
 require("console-stamp")(console);
 
@@ -969,7 +968,7 @@ app.post("/addmetadata", express.raw({ limit: "50mb", type: () => true }), async
     //ensure this is coming from github by hashing with the webhook secret
     const receivedSig = req.headers['x-hub-signature'];
     const computedSig = signBlob(githubWebhookSecret, req.body);
-    if(!crypto.timingSafeEqual(receivedSig, computedSig)) {
+    if(!safeCompare(receivedSig, computedSig)) {
       console.log(401);
       return res.status(401).end();
     }

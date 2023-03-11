@@ -21,6 +21,7 @@
     "moment": "^2.29.1",
     "mongo-sanitize": "^1.1.0",
     "mongodb": "^3.7.3",
-    "nodemailer": "^6.6.1"
+    "nodemailer": "^6.6.1",
+    "safe-compare": "^1.1.4"
   }
 }
