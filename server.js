@@ -996,7 +996,8 @@ app.post("/addmetadata", bodyParser.json({
   }
 }), async (req, res) => {
   try {
-    
+    console.log(req.headers);
+    console.log(req.headers['content-type']);
     console.log(req.rawBody);
     
     // Only respond to github push events
