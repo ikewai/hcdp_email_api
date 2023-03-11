@@ -977,12 +977,12 @@ app.get("/apistats", async (req, res) => {
 });
 
 function signBody(key, body) {
-  console.log(key);
-  return "sha1=" + crypto.createHmac("sha1", key).update(JSON.stringify(body)).digest("base64");
+  console.log(key, body);
+  return "sha1=" + crypto.createHmac("sha1", key).update(body).digest("base64");
 }
 
 //add github middleware with secret, doesn't use any user input but don't necessarily want this running arbitrarily and shouldn't need to
-app.post("/addmetadata", async (req, res) => {
+app.post("/addmetadata", express.raw({ inflate: false, limit: '50mb', type: () => true }), async (req, res) => {
   try {
     console.log(req.headers);
     console.log(req.headers['content-type']);
