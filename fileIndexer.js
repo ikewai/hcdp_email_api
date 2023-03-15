@@ -188,7 +188,7 @@ async function countFiles(root) {
         }
     }
     //just catch errors and return 0 (should mean the path does not exist)
-    catch(e) {console.error(e);}
+    catch(e) {}
     return fcount;
 }
 
