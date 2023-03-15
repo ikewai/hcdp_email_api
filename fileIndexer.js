@@ -518,6 +518,7 @@ async function validate(file) {
     return new Promise((resolve, reject) => {
         fs.lstat(file, (e, stats) => {
             if(e) {
+                console.log(e);
                 resolve(false);
             }
             else if(stats.isFile()) {
