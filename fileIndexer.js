@@ -516,19 +516,8 @@ function expandDates(period, range) {
 async function validate(file) {
     file = path.join(file);
     return new Promise((resolve, reject) => {
-        fs.lstat(file, (e, stats) => {
-            if(e) {
-                resolve(false);
-            }
-            else if(stats.isFile()) {
-                resolve(true);
-            }
-            else if(stats.isDirectory()) {
-                resolve(true);
-            }
-            else {
-                resolve(false);
-            }
+        fs.access(file, fs.constants.F_OK, (e) => {
+            e ? resolve(false) : resolve(true);
         });
     });
 }
@@ -588,6 +577,98 @@ async function getDSFiles(root, properties) {
     }
     ///////////////////////////////
     return files;
+}
+
+const fnamePattern = /^.+?([0-9]{4}(?:(?:_[0-9]{2}){0,5}|(?:_[0-9]{2}){5}\.[0-9]+))\.[a-zA-Z0-9]+$/;
+//wrapper function to strip subtree reduction info
+async function getPathsBetweenDates(root, start, end, combineSubtrees) {
+    return getPathsBetweenDatesRecursive(root, start, end, combine).then((data) => {
+        return data.paths;
+    })
+    .catch;
+}
+
+function handleFile(fname, start, end) {
+    let inRange = false;
+    let match = fname.match(fnamePattern);
+    //if null the file name does not match the regex, just return empty
+    if(match !== null) {
+        //capture date from fname and split on underscores
+        dateParts = match[1].split("_");
+        //get parts
+        const [year, month, day, hour, minute, second] = dateParts;
+        //construct ISO date string from parts with defaults for missing values
+        const isoDateStr = `${year}-${month || "01"}-${day || "01"}T${hour || "00"}:${minute || "00"}:${second || "00"}`;
+        //create date object from ISO string
+        let fileDate = new Date(isoDateStr);
+        //check if date is between the start and end date (inclusive at both ends)
+        //if it is return the file, otherwise empty
+        if(fileDate >= start && fileDate <= end) {
+            inRange = true;
+        }
+    }
+    return inRange;
+}
+
+async function getPathsBetweenDatesRecursive(root, start, end, combineSubtrees) {
+    let empty = {
+        paths: [],
+        fullSubtree: false
+    };
+    
+    return new Promise(async (resolve) => {
+        fs.readdir(file, {withFileTypes: true}, (e, dirents) => {
+            //error, probably root does not exist, resolve empty
+            if(e) {
+                resolve([]);
+            }
+            else {
+                let branchPromises = [];
+                for(let dirent of dirents) {
+                    //if file parse date and return file if in between dates
+                    if(dirent.isFile()) {
+                        if(handleFile(dirent.name, start, end)) {
+                            
+                        }
+                    }
+                    //otherwise if dir recursively descend
+                    else if(dirent.isDirectory()) {
+                        branchPromises.push(
+                            getPathsBetweenDates(dirent.name, start, end, combineSubtrees)
+                            .catch((e) => {
+                                return [];
+                            })
+                        );
+                    }
+                    //if need to deal with symlinks need to expand, but for now just return empty if not file or dir
+                    //for our purposes this should never trigger though
+                    else {
+                        resolve({});
+                    }
+                }
+
+                return Promise.all(branchPromises).then((results) => {
+                    data = results.reduce((agg, result) => {
+                        agg.files = agg.files.concat(result.files);
+                        agg.fullSubtree = agg.fullSubtree && result.fullSubtree;
+                    }, {
+                        files: [],
+                        fullSubtree: true
+                    });
+                    //if combineSubtrees is set and the full subtree is included then collapse files into root
+                    if(combineSubtrees && files.fullSubtree) {
+                        data.files = [root];
+                    }
+                    return data;
+                })
+                .catch((e) => {
+                    return [];
+                });
+            }
+        });
+    });
+    
+    
 }
 
 
