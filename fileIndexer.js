@@ -580,13 +580,6 @@ async function getDSFiles(root, properties) {
 }
 
 const fnamePattern = /^.+?([0-9]{4}(?:(?:_[0-9]{2}){0,5}|(?:_[0-9]{2}){5}\.[0-9]+))\.[a-zA-Z0-9]+$/;
-//wrapper function to strip subtree reduction info
-async function getPathsBetweenDates(root, start, end, combineSubtrees) {
-    return getPathsBetweenDatesRecursive(root, start, end, combine).then((data) => {
-        return data.paths;
-    })
-    .catch;
-}
 
 function handleFile(fname, start, end) {
     let inRange = false;
@@ -595,75 +588,159 @@ function handleFile(fname, start, end) {
     if(match !== null) {
         //capture date from fname and split on underscores
         dateParts = match[1].split("_");
+        let fileDateDepth = dateParts.length - 1;
+        const fileStart = dateToDepth(start, fileDateDepth);
+        const fileEnd = dateToDepth(end, fileDateDepth);
         //get parts
         const [year, month, day, hour, minute, second] = dateParts;
         //construct ISO date string from parts with defaults for missing values
         const isoDateStr = `${year}-${month || "01"}-${day || "01"}T${hour || "00"}:${minute || "00"}:${second || "00"}`;
         //create date object from ISO string
-        let fileDate = new Date(isoDateStr);
+        let fileDate = new moment(isoDateStr);
         //check if date is between the start and end date (inclusive at both ends)
         //if it is return the file, otherwise empty
-        if(fileDate >= start && fileDate <= end) {
+        if(fileDate.isSameOrAfter(fileStart) && fileDate.isSameOrBefore(fileEnd)) {
             inRange = true;
         }
     }
     return inRange;
 }
 
-async function getPathsBetweenDatesRecursive(root, start, end, combineSubtrees) {
-    let empty = {
-        paths: [],
-        fullSubtree: false
-    };
-    
+const periodOrder = ["year", "month", "day", "hour", "minute", "second"];
+function dateToDepth(date, depth) {
+    let period = periodOrder[depth];
+    return dateToPeriod(date, period);
+}
+
+function dateToPeriod(date, period) {
+    return date.clone().startOf(period);
+}
+
+function setDatePartByDepth(date, part, depth) {
+    let period = periodOrder[depth];
+    return setDatePartByPeriod(date, part, period);
+}
+
+function setDatePartByPeriod(date, part, period) {
+    let partNum = datePartToNumber(part, period);
+    return date.clone().set(period, partNum);
+}
+
+function datePartToNumber(part, period) {
+    let partNum = Number(part);
+    //moment months are 0 based
+    if(period == "month") {
+        partNum--;
+    }
+    return partNum;
+}
+
+//note root must start at date paths
+async function getPathsBetweenDates(root, start, end, collapse, date, depth) {
+    if(collapse === undefined) {
+        collapse = true;
+    }
+    if(!date) {
+        date = new moment("0000")
+    }
+    if(depth === undefined) {
+        depth = 0;
+    }
+    const dirStart = dateToDepth(start, depth);
+    const dirEnd = dateToDepth(end, depth);
+
+    let canCollapse = true;
     return new Promise(async (resolve) => {
-        fs.readdir(file, {withFileTypes: true}, (e, dirents) => {
+        fs.readdir(root, {withFileTypes: true}, (e, dirents) => {
             //error, probably root does not exist, resolve empty
             if(e) {
-                resolve([]);
+                resolve({
+                    paths: [],
+                    collapse: false,
+                    numFiles: 0
+                });
             }
             else {
                 let branchPromises = [];
                 for(let dirent of dirents) {
-                    //if file parse date and return file if in between dates
+                    subpath = path.join(root, dirent.name);
+                    //if file, parse date and return file if in between dates
                     if(dirent.isFile()) {
-                        if(handleFile(dirent.name, start, end)) {
-                            
+                        if(handleFile(subpath, start, end)) {
+                            branchPromises.push(Promise.resolve({
+                                paths: [subpath],
+                                collapse: true,
+                                numFiles: 1
+                            }));
+                        }
+                        else {
+                            canCollapse = false;
                         }
                     }
                     //otherwise if dir recursively descend
                     else if(dirent.isDirectory()) {
-                        branchPromises.push(
-                            getPathsBetweenDates(dirent.name, start, end, combineSubtrees)
-                            .catch((e) => {
-                                return [];
-                            })
-                        );
+                        //check if should descend further, if folder outside range return empty
+                        try {
+                            let subDate = setDatePartByDepth(date, dirent.name, depth);
+                            if(subDate.isSameOrAfter(dirStart) && subDate.isSameOrBefore(dirEnd)) {
+                                branchPromises.push(
+                                    getPathsBetweenDates(subpath, start, end, collapse, subDate, depth + 1)
+                                    .catch((e) => {
+                                        //if an error occured in the descent then just return empty
+                                        return {
+                                            files: [],
+                                            collapse: false,
+                                            numFiles: 0
+                                        };
+                                    })
+                                );
+                            }
+                            //don't descend down branch, out of range
+                            else {
+                                console.log(subpath);
+                                canCollapse = false;
+                            }
+                        }
+                        //if failed probably not a valid numeric folder name, just skip the folder and indicate cannot be collapsed
+                        catch {
+                            canCollapse = false;
+                        }
+                        
                     }
-                    //if need to deal with symlinks need to expand, but for now just return empty if not file or dir
+                    //if need to deal with symlinks need to expand, but for now just indicate that dir can't be collapsed
                     //for our purposes this should never trigger though
                     else {
-                        resolve({});
+                        canCollapse = false;
                     }
                 }
 
-                return Promise.all(branchPromises).then((results) => {
-                    data = results.reduce((agg, result) => {
-                        agg.files = agg.files.concat(result.files);
-                        agg.fullSubtree = agg.fullSubtree && result.fullSubtree;
-                    }, {
-                        files: [],
-                        fullSubtree: true
-                    });
-                    //if combineSubtrees is set and the full subtree is included then collapse files into root
-                    if(combineSubtrees && files.fullSubtree) {
-                        data.files = [root];
-                    }
-                    return data;
-                })
-                .catch((e) => {
-                    return [];
-                });
+                resolve(
+                    Promise.all(branchPromises).then((results) => {
+                        let data = results.reduce((agg, result) => {
+                            agg.paths = agg.paths.concat(result.paths);
+                            agg.collapse &&= result.collapse;
+                            agg.numFiles += result.numFiles;
+                            return agg;
+                        }, {
+                            paths: [],
+                            collapse: canCollapse,
+                            numFiles: 0
+                        });
+                        //if collapse is set and the subtree is collapsed then collapse files into root
+                        if(collapse && data.collapse) {
+                            data.paths = [root];
+                        }
+                        return data;
+                    })
+                    .catch((e) => {
+                        console.log(e);
+                        return {
+                            paths: [],
+                            collapse: false,
+                            numFiles: 0
+                        };
+                    })
+                );
             }
         });
     });
@@ -675,3 +752,4 @@ async function getPathsBetweenDatesRecursive(root, start, end, combineSubtrees) 
 exports.getFiles = getFiles;
 exports.getEmpty = getEmpty;
 exports.getPaths = getPaths;
+exports.getPathsBetweenDates = getPathsBetweenDates;
