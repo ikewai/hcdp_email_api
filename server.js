@@ -319,44 +319,6 @@ app.get("/raster/timeseries", async (req, res) => {
     reqData.code = 501;
     res.status(501)
     .end();
-    // let index = req.query.index;
-    // let start = req.query.start;
-    // let end = req.query.end;
-    // let dataset = req.query.dataset;
-    // dataset = JSON.parse(dataset);
-    // let data = [{
-    //   files: ["data_map"],
-    //   range: {
-    //     start: start,
-    //     end: end
-    //   },
-    //   extent: "statewide",
-    //   ...dataset
-    // }];
-    
-    // let files = await indexer.getFiles(data);
-    // //maybe update to use file groups
-    // let zipProc = child_process.spawn("python3", ["./reader.py", index, ...files]);
-
-    // vals = "";
-    // err = "";
-    // let code = await handleSubprocess(zipProc, (data) => {
-    //   vals += data.toString();
-    // }, (data) => {
-    //   err += data.toString();
-    // });
-    // console.log(vals);
-    // console.error(err);
-    // if(code !== 0) {
-    //   console.error(`subprocess exited with code ${code}`);
-    //   throw new Error("whats the problem?");
-    // }
-    // else {
-    //   data = JSON.parse(data);
-    //   reqData.code = 200;
-    //   res.status(200)
-    //   .send(data);
-    // }
   });
   
 });
@@ -440,7 +402,7 @@ app.get("/raster", async (req, res) => {
       ...properties
     }];
     
-    let files = await indexer.getFiles(productionRoot, data);
+    let files = await indexer.getPaths(productionRoot, data, false);
     reqData.sizeF = files.length;
     let file = null;
     //should only be exactly one file
@@ -855,7 +817,7 @@ app.get("/production/list", async (req, res) => {
       );
     }
     else {
-      let files = await indexer.getFiles(productionRoot, data);
+      let files = await indexer.getPaths(productionRoot, data, false);
       reqData.sizeF = files.length;
       files = files.map((file) => {
         file = path.relative(dataRoot, file);
