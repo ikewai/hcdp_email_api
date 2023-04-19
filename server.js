@@ -401,8 +401,9 @@ app.get("/raster", async (req, res) => {
       },
       ...properties
     }];
-    
+    console.log("get paths!");
     let files = await indexer.getPaths(productionRoot, data, false);
+    console.log("got paths!");
     reqData.sizeF = files.length;
     let file = null;
     //should only be exactly one file
