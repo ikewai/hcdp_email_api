@@ -380,8 +380,11 @@ app.post("/db/delete", async (req, res) => {
 });
 
 app.get("/raster", async (req, res) => {
+  console.log("raster!");
   const permission = "basic";
   await handleReq(req, res, permission, async (reqData) => {
+    console.log("handle raster");
+    console.log(req.query);
     //destructure query
     let {date, returnEmptyNotFound, ...properties} = req.query;
     fileType = "data_map";
