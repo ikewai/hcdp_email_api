@@ -408,14 +408,14 @@ app.get("/raster", async (req, res) => {
     let files = await indexer.getPaths(productionRoot, data, false);
     console.log(files);
     console.log("got paths!");
-    reqData.sizeF = files.length;
+    reqData.sizeF = files.numFiles;
     let file = null;
     //should only be exactly one file
-    if(files.length == 0 && returnEmptyNotFound) {
+    if(files.numFiles == 0 && returnEmptyNotFound) {
       file = indexer.getEmpty(properties.extent);
     }
     else {
-      file = files[0];
+      file = files.paths[0];
     }
     
     if(!file) {
@@ -823,8 +823,8 @@ app.get("/production/list", async (req, res) => {
     }
     else {
       let files = await indexer.getPaths(productionRoot, data, false);
-      reqData.sizeF = files.length;
-      files = files.map((file) => {
+      reqData.sizeF = files.numFiles;
+      files = files.paths.map((file) => {
         file = path.relative(dataRoot, file);
         let fileLink = `${urlRoot}${file}`;
         return fileLink;
