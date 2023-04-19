@@ -406,6 +406,7 @@ app.get("/raster", async (req, res) => {
     }];
     console.log("get paths!");
     let files = await indexer.getPaths(productionRoot, data, false);
+    console.log(files);
     console.log("got paths!");
     reqData.sizeF = files.length;
     let file = null;
