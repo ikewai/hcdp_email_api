@@ -765,6 +765,8 @@ app.post("/genzip/instant/splitlink", async (req, res) => {
       //write stdout (should be file name) to output accumulator
       let code = await handleSubprocess(zipProc, (data) => {
         zipOutput += data.toString();
+      }, (data) => {
+        console.error(data);
       });
 
       if(code !== 0) {
