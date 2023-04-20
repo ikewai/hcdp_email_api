@@ -7,6 +7,7 @@ ziproot=$1; shift
 echo $ziproot
 
 dir=$froot$uuid
+echo $dir
 
 #create unique dir for current job
 mkdir $dir
