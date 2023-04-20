@@ -755,6 +755,7 @@ app.post("/genzip/instant/splitlink", async (req, res) => {
       paths = paths.map((file) => {
         return path.relative(productionRoot, file);
       });
+      console.log(paths);
 
       reqData.sizeF = numFiles;
       res.contentType("application/zip");
