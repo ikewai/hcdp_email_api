@@ -746,6 +746,7 @@ app.post("/genzip/instant/splitlink", async (req, res) => {
     }
     else {
       let { paths, numFiles } = await indexer.getPaths(productionRoot, data);
+      console.log(paths, numFiles);
       //add license file
       paths.push(licenseFile);
       numFiles += 1;
