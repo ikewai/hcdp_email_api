@@ -380,11 +380,8 @@ app.post("/db/delete", async (req, res) => {
 });
 
 app.get("/raster", async (req, res) => {
-  console.log("raster!");
   const permission = "basic";
   await handleReq(req, res, permission, async (reqData) => {
-    console.log("handle raster");
-    console.log(req.query);
     //destructure query
     let {date, returnEmptyNotFound, ...properties} = req.query;
     fileType = "data_map";
@@ -404,10 +401,7 @@ app.get("/raster", async (req, res) => {
       },
       ...properties
     }];
-    console.log("get paths!");
     let files = await indexer.getPaths(productionRoot, data, false);
-    console.log(files);
-    console.log("got paths!");
     reqData.sizeF = files.numFiles;
     let file = null;
     //should only be exactly one file
@@ -746,7 +740,6 @@ app.post("/genzip/instant/splitlink", async (req, res) => {
     }
     else {
       let { paths, numFiles } = await indexer.getPaths(productionRoot, data);
-      console.log(paths, numFiles);
       //add license file
       paths.push(licenseFile);
       numFiles += 1;
@@ -755,9 +748,6 @@ app.post("/genzip/instant/splitlink", async (req, res) => {
       paths = paths.map((file) => {
         return path.relative(productionRoot, file);
       });
-      console.log(paths);
-
-      console.log(downloadRoot, productionRoot);
 
       reqData.sizeF = numFiles;
       res.contentType("application/zip");
@@ -766,10 +756,7 @@ app.post("/genzip/instant/splitlink", async (req, res) => {
 
       //write stdout (should be file name) to output accumulator
       let code = await handleSubprocess(zipProc, (data) => {
-        console.log(data.toString())
         zipOutput += data.toString();
-      }, (data) => {
-        console.error(data.toString());
       });
 
       if(code !== 0) {

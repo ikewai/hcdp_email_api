@@ -54,10 +54,7 @@ async function getPaths(root, data, collapse) {
                     let fdirType = path.join(fdir, ftype);
                     let start = new moment(range.start);
                     let end = new moment(range.end);
-                    console.log(fdirType);
                     let pathData = await getPathsBetweenDates(fdirType, start, end, collapse);
-                    console.log("got data!");
-                    console.log(pathData);
                     totalFiles += pathData.numFiles;
                     paths = paths.concat(pathData.paths);
                 }
@@ -299,7 +296,6 @@ async function getPathsBetweenDates(root, start, end, collapse, date, depth) {
                             }
                             //don't descend down branch, out of range
                             else {
-                                console.log(subpath);
                                 canCollapse = false;
                             }
                         }
@@ -335,7 +331,6 @@ async function getPathsBetweenDates(root, start, end, collapse, date, depth) {
                         return data;
                     })
                     .catch((e) => {
-                        console.log(e);
                         return {
                             paths: [],
                             collapse: false,
