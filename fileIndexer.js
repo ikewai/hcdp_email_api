@@ -236,6 +236,7 @@ function datePartToNumber(part, period) {
 
 //note root must start at date paths
 async function getPathsBetweenDates(root, start, end, collapse, date, depth) {
+    console.log(start.toISOString(), end.toISOString());
     if(collapse === undefined) {
         collapse = true;
     }
