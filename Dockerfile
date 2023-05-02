@@ -16,11 +16,14 @@ COPY dbManager.js ./
 COPY csvProcessor.js ./
 COPY zipgen.sh ./
 COPY zipgen_parts.sh ./
+COPY tiffextract ./
 
-
-RUN npm install
+#RUN npm install
 # If you are building your code for production
-# RUN npm install --only=production
+RUN npm install --only=production
+
+RUN cd tiffextract
+RUN g++ reader.cpp -o tiffextract.out
 
 EXPOSE 443
 #don't use npm start because signals are handled weird. To get a graceful stop need to run node server.js directly

@@ -1,0 +1,3 @@
+[submodule "tiffextract"]
+	path = tiffextract
+	url = https://github.com/HCDP/geotiff_extract.git
