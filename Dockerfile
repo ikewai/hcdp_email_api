@@ -23,7 +23,7 @@ COPY tiffextract ./
 RUN npm install --only=production
 
 
-RUN g++ tiffextract/reader.cpp -o tiffextract
+RUN g++ ./tiffextract/reader.cpp -o tiffextract
 
 EXPOSE 443
 #don't use npm start because signals are handled weird. To get a graceful stop need to run node server.js directly
