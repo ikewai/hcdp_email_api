@@ -16,7 +16,7 @@ COPY dbManager.js ./
 COPY csvProcessor.js ./
 COPY zipgen.sh ./
 COPY zipgen_parts.sh ./
-COPY tiffextract ./
+ADD tiffextract ./
 
 #RUN npm install
 # If you are building your code for production
