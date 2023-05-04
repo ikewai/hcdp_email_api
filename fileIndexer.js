@@ -346,3 +346,4 @@ async function getPathsBetweenDates(root, start, end, collapse, date, depth) {
 
 exports.getEmpty = getEmpty;
 exports.getPaths = getPaths;
+exports.fnamePattern = fnamePattern;
