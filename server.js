@@ -847,34 +847,35 @@ app.get("/raw/list", async (req, res) => {
         date: An ISO 8601 formatted date string representing the date you would like the data for."
       );
     }
-
-    let parsedDate = moment(date);
-    let year = parsedDate.format("YYYY");
-    let month = parsedDate.format("MM");
-    let day = parsedDate.format("DD");
-
-    let dataDir = path.join("hawaii", year, month, day);
-    let sysDir = path.join(rawDataRoot, dataDir);
-    let linkDir = `${rawDataURLRoot}${dataDir}/`;
-
-    let { err, files } = await readdir(sysDir);
-
-    //no dir for requested date, just return empty
-    if(err && err.code == "ENOENT") {
-      files = [];
+    else {
+      let parsedDate = moment(date);
+      let year = parsedDate.format("YYYY");
+      let month = parsedDate.format("MM");
+      let day = parsedDate.format("DD");
+  
+      let dataDir = path.join("hawaii", year, month, day);
+      let sysDir = path.join(rawDataRoot, dataDir);
+      let linkDir = `${rawDataURLRoot}${dataDir}/`;
+  
+      let { err, files } = await readdir(sysDir);
+  
+      //no dir for requested date, just return empty
+      if(err && err.code == "ENOENT") {
+        files = [];
+      }
+      else if(err) {
+        throw err;
+      }
+  
+      files = files.map((file) => {
+        let fileLink = `${linkDir}${file}`;
+        return fileLink;
+      });
+      reqData.sizeF = files.length;
+      reqData.code = 200;
+      res.status(200)
+      .json(files);
     }
-    else if(err) {
-      throw err;
-    }
-
-    files = files.map((file) => {
-      let fileLink = `${linkDir}${file}`;
-      return fileLink;
-    });
-    reqData.sizeF = files.length;
-    reqData.code = 200;
-    res.status(200)
-    .json(files);
   });
 });
 
