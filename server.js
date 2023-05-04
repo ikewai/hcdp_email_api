@@ -853,7 +853,7 @@ app.get("/raw/list", async (req, res) => {
     let month = parsedDate.format("MM");
     let day = parsedDate.format("DD");
 
-    let dataDir = path.join(year, month, day);
+    let dataDir = path.join("hawaii", year, month, day);
     let sysDir = path.join(rawDataRoot, dataDir);
     let linkDir = `${rawDataURLRoot}${dataDir}/`;
 
