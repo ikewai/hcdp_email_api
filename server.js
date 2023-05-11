@@ -381,6 +381,8 @@ app.get("/raster/timeseries", async (req, res) => {
     let values = "";
     let code = await handleSubprocess(proc, (data) => {
       values += data.toString();
+    }, (data) => {
+      console.log(data);
     });
     let tend = new Date().getTime();
     let time = tend - tstart;
