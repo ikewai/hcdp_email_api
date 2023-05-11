@@ -373,7 +373,7 @@ app.get("/raster/timeseries", async (req, res) => {
       proc = child_process.spawn("./tiffextract.out", ["-f", uuid, ...posParams]);
       //delete temp file on process exit
       proc.on("exit", () => {
-        fs.unlinkSync(uuid);
+        fs.unlink(uuid);
       });
     } 
 
@@ -397,17 +397,20 @@ app.get("/raster/timeseries", async (req, res) => {
 
       //order of values should match file order
       for(let i = 0; i < paths.length; i++) {
-        let path = paths[i];
-        let match = path.match(indexer.fnamePattern);
-        //should never be null otherwise wouldn't have matched file to begin with, just skip if it magically happens
-        if(match !== null) {
-            //capture date from fname and split on underscores
-            dateParts = match[1].split("_");
-            //get parts
-            const [year, month, day, hour, minute, second] = dateParts;
-            //construct ISO date string from parts with defaults for missing values
-            const isoDateStr = `${year}-${month || "01"}-${day || "01"}T${hour || "00"}:${minute || "00"}:${second || "00"}`;
-            timeseries[isoDateStr] = valArr[i];
+        //if the return value for that file was empty (error reading) then skip
+        if(valArr[i] !== "_") {
+          let path = paths[i];
+          let match = path.match(indexer.fnamePattern);
+          //should never be null otherwise wouldn't have matched file to begin with, just skip if it magically happens
+          if(match !== null) {
+              //capture date from fname and split on underscores
+              dateParts = match[1].split("_");
+              //get parts
+              const [year, month, day, hour, minute, second] = dateParts;
+              //construct ISO date string from parts with defaults for missing values
+              const isoDateStr = `${year}-${month || "01"}-${day || "01"}T${hour || "00"}:${minute || "00"}:${second || "00"}`;
+              timeseries[isoDateStr] = parseFloat(valArr[i]);
+          }
         }
       }
       reqData.code = 200;
