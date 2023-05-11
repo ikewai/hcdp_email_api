@@ -374,7 +374,7 @@ app.get("/raster/timeseries", async (req, res) => {
       proc = child_process.spawn("./tiffextract.out", ["-f", uuid, ...posParams]);
       //delete temp file on process exit
       proc.on("exit", () => {
-        fs.unlink(uuid);
+        fs.unlinkSync(uuid);
       });
     } 
 
