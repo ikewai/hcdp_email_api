@@ -353,6 +353,7 @@ app.get("/raster/timeseries", async (req, res) => {
     reqData.sizeF = numFiles;
 
     let proc;
+    let tstart = new Date().getTime();
     //want to avoid argument too large errors for large timeseries
     //write very long path lists to temp file
     // getconf ARG_MAX = 2097152
@@ -381,6 +382,9 @@ app.get("/raster/timeseries", async (req, res) => {
     let code = await handleSubprocess(proc, (data) => {
       values += data.toString();
     });
+    let tend = new Date().getTime();
+    let time = tend - tstart;
+    console.log(paths.length, time);
 
     if(code !== 0) {
       //if extractor process failed throw error for handling by main error handler
