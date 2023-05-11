@@ -392,8 +392,9 @@ app.get("/raster/timeseries", async (req, res) => {
     }
     else {
       let timeseries = {};
-
+      console.log(values);
       let valArr = values.trim().split(" ");
+      console.log(valArr.length);
       if(valArr.length != paths.length) {
         //issue occurred in geotiff extraction if output does not line up, allow main error handler to process and notify admins
         throw new Error(`An issue occurred in the geotiff extraction process. The number of output values does not match the input.`);
