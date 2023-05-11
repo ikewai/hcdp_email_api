@@ -366,8 +366,7 @@ app.get("/raster/timeseries", async (req, res) => {
       let uuid = crypto.randomUUID();
       //write paths to a file and use that, avoid potential issues from long cmd line params
       const pathfile = fs.createWriteStream(uuid);
-      console.log("!!", paths);
-      for(let file in paths) {
+      for(let file of paths) {
         pathfile.write(`${file}\n`);
       }
       pathfile.close();
