@@ -359,7 +359,7 @@ app.get("/raster/timeseries", async (req, res) => {
     // getconf ARG_MAX = 2097152
     //should be alright if less than 10k paths
     if(paths.length < 10000) {
-      proc = child_process.spawn("./tiffextract.out", [...posParams, ...paths]);
+      proc = child_process.spawn("time", ["./tiffextract.out", ...posParams, ...paths]);
     }
     //otherwise write paths to a file and use that
     else {
@@ -385,6 +385,7 @@ app.get("/raster/timeseries", async (req, res) => {
     }, (data) => {
       console.log(data);
     });
+    console.log(values);
     let tend = new Date().getTime();
     let time = tend - tstart;
     console.log(paths.length, time);
