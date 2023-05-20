@@ -353,12 +353,11 @@ app.get("/raster/timeseries", async (req, res) => {
     reqData.sizeF = numFiles;
 
     let proc;
-    let tstart = new Date().getTime();
     //want to avoid argument too large errors for large timeseries
     //write very long path lists to temp file
     // getconf ARG_MAX = 2097152
     //should be alright if less than 10k paths
-    if(paths.length < 10) {
+    if(paths.length < 10000) {
       proc = child_process.spawn("./tiffextract.out", [...posParams, ...paths]);
     }
     //otherwise write paths to a file and use that
@@ -370,7 +369,7 @@ app.get("/raster/timeseries", async (req, res) => {
       proc = child_process.spawn("./tiffextract.out", ["-f", uuid, ...posParams]);
       //delete temp file on process exit
       proc.on("exit", () => {
-        //fs.unlinkSync(uuid);
+        fs.unlinkSync(uuid);
       });
     } 
 
@@ -378,9 +377,6 @@ app.get("/raster/timeseries", async (req, res) => {
     let code = await handleSubprocess(proc, (data) => {
       values += data.toString();
     });
-    let tend = new Date().getTime();
-    let time = tend - tstart;
-    console.log(paths.length, time);
 
     if(code !== 0) {
       //if extractor process failed throw error for handling by main error handler
@@ -388,9 +384,7 @@ app.get("/raster/timeseries", async (req, res) => {
     }
     else {
       let timeseries = {};
-      console.log(values);
       let valArr = values.trim().split(" ");
-      console.log(valArr.length);
       if(valArr.length != paths.length) {
         //issue occurred in geotiff extraction if output does not line up, allow main error handler to process and notify admins
         throw new Error(`An issue occurred in the geotiff extraction process. The number of output values does not match the input.`);
