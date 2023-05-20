@@ -365,17 +365,9 @@ app.get("/raster/timeseries", async (req, res) => {
     else {
       let uuid = crypto.randomUUID();
       //write paths to a file and use that, avoid potential issues from long cmd line params
-      const pathfile = fs.createWriteStream(uuid);
-      for(let file of paths) {
-        pathfile.write(`${file}\n`);
-      }
-      pathfile.close(() => {
-        console.log("closed");
-      });
-      console.log(["-f", uuid, ...posParams]);
+      fs.writeFileSync(uuid, paths.join("\n"));
 
       proc = child_process.spawn("./tiffextract.out", ["-f", uuid, ...posParams]);
-      console.log("spawned");
       //delete temp file on process exit
       proc.on("exit", () => {
         //fs.unlinkSync(uuid);
@@ -385,8 +377,6 @@ app.get("/raster/timeseries", async (req, res) => {
     let values = "";
     let code = await handleSubprocess(proc, (data) => {
       values += data.toString();
-    }, (data) => {
-      console.log(data);
     });
     let tend = new Date().getTime();
     let time = tend - tstart;
