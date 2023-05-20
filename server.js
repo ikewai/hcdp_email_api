@@ -369,10 +369,13 @@ app.get("/raster/timeseries", async (req, res) => {
       for(let file of paths) {
         pathfile.write(`${file}\n`);
       }
-      pathfile.close();
+      pathfile.close(() => {
+        console.log("closed");
+      });
       console.log(["-f", uuid, ...posParams]);
 
       proc = child_process.spawn("./tiffextract.out", ["-f", uuid, ...posParams]);
+      console.log("spawned");
       //delete temp file on process exit
       proc.on("exit", () => {
         //fs.unlinkSync(uuid);
