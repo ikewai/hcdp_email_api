@@ -316,13 +316,16 @@ async function handleReq(req, res, permission, handler) {
 app.get("/raster/timeseries", async (req, res) => {
   const permission = "basic";
   await handleReq(req, res, permission, async (reqData) => {
-    let {start, end, row, col, index, ...properties} = req.query;
+    let {start, end, row, col, index, lng, lat, ...properties} = req.query;
     let posParams;
     if(row !== undefined && col !== undefined) {
       posParams = ["-r", row, "-c", col];
     }
     else if(index !== undefined) {
       posParams = ["-i", index];
+    }
+    else if(lng !== undefined && lat !== undefined) {
+      posParams = ["-x", lng, "-y", lat];
     }
     if(start === undefined || end === undefined || posParams === undefined) {
       //set failure and code in status
