@@ -339,87 +339,85 @@ app.get("/raster/timeseries", async (req, res) => {
         end: An ISO 8601 formatted date string representing the end date of the timeseries.
         {index: The 1D index of the data in the file.
         OR
-        row AND col: The row and column of the data.}`
+        row AND col: The row and column of the data.
+        OR
+        lat AND lng: The geographic coordinates of the data}`
       );
     }
-
-    let dataset = [{
-      files: ["data_map"],
-      range: {
-        start,
-        end
-      },
-      ...properties
-    }];
-    //need files directly, don't collapse
-    let { numFiles, paths } = await indexer.getPaths(productionRoot, dataset, false);
-    reqData.sizeF = numFiles;
-
-    let proc;
-    //want to avoid argument too large errors for large timeseries
-    //write very long path lists to temp file
-    // getconf ARG_MAX = 2097152
-    //should be alright if less than 10k paths
-    if(paths.length < 10000) {
-      proc = child_process.spawn("./tiffextract.out", [...posParams, ...paths]);
-    }
-    //otherwise write paths to a file and use that
     else {
-      let uuid = crypto.randomUUID();
-      //write paths to a file and use that, avoid potential issues from long cmd line params
-      fs.writeFileSync(uuid, paths.join("\n"));
-
-      proc = child_process.spawn("./tiffextract.out", ["-f", uuid, ...posParams]);
-      //delete temp file on process exit
-      proc.on("exit", () => {
-        fs.unlinkSync(uuid);
-      });
-    } 
-
-    let values = "";
-    let code = await handleSubprocess(proc, (data) => {
-      values += data.toString();
-    });
-
-    if(code !== 0) {
-      //if extractor process failed throw error for handling by main error handler
-      throw new Error(`Geotiff extract process failed with code ${code}`);
-    }
-    else {
-      let timeseries = {};
-      let valArr = values.trim().split(" ");
-      if(valArr.length != paths.length) {
-        //issue occurred in geotiff extraction if output does not line up, allow main error handler to process and notify admins
-        throw new Error(`An issue occurred in the geotiff extraction process. The number of output values does not match the input.`);
+      let dataset = [{
+        files: ["data_map"],
+        range: {
+          start,
+          end
+        },
+        ...properties
+      }];
+      //need files directly, don't collapse
+      let { numFiles, paths } = await indexer.getPaths(productionRoot, dataset, false);
+      reqData.sizeF = numFiles;
+  
+      let proc;
+      //want to avoid argument too large errors for large timeseries
+      //write very long path lists to temp file
+      // getconf ARG_MAX = 2097152
+      //should be alright if less than 10k paths
+      if(paths.length < 10000) {
+        proc = child_process.spawn("./tiffextract.out", [...posParams, ...paths]);
       }
-
-      //order of values should match file order
-      for(let i = 0; i < paths.length; i++) {
-        //if the return value for that file was empty (error reading) then skip
-        if(valArr[i] !== "_") {
-          let path = paths[i];
-          let match = path.match(indexer.fnamePattern);
-          //should never be null otherwise wouldn't have matched file to begin with, just skip if it magically happens
-          if(match !== null) {
-              //capture date from fname and split on underscores
-              dateParts = match[1].split("_");
-              //get parts
-              const [year, month, day, hour, minute, second] = dateParts;
-              //construct ISO date string from parts with defaults for missing values
-              const isoDateStr = `${year}-${month || "01"}-${day || "01"}T${hour || "00"}:${minute || "00"}:${second || "00"}`;
-              timeseries[isoDateStr] = parseFloat(valArr[i]);
+      //otherwise write paths to a file and use that
+      else {
+        let uuid = crypto.randomUUID();
+        //write paths to a file and use that, avoid potential issues from long cmd line params
+        fs.writeFileSync(uuid, paths.join("\n"));
+  
+        proc = child_process.spawn("./tiffextract.out", ["-f", uuid, ...posParams]);
+        //delete temp file on process exit
+        proc.on("exit", () => {
+          fs.unlinkSync(uuid);
+        });
+      } 
+  
+      let values = "";
+      let code = await handleSubprocess(proc, (data) => {
+        values += data.toString();
+      });
+  
+      if(code !== 0) {
+        //if extractor process failed throw error for handling by main error handler
+        throw new Error(`Geotiff extract process failed with code ${code}`);
+      }
+      else {
+        let timeseries = {};
+        let valArr = values.trim().split(" ");
+        if(valArr.length != paths.length) {
+          //issue occurred in geotiff extraction if output does not line up, allow main error handler to process and notify admins
+          throw new Error(`An issue occurred in the geotiff extraction process. The number of output values does not match the input.`);
+        }
+  
+        //order of values should match file order
+        for(let i = 0; i < paths.length; i++) {
+          //if the return value for that file was empty (error reading) then skip
+          if(valArr[i] !== "_") {
+            let path = paths[i];
+            let match = path.match(indexer.fnamePattern);
+            //should never be null otherwise wouldn't have matched file to begin with, just skip if it magically happens
+            if(match !== null) {
+                //capture date from fname and split on underscores
+                dateParts = match[1].split("_");
+                //get parts
+                const [year, month, day, hour, minute, second] = dateParts;
+                //construct ISO date string from parts with defaults for missing values
+                const isoDateStr = `${year}-${month || "01"}-${day || "01"}T${hour || "00"}:${minute || "00"}:${second || "00"}`;
+                timeseries[isoDateStr] = parseFloat(valArr[i]);
+            }
           }
         }
+        reqData.code = 200;
+        res.status(200)
+        .json(timeseries);
       }
-      reqData.code = 200;
-      res.status(200)
-      .json(timeseries);
     }
-
-    reqData.code = 501;
-    res.status(501)
-    .end();
-
   });
   
 });
@@ -444,14 +442,15 @@ app.post("/db/replace", async (req, res) => {
         value: The new value to set the document's 'value' field to`
       );
     }
-
-    //sanitize value object to ensure no $ fields since this can be an arbitrary object
-    value = sanitize(value);
-    //note this only replaces value, should not be wrapped with name
-    let replaced = await dbManager.replaceRecord(uuid, value);
-    reqData.code = 200;
-    res.status(200)
-    .send(replaced.toString());
+    else {
+      //sanitize value object to ensure no $ fields since this can be an arbitrary object
+      value = sanitize(value);
+      //note this only replaces value, should not be wrapped with name
+      let replaced = await dbManager.replaceRecord(uuid, value);
+      reqData.code = 200;
+      res.status(200)
+      .send(replaced.toString());
+    }
   });
 });
 
@@ -466,17 +465,18 @@ app.post("/db/delete", async (req, res) => {
       reqData.code = 400;
 
       //send error
-      res.status(400)
+      return res.status(400)
       .send(
         `Request body should include the following fields: \n\
         uuid: A string representing the uuid of the document to have it's value replaced`
       );
     }
-
-    let deleted = await dbManager.deleteRecord(uuid);
-    reqData.code = 200;
-    res.status(200)
-    .send(deleted.toString());
+    else {
+      let deleted = await dbManager.deleteRecord(uuid);
+      reqData.code = 200;
+      res.status(200)
+      .send(deleted.toString());
+    }
   });
 });
 
