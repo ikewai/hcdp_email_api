@@ -388,6 +388,7 @@ app.get("/raster/timeseries", async (req, res) => {
         throw new Error(`Geotiff extract process failed with code ${code}`);
       }
       else {
+        console.log(values);
         let timeseries = {};
         let valArr = values.trim().split(" ");
         if(valArr.length != paths.length) {
