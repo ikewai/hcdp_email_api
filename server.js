@@ -358,45 +358,48 @@ app.get("/raster/timeseries", async (req, res) => {
       reqData.sizeF = numFiles;
   
       let proc;
-      //want to avoid argument too large errors for large timeseries
-      //write very long path lists to temp file
-      // getconf ARG_MAX = 2097152
-      //should be alright if less than 10k paths
-      if(paths.length < 10000) {
-        console.log([...posParams, ...paths]);
-        proc = child_process.spawn("./tiffextract.out", [...posParams, ...paths]);
-      }
-      //otherwise write paths to a file and use that
-      else {
-        let uuid = crypto.randomUUID();
-        //write paths to a file and use that, avoid potential issues from long cmd line params
-        fs.writeFileSync(uuid, paths.join("\n"));
-  
-        proc = child_process.spawn("./tiffextract.out", ["-f", uuid, ...posParams]);
-        //delete temp file on process exit
-        proc.on("exit", () => {
-          fs.unlinkSync(uuid);
+      //error if paths empty
+      console.log(paths);
+      let timeseries = {};
+      //if no paths just return empty timeseries
+      if(paths.length != 0) {
+        //want to avoid argument too large errors for large timeseries
+        //write very long path lists to temp file
+        // getconf ARG_MAX = 2097152
+        //should be alright if less than 10k paths
+        if(paths.length < 10000) {
+          console.log([...posParams, ...paths]);
+          proc = child_process.spawn("./tiffextract.out", [...posParams, ...paths]);
+        }
+        //otherwise write paths to a file and use that
+        else {
+          let uuid = crypto.randomUUID();
+          //write paths to a file and use that, avoid potential issues from long cmd line params
+          fs.writeFileSync(uuid, paths.join("\n"));
+    
+          proc = child_process.spawn("./tiffextract.out", ["-f", uuid, ...posParams]);
+          //delete temp file on process exit
+          proc.on("exit", () => {
+            fs.unlinkSync(uuid);
+          });
+        } 
+    
+        let values = "";
+        let code = await handleSubprocess(proc, (data) => {
+          values += data.toString();
         });
-      } 
-  
-      let values = "";
-      let code = await handleSubprocess(proc, (data) => {
-        values += data.toString();
-      });
-  
-      if(code !== 0) {
-        //if extractor process failed throw error for handling by main error handler
-        throw new Error(`Geotiff extract process failed with code ${code}`);
-      }
-      else {
-        console.log(values);
-        let timeseries = {};
+    
+        if(code !== 0) {
+          //if extractor process failed throw error for handling by main error handler
+          throw new Error(`Geotiff extract process failed with code ${code}`);
+        }
+
         let valArr = values.trim().split(" ");
         if(valArr.length != paths.length) {
           //issue occurred in geotiff extraction if output does not line up, allow main error handler to process and notify admins
           throw new Error(`An issue occurred in the geotiff extraction process. The number of output values does not match the input.`);
         }
-  
+
         //order of values should match file order
         for(let i = 0; i < paths.length; i++) {
           //if the return value for that file was empty (error reading) then skip
@@ -415,10 +418,10 @@ app.get("/raster/timeseries", async (req, res) => {
             }
           }
         }
-        reqData.code = 200;
-        res.status(200)
-        .json(timeseries);
       }
+      reqData.code = 200;
+      res.status(200)
+      .json(timeseries);
     }
   });
   
