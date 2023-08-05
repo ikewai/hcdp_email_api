@@ -353,14 +353,12 @@ app.get("/raster/timeseries", async (req, res) => {
         },
         ...properties
       }];
-      console.log(dataset);
       //need files directly, don't collapse
       let { numFiles, paths } = await indexer.getPaths(productionRoot, dataset, false);
       reqData.sizeF = numFiles;
   
       let proc;
       //error if paths empty
-      console.log(paths);
       let timeseries = {};
       //if no paths just return empty timeseries
       if(paths.length != 0) {
@@ -369,7 +367,6 @@ app.get("/raster/timeseries", async (req, res) => {
         // getconf ARG_MAX = 2097152
         //should be alright if less than 10k paths
         if(paths.length < 10000) {
-          console.log([...posParams, ...paths]);
           proc = child_process.spawn("./tiffextract.out", [...posParams, ...paths]);
         }
         //otherwise write paths to a file and use that
