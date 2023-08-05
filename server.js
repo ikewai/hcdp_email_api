@@ -353,6 +353,7 @@ app.get("/raster/timeseries", async (req, res) => {
         },
         ...properties
       }];
+      console.log(dataset);
       //need files directly, don't collapse
       let { numFiles, paths } = await indexer.getPaths(productionRoot, dataset, false);
       reqData.sizeF = numFiles;
