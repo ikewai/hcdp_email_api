@@ -1004,7 +1004,7 @@ app.get("/raw/download", async (req, res) => {
     if(!p) {
       reqData.success = false;
       reqData.code = 400;
-      res.status(400)
+      return res.status(400)
       .send(
         "Request must include the following parameters: \n\
         p: The path to the file to be served."
@@ -1014,7 +1014,7 @@ app.get("/raw/download", async (req, res) => {
     if(p.includes("..")) {
       reqData.success = false;
       reqData.code = 404;
-      res.status(404)
+      return res.status(404)
       .send("The requested file could not be found");
     }
 
