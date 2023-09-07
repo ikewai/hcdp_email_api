@@ -946,9 +946,8 @@ app.get("/raw/download", async (req, res) => {
   let sysDir = path.join(rawDataRoot, p);
   console.log(sysDir);
 
-  reqData.code = 200;
-    res.status(200)
-    .sendFile(sysDir);
+  res.status(200)
+  .sendFile(sysDir);
   
   // if(!file) {
   //   //set failure and code in status
