@@ -252,8 +252,6 @@ async function handleReqNoAuth(req, res, handler) {
     tokenUser: ""
   };
   try {
-    reqData.token = "";
-    reqData.tokenUser = user;
     await handler(reqData);
   }
   catch(e) {
