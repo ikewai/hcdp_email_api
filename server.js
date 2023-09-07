@@ -935,6 +935,41 @@ app.get("/production/list", async (req, res) => {
 });
 
 
+
+///////////////////////////////////////
+
+
+
+app.get("/raw/download", async (req, res) => {
+  const permission = "basic";
+  //destructure query
+  let { p } = req.query;
+  let sysDir = path.join(rawDataRoot, p);
+  console.log(sysdir);
+
+  reqData.code = 200;
+    res.status(200)
+    .sendFile(sysDir);
+  
+  // if(!file) {
+  //   //set failure and code in status
+  //   reqData.success = false;
+  //   reqData.code = 404;
+
+  //   //resources not found
+  //   res.status(404)
+  //   .send("The requested file could not be found");
+  // }
+  // else {
+  //   reqData.code = 200;
+  //   res.status(200)
+  //   .sendFile(file);
+  // }
+
+});
+
+
+
 app.get("/raw/list", async (req, res) => {
   const permission = "basic";
   await handleReq(req, res, permission, async (reqData) => {
@@ -959,7 +994,7 @@ app.get("/raw/list", async (req, res) => {
   
       let dataDir = path.join("hawaii", year, month, day);
       let sysDir = path.join(rawDataRoot, dataDir);
-      let linkDir = `${rawDataURLRoot}${dataDir}/`;
+      let linkDir = `https://cistore.its.hawaii.edu/raw/download/p=${dataDir}/`;
   
       let { err, files } = await readdir(sysDir);
   
@@ -982,6 +1017,11 @@ app.get("/raw/list", async (req, res) => {
     }
   });
 });
+
+
+///////////////////////////////////////
+
+
 
 app.get("/apistats", async (req, res) => {
   try {
