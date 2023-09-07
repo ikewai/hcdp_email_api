@@ -994,7 +994,7 @@ app.get("/raw/list", async (req, res) => {
   
       let dataDir = path.join("hawaii", year, month, day);
       let sysDir = path.join(rawDataRoot, dataDir);
-      let linkDir = `https://cistore.its.hawaii.edu/raw/download/p=${dataDir}/`;
+      let linkDir = `https://cistore.its.hawaii.edu/raw/download/p="${dataDir}/`;
   
       let { err, files } = await readdir(sysDir);
   
@@ -1007,7 +1007,7 @@ app.get("/raw/list", async (req, res) => {
       }
   
       files = files.map((file) => {
-        let fileLink = `${linkDir}${file}`;
+        let fileLink = `${linkDir}${file}"`;
         return fileLink;
       });
       reqData.sizeF = files.length;
