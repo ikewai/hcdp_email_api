@@ -941,11 +941,10 @@ app.get("/production/list", async (req, res) => {
 
 
 app.get("/raw/download", async (req, res) => {
-  const permission = "basic";
   //destructure query
   let { p } = req.query;
   let sysDir = path.join(rawDataRoot, p);
-  console.log(sysdir);
+  console.log(sysDir);
 
   reqData.code = 200;
     res.status(200)
@@ -994,7 +993,7 @@ app.get("/raw/list", async (req, res) => {
   
       let dataDir = path.join("hawaii", year, month, day);
       let sysDir = path.join(rawDataRoot, dataDir);
-      let linkDir = `https://cistore.its.hawaii.edu/raw/download/p="${dataDir}/`;
+      let linkDir = `https://cistore.its.hawaii.edu/raw/download?p="${dataDir}/`;
   
       let { err, files } = await readdir(sysDir);
   
