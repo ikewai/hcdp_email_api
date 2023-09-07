@@ -991,11 +991,6 @@ app.get("/production/list", async (req, res) => {
 });
 
 
-
-///////////////////////////////////////
-
-
-
 app.get("/raw/download", async (req, res) => {
   await handleReqNoAuth(req, res, async (reqData) => {
     //destructure query
@@ -1039,7 +1034,6 @@ app.get("/raw/download", async (req, res) => {
 });
 
 
-
 app.get("/raw/list", async (req, res) => {
   const permission = "basic";
   await handleReq(req, res, permission, async (reqData) => {
@@ -1064,7 +1058,7 @@ app.get("/raw/list", async (req, res) => {
   
       let dataDir = path.join("hawaii", year, month, day);
       let sysDir = path.join(rawDataRoot, dataDir);
-      let linkDir = `https://cistore.its.hawaii.edu:8443/raw/download?p=${dataDir}/`;
+      let linkDir = `https://api.hcdp.api.org/raw/download?p=${dataDir}/`;
   
       let { err, files } = await readdir(sysDir);
   
@@ -1087,10 +1081,6 @@ app.get("/raw/list", async (req, res) => {
     }
   });
 });
-
-
-///////////////////////////////////////
-
 
 
 app.get("/apistats", async (req, res) => {
