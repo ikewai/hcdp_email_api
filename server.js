@@ -237,6 +237,64 @@ function logReq(data) {
   });
 }
 
+async function handleReqNoAuth(req, res, handler) {
+  //note include success since 202 status might not indicate success in generating download package
+  //note sizeB will be 0 for everything but download packages
+  let reqData = {
+    user: "",
+    code: 0,
+    success: true,
+    sizeF: 0,
+    method: req.method,
+    endpoint: req.path,
+    token: "",
+    sizeB: 0,
+    tokenUser: ""
+  };
+  try {
+    reqData.token = "";
+    reqData.tokenUser = user;
+    await handler(reqData);
+  }
+  catch(e) {
+    //set failure occured in request
+    reqData.success = false;
+    let errorMsg = `method: ${reqData.method}\n\
+      endpoint: ${reqData.endpoint}\n\
+      error: ${e}`;
+    let htmlErrorMsg = errorMsg.replace(/\n/g, "<br>");
+    console.error(`An unexpected error occured:\n${errorMsg}`);
+    //if request code not set by handler set to 500 and send response (otherwise response already sent and error was in post-processing)
+    if(reqData.code == 0) {
+      reqData.code = 500;
+      res.status(500)
+      .send("An unexpected error occurred");
+    }
+    //send the administrators an email logging the error
+    if(administrators.length > 0) {
+      let mailOptions = {
+        to: administrators,
+        subject: "HCDP API error",
+        text: `An unexpected error occured in the HCDP API:\n${errorMsg}`,
+        html: `<p>An error occured in the HCDP API:<br>${htmlErrorMsg}</p>`
+      };
+      try {
+        //attempt to send email to the administrators
+        let emailStatus = await sendEmail(transporterOptions, mailOptions);
+        //if email send failed throw error for logging
+        if(!emailStatus.success) {
+          throw emailStatus.error;
+        }
+      }
+      //if error while sending admin email erite to stderr
+      catch(e) {
+        console.error(`Failed to send administrator notification email: ${e}`);
+      }
+    }
+  }
+  logReq(reqData);
+}
+
 async function handleReq(req, res, permission, handler) {
   //note include success since 202 status might not indicate success in generating download package
   //note sizeB will be 0 for everything but download packages
@@ -941,29 +999,45 @@ app.get("/production/list", async (req, res) => {
 
 
 app.get("/raw/download", async (req, res) => {
-  //destructure query
-  let { p } = req.query;
-  let sysDir = path.join(rawDataRoot, p);
-  console.log(sysDir);
+  await handleReqNoAuth(req, res, async (reqData) => {
+    //destructure query
+    let { p } = req.query;
 
-  res.status(200)
-  .sendFile(sysDir);
-  
-  // if(!file) {
-  //   //set failure and code in status
-  //   reqData.success = false;
-  //   reqData.code = 404;
+    if(!p) {
+      reqData.success = false;
+      reqData.code = 400;
+      res.status(400)
+      .send(
+        "Request must include the following parameters: \n\
+        p: The path to the file to be served."
+      );
+    }
+    //protect against leaving raw dir
+    if(p.includes("..")) {
+      reqData.success = false;
+      reqData.code = 404;
+      res.status(404)
+      .send("The requested file could not be found");
+    }
 
-  //   //resources not found
-  //   res.status(404)
-  //   .send("The requested file could not be found");
-  // }
-  // else {
-  //   reqData.code = 200;
-  //   res.status(200)
-  //   .sendFile(file);
-  // }
+    let file = path.join(rawDataRoot, p);
 
+    fs.access(file, fs.constants.F_OK, (e) => {
+      if(e) {
+        reqData.success = false;
+        reqData.code = 404;
+        res.status(404)
+        .send("The requested file could not be found");
+      }
+      else {
+        //should the size of the file in bytes be added?
+        reqData.sizeF = 1;
+        reqData.code = 200;
+        res.status(200)
+        .sendFile(file);
+      }
+    });
+  });
 });
 
 
