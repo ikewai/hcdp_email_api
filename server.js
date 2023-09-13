@@ -51,7 +51,7 @@ const downloadRoot = `${dataRoot}${downloadDir}`;
 const downloadURLRoot = `${urlRoot}${downloadDir}`;
 const productionRoot = `${dataRoot}${productionDir}`;
 const licenseFile = `${dataRoot}${licensePath}`;
-const apiURL = "https://cistore.its.hawaii.edu:8443"//"https://api.hcdp.ikewai.org";
+const apiURL = "https://api.hcdp.ikewai.org";
 
 const transporterOptions = {
   host: smtp,
@@ -591,11 +591,6 @@ app.get("/raster", async (req, res) => {
 });
 
 
-
-
-
-//////////////////////////////////////////////////////////////////////////////////////////////////////
-
 app.get("/download/package", async (req, res) => {
   await handleReqNoAuth(req, res, async (reqData) => {
     let e400 = () => {
@@ -641,11 +636,6 @@ app.get("/download/package", async (req, res) => {
     });
   });
 });
-
-//////////////////////////////////////////////////////////////////////////////////////////////////////
-
-
-
 
 
 app.post("/genzip/email", async (req, res) => {
