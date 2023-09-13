@@ -590,6 +590,9 @@ app.get("/raster", async (req, res) => {
 });
 
 
+
+
+
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 
 app.get("/download/package", async (req, res) => {
@@ -639,6 +642,9 @@ app.get("/download/package", async (req, res) => {
 });
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+
 
 
 app.post("/genzip/email", async (req, res) => {
@@ -729,7 +735,7 @@ app.post("/genzip/email", async (req, res) => {
         else {
           let zipDec = zipPath.split("/");
           let zipRoot = zipDec.slice(0, -1).join("/");
-          let zipExt = zipDec.slice(-2).join("/");
+          let [ packageID, fname ] = zipDec.slice(-2);
 
           //get package size
           let fstat = fs.statSync(zipPath);
@@ -764,8 +770,10 @@ app.post("/genzip/email", async (req, res) => {
 
           //recheck, state may change if fallback on error
           if(!attachFile) {
+            let urlRoot = "https://api.hcdp.ikewai.org/download/package"
+            let params = `packageID=${packageID}&file=${fname}`;
             //create download link and send in message body
-            let downloadLink = downloadURLRoot + zipExt;
+            let downloadLink = `${urlRoot}?${params}`;
             let mailOptions = {
               to: email,
               text: "Your HCDP download package is ready. Please go to " + downloadLink + " to download it. This link will expire in three days, please download your data in that time.",
@@ -909,8 +917,11 @@ app.post("/genzip/instant/link", async (req, res) => {
       }
       else {
         let zipDec = zipPath.split("/");
-        let zipExt = zipDec.slice(-2).join("/");
-        let downloadLink = downloadURLRoot + zipExt;
+        let [ packageID, fname ] = zipDec.slice(-2);
+
+        let urlRoot = "https://api.hcdp.ikewai.org/download/package"
+        let params = `packageID=${packageID}&file=${fname}`;
+        let downloadLink = `${urlRoot}?${params}`;
 
         //get package size
         let fstat = fs.statSync(zipPath);
@@ -983,14 +994,15 @@ app.post("/genzip/instant/splitlink", async (req, res) => {
           if(fpart == "") {
             break;
           }
-          //get subpath from uuid
-          let uuidDir = path.join(uuid, fpart);
-          //note, do not use path.join on urls
-          let fname = downloadURLRoot + uuidDir;
-          fileParts.push(fname);
+
+          let urlRoot = "https://api.hcdp.ikewai.org/download/package"
+          let params = `packageID=${uuid}&file=${fpart}`;
+          let downloadLink = `${urlRoot}?${params}`;
+
+          fileParts.push(downloadLink);
 
           //get part path
-          let partPath = path.join(downloadRoot, uuidDir);
+          let partPath = path.join(downloadRoot, uuid, fpart);
           //get part size
           let fstat = fs.statSync(partPath);
           let fsizeB = fstat.size;
