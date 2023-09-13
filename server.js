@@ -51,6 +51,7 @@ const downloadRoot = `${dataRoot}${downloadDir}`;
 const downloadURLRoot = `${urlRoot}${downloadDir}`;
 const productionRoot = `${dataRoot}${productionDir}`;
 const licenseFile = `${dataRoot}${licensePath}`;
+const apiURL = "https://cistore.its.hawaii.edu:8443"//"https://api.hcdp.ikewai.org";
 
 const transporterOptions = {
   host: smtp,
@@ -770,10 +771,10 @@ app.post("/genzip/email", async (req, res) => {
 
           //recheck, state may change if fallback on error
           if(!attachFile) {
-            let urlRoot = "https://api.hcdp.ikewai.org/download/package"
+            let ep = `${apiURL}/download/package`;
             let params = `packageID=${packageID}&file=${fname}`;
             //create download link and send in message body
-            let downloadLink = `${urlRoot}?${params}`;
+            let downloadLink = `${ep}?${params}`;
             let mailOptions = {
               to: email,
               text: "Your HCDP download package is ready. Please go to " + downloadLink + " to download it. This link will expire in three days, please download your data in that time.",
@@ -919,9 +920,9 @@ app.post("/genzip/instant/link", async (req, res) => {
         let zipDec = zipPath.split("/");
         let [ packageID, fname ] = zipDec.slice(-2);
 
-        let urlRoot = "https://api.hcdp.ikewai.org/download/package"
+        let ep = `${apiURL}/download/package`;
         let params = `packageID=${packageID}&file=${fname}`;
-        let downloadLink = `${urlRoot}?${params}`;
+        let downloadLink = `${ep}?${params}`;
 
         //get package size
         let fstat = fs.statSync(zipPath);
@@ -995,9 +996,9 @@ app.post("/genzip/instant/splitlink", async (req, res) => {
             break;
           }
 
-          let urlRoot = "https://api.hcdp.ikewai.org/download/package"
+          let ep = `${apiURL}/download/package`
           let params = `packageID=${uuid}&file=${fpart}`;
-          let downloadLink = `${urlRoot}?${params}`;
+          let downloadLink = `${ep}?${params}`;
 
           fileParts.push(downloadLink);
 
@@ -1121,7 +1122,7 @@ app.get("/raw/list", async (req, res) => {
   
       let dataDir = path.join("hawaii", year, month, day);
       let sysDir = path.join(rawDataRoot, dataDir);
-      let linkDir = `https://api.hcdp.ikewai.org/raw/download?p=${dataDir}/`;
+      let linkDir = `${apiURL}/raw/download?p=${dataDir}/`;
   
       let { err, files } = await readdir(sysDir);
   
