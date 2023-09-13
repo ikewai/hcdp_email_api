@@ -590,6 +590,57 @@ app.get("/raster", async (req, res) => {
 });
 
 
+//////////////////////////////////////////////////////////////////////////////////////////////////////
+
+app.get("/download/package", async (req, res) => {
+  await handleReqNoAuth(req, res, async (reqData) => {
+    let e400 = () => {
+      reqData.success = false;
+      reqData.code = 400;
+
+      res.status(400)
+      .send(
+        `Request body should include the following fields: \n\
+        packageID: A string representing the uuid of the package to be downloaded  \n\
+        file: A string representing the name of the file to be downloaded`
+      );
+    }
+
+    let { packageID, file } = req.query;
+    if(!(packageID && file)) {
+      return e400();
+    }
+    //check id and file name format
+    idRegex = /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/g;
+    fileRegex = /^[\w\-. ]+$/g;
+    if(packageID.match(idRegex) === null) {
+      return e400();
+    }
+    if(file.match(fileRegex) === null) {
+      return e400();
+    }
+    let downloadPath = path.join("/data/downloads", packageID, file);
+    fs.access(downloadPath, fs.constants.F_OK, (e) => {
+      if(e) {
+        reqData.success = false;
+        reqData.code = 404;
+        res.status(404)
+        .send("The requested file could not be found");
+      }
+      else {
+        //should the size of the file in bytes be added?
+        reqData.sizeF = 1;
+        reqData.code = 200;
+        res.status(200)
+        .sendFile(downloadPath);
+      }
+    });
+  });
+});
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
 app.post("/genzip/email", async (req, res) => {
   const permission = "basic";
   await handleReq(req, res, permission, async (reqData) => {
