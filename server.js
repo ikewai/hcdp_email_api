@@ -1081,6 +1081,8 @@ app.get("/raw/download", async (req, res) => {
         //should the size of the file in bytes be added?
         reqData.sizeF = 1;
         reqData.code = 200;
+        res.set("Content-Disposition", `attachment; filename="${path.basename(file)}"`);
+        console.log(path.basename(file));
         res.status(200)
         .sendFile(file);
       }
