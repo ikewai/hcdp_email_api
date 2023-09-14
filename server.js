@@ -630,6 +630,7 @@ app.get("/download/package", async (req, res) => {
         //should the size of the file in bytes be added?
         reqData.sizeF = 1;
         reqData.code = 200;
+        res.set("Content-Disposition", `attachment; filename="${file}"`);
         res.status(200)
         .sendFile(downloadPath);
       }
