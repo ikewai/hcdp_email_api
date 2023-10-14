@@ -1089,6 +1089,27 @@ app.get("/raw/download", async (req, res) => {
   });
 });
 
+app.get("/raw/sff", async (req, res) => {
+  await handleReqNoAuth(req, res, async (reqData) => {
+    let file = path.join(rawDataRoot, "sff/sff_data.csv");
+    fs.access(file, fs.constants.F_OK, (e) => {
+      if(e) {
+        reqData.success = false;
+        reqData.code = 404;
+        res.status(404)
+        .send("The requested file could not be found");
+      }
+      else {
+        //should the size of the file in bytes be added?
+        reqData.sizeF = 1;
+        reqData.code = 200;
+        res.set("Content-Disposition", `attachment; filename="sff_data.csv"`);
+        res.status(200)
+        .sendFile(file);
+      }
+    });
+  });
+});
 
 app.get("/raw/list", async (req, res) => {
   const permission = "basic";
