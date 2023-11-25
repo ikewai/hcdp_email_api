@@ -171,11 +171,11 @@ async function getDSFiles(root, properties) {
         values.push(file_suffix);
         let fname = values.join("_");
         let fpath = path.join(root, subpath, fname);
+        console.log(fpath);
         if(await validate(fpath)) {
             files.push(fpath);
         }
     }
-    console.log(files);
     ///////////////////////////////
     return files;
 }
