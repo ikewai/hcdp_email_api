@@ -175,6 +175,7 @@ async function getDSFiles(root, properties) {
             files.push(fpath);
         }
     }
+    console.log(files);
     ///////////////////////////////
     return files;
 }
