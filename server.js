@@ -1287,3 +1287,14 @@ app.post("/addmetadata", express.raw({ limit: "50mb", type: () => true }), async
     .send("An unexpected error occurred.");
   }
 });
+
+
+//mesonet
+app.get("/mesonet/getMeasurements", async (req, res) => {
+  const permission = "basic";
+  await handleReq(req, res, permission, async (reqData) => {
+    let { stationId, ...props } = req.query;
+    const measurmentData = await tapisManager.listMeasurments(stationId, props);
+    
+  });
+});

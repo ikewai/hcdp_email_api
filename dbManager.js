@@ -276,5 +276,153 @@ class TapisManager {
     }
 }
 
+
+const https = require('https');
+
+
+//NEED TO CHECK IF AUTH TOKEN EXPORED AND REAUTH
+class TapisV3Manager {
+  constructor(username, password, tenantURL, projectID, retryLimit) {
+    // Initialize class properties with provided values
+    this.username = username;
+    this.password = password;
+    this.tenantURL = tenantURL;
+    this.projectID = projectID;
+    this.retryLimit = retryLimit;
+    this.authenticate();
+  }
+
+  async authenticate() {
+    // Construct the authentication URL
+    const authUrl = `${this.tenantURL}/v3/oauth2/tokens`;
+
+    // Construct the payload for authentication
+    const authPayload = `username=${encodeURIComponent(this.username)}&password=${encodeURIComponent(this.password)}&grant_type=password&scope=user`;
+
+    // Set options for the authentication request
+    const authOptions = {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+    };
+
+    // Return a promise for asynchronous authentication
+    return new Promise((resolve, reject) => {
+      // Initiate the authentication request
+      const authReq = https.request(authUrl, authOptions, (authRes) => {
+        authRes.setEncoding('utf8');
+        let authData = '';
+
+        // Accumulate response data
+        authRes.on('data', (chunk) => {
+          authData += chunk;
+        });
+
+        // When response is complete
+        authRes.on('end', () => {
+          try {
+            const parsedResponse = JSON.parse(authData);
+            // If authentication is successful
+            if (authRes.statusCode === 200 && parsedResponse.result && parsedResponse.result.access_token && parsedResponse.result.access_token.access_token) {
+              this.accessToken = parsedResponse.result.access_token.access_token;
+              resolve(this.accessToken);
+            } else {
+              reject(new Error('Authentication failed'));
+            }
+          } catch (error) {
+            reject(error);
+          }
+        });
+      });
+
+      // Handle errors in the authentication request
+      authReq.on('error', (error) => {
+        reject(error);
+      });
+
+      // Send authentication payload
+      authReq.write(authPayload);
+      authReq.end();
+    });
+  }
+
+  async listMeasurements(stationID, fileType, options) {
+    try {
+        //this will not check if auth token is expired
+        // Authenticate if access token is not set or expired
+        if (!this.accessToken) {
+          await this.authenticate();
+        }
+
+        // Construct site and instrument IDs from stationID and fileType
+        const siteID = `${stationID}_012`;
+        const instrumentID = `${stationID}_012_${fileType}`;
+
+        // Construct URL for measurements request
+        let measurementsUrl = `${this.tenantURL}/v3/streams/projects/${this.projectID}/sites/${siteID}/instruments/${instrumentID}/measurements`;
+
+        // Construct URL params from options object
+        const queryParams = [];
+        for (const key in options) {
+            if (options.hasOwnProperty(key) && options[key] !== null && options[key] !== undefined) {
+                queryParams.push(`${key}=${encodeURIComponent(options[key])}`);
+            }
+        }
+        if (queryParams.length > 0) {
+            measurementsUrl += `?${queryParams.join('&')}`;
+        }
+
+        // Set options for measurements request
+        const measurementsOptions = {
+            method: 'GET',
+            headers: {
+                'X-Tapis-Token': this.accessToken,
+            },
+        };
+
+        // Return a promise for asynchronous measurements retrieval
+        return new Promise((resolve, reject) => {
+            // Initiate the measurements request
+            const measurementsReq = https.request(measurementsUrl, measurementsOptions, (measurementsRes) => {
+                measurementsRes.setEncoding('utf8');
+                let measurementsData = '';
+
+                // Accumulate response data
+                measurementsRes.on('data', (chunk) => {
+                    measurementsData += chunk;
+                });
+
+                // When response is complete
+                measurementsRes.on('end', () => {
+                    try {
+                        const parsedResponse = JSON.parse(measurementsData);
+                        // If measurements retrieval is successful
+                        if (measurementsRes.statusCode === 200 && parsedResponse.result) {
+                            resolve(parsedResponse.result);
+                        } else {
+                            reject(new Error('Failed to retrieve measurements'));
+                        }
+                    } catch (error) {
+                        reject(error);
+                    }
+                });
+            });
+
+            // Handle errors in the measurements request
+            measurementsReq.on('error', (error) => {
+                reject(error);
+            });
+
+            measurementsReq.end();
+        });
+    } catch (error) {
+        // Throw error if any occurs during measurements retrieval
+        throw error;
+    }
+  }
+}
+
+exports.TapisV3Manager = TapisV3Manager;
 exports.DBManager = DBManager;
 exports.TapisManager = TapisManager;
