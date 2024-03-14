@@ -279,7 +279,6 @@ class TapisManager {
 
 class TapisV3Manager {
     constructor(username, password, tenantURL, projectID) {
-        this.stale = true;
         // Initialize class properties with provided values
         this.username = username;
         this.password = password;
@@ -321,11 +320,10 @@ class TapisV3Manager {
                         const parsedResponse = JSON.parse(authData);
                         // If authentication is successful
                         if(authRes.statusCode === 200 && parsedResponse.result?.access_token?.access_token) {
-                            //set token as stale one minute before expiration, indicates need to reauth
+                            //reauth one minute before token goes stale
                             setTimeout(() => {
-                                this.stale = true;
+                                this.authenticate();
                             }, (parsedResponse.result.access_token.expires_in - 60) * 1000);
-                            this.stale = false;
                             resolve(parsedResponse.result.access_token.access_token);
                         }
                         else {
@@ -376,12 +374,6 @@ class TapisV3Manager {
     async submitRequest(url, options) {
         //get token from auth promise
         let token = await this.auth;
-        // reauthenticate if access token is stale
-        if(this.stale) {
-            this.authenticate();
-            //get token from auth
-            token = await this.auth;
-        }
 
         // Set options for request
         options = {
