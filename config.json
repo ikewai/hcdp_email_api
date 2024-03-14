@@ -37,5 +37,11 @@
         "tenantURL": "https://agaveauth.its.hawaii",
         "token": "token"
     },
+    "tapisV3Config": {
+        "username": "username",
+        "password": "password",
+        "tenantURL": "https://dev.develop.tapis.io",
+        "projectID": "test-p1_012"
+    },
     "githubWebhookSecret": "secret"
 }
