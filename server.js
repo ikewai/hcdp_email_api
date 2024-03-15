@@ -43,6 +43,7 @@ const dbConfig = config.dbConfig;
 const productionDir = config.productionDir;
 const licensePath = config.licenseFile;
 const tapisConfig = config.tapisConfig;
+const tapisV3Config = config.tapisV3Config;
 const githubWebhookSecret = config.githubWebhookSecret;
 
 const rawDataRoot = `${dataRoot}${rawDataDir}`;
@@ -67,6 +68,7 @@ process.env["NODE_ENV"] = "production";
 
 const dbManager = new DBManager.DBManager(dbConfig.server, dbConfig.port, dbConfig.username, dbConfig.password, dbConfig.db, dbConfig.collection, dbConfig.connectionRetryLimit, dbConfig.queryRetryLimit);
 const tapisManager = new DBManager.TapisManager(tapisConfig.tenantURL, tapisConfig.token, dbConfig.queryRetryLimit, dbManager);
+const tapisV3Manager = new DBManager.TapisV3Manager(tapisV3Config.username, tapisV3Config.password, tapisV3Config.tenantURL, tapisV3Config.projectID);
 
 ////////////////////////////////
 //////////server setup//////////
@@ -1286,4 +1288,106 @@ app.post("/addmetadata", express.raw({ limit: "50mb", type: () => true }), async
     res.status(500)
     .send("An unexpected error occurred.");
   }
+});
+
+
+///////////////////////////////////////////////////
+/////////////// mesonet eps ///////////////////////
+///////////////////////////////////////////////////
+
+function processMesonetError(res, reqData, e) {
+  let {status, reason} = e;
+  if(status === undefined) {
+    status = 500;
+  }
+  if(reason === undefined) {
+    reason = "An error occured while processing the request.";
+    console.error(`An unexpected error occurred while listing the measurements. Error: ${e}`);
+  }
+  reqData.code = status;
+  res.status(status)
+  .send(reason);
+}
+
+app.get("/mesonet/getStations", async (req, res) => {
+  const permission = "basic";
+  await handleReq(req, res, permission, async (reqData) => {
+    try {
+      const data = await tapisV3Manager.listSites();
+      reqData.code = 200;
+      return res.status(200)
+      .json(data);
+    }
+    catch(e) {
+      return processMesonetError(res, reqData, e);
+    }
+  });
+});
+
+app.get("/mesonet/getVariables", async (req, res) => {
+  const permission = "basic";
+  await handleReq(req, res, permission, async (reqData) => {
+    let { station_id, file_type } = req.query;
+    if(station_id === undefined) {
+      //set failure and code in status
+      reqData.success = false;
+      reqData.code = 400;
+
+      return res.status(400)
+      .send(
+        `Request must include the following parameters:
+        station_id: The ID of the station to query.`
+      );
+    }
+    if(file_type === undefined) {
+      file_type = "MetData"
+    }
+    const siteID = `${station_id}_012`;
+    const instrumentID = `${station_id}_012_${file_type}`;
+    try {
+      const data = await tapisV3Manager.listVariables(siteID, instrumentID);
+      reqData.code = 200;
+      return res.status(200)
+      .json(data);
+    }
+    catch(e) {
+      return processMesonetError(res, reqData, e);
+    }
+  });
+});
+
+
+app.get("/mesonet/getMeasurements", async (req, res) => {
+  const permission = "basic";
+  await handleReq(req, res, permission, async (reqData) => {
+    //options
+    //start_date, end_date, limit, offset, var_ids (comma separated)
+    let { station_id, file_type, ...options } = req.query;
+    if(station_id === undefined) {
+      //set failure and code in status
+      reqData.success = false;
+      reqData.code = 400;
+
+      return res.status(400)
+      .send(
+        `Request must include the following parameters:
+        station_id: The ID of the station to query.`
+      );
+    }
+    if(file_type === undefined) {
+      file_type = "MetData"
+    }
+    const siteID = `${station_id}_012`;
+    const instrumentID = `${station_id}_012_${file_type}`;  
+    
+    try {
+      const data = await tapisV3Manager.listMeasurements(siteID, instrumentID, options);
+      reqData.code = 200;
+      return res.status(200)
+      .json(data);
+    }
+    catch(e) {
+      return processMesonetError(res, reqData, e);
+    }
+  });
 });

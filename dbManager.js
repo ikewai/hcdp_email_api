@@ -276,5 +276,168 @@ class TapisManager {
     }
 }
 
+
+class TapisV3Manager {
+    constructor(username, password, tenantURL, projectID) {
+        // Initialize class properties with provided values
+        this.username = username;
+        this.password = password;
+        this.tenantURL = tenantURL;
+        this.projectID = projectID;
+        this.authenticate();
+    }
+
+    authenticate() {
+        // Construct the authentication URL
+        const authUrl = `${this.tenantURL}/v3/oauth2/tokens`;
+
+        // Construct the payload for authentication
+        const authPayload = `username=${encodeURIComponent(this.username)}&password=${encodeURIComponent(this.password)}&grant_type=password&scope=user`;
+
+        // Set options for the authentication request
+        const authOptions = {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+        };
+
+        // set auth promise to authentication funct
+        this.auth = new Promise((resolve, reject) => {
+            // Initiate the authentication request
+            const authReq = https.request(authUrl, authOptions, (authRes) => {
+                authRes.setEncoding('utf8');
+                let authData = '';
+
+                // Accumulate response data
+                authRes.on('data', (chunk) => {
+                    authData += chunk;
+                });
+
+                // When response is complete
+                authRes.on('end', () => {
+                    try {
+                        const parsedResponse = JSON.parse(authData);
+                        // If authentication is successful
+                        if(authRes.statusCode === 200 && parsedResponse.result?.access_token?.access_token) {
+                            //reauth one minute before token goes stale
+                            setTimeout(() => {
+                                this.authenticate();
+                            }, (parsedResponse.result.access_token.expires_in - 60) * 1000);
+                            resolve(parsedResponse.result.access_token.access_token);
+                        }
+                        else {
+                            throw new Error('Authentication failed');
+                        }
+                    }
+                    catch (error) {
+                        reject(error);
+                    }
+                });
+            });
+
+            // Handle errors in the authentication request
+            authReq.on('error', (error) => {
+                reject(error);
+            });
+
+            // Send authentication payload
+            authReq.write(authPayload);
+            authReq.end();
+        });
+    }
+
+    async listMeasurements(siteID, instrumentID, options) {
+        // Construct URL for measurements request
+        let url = `${this.tenantURL}/v3/streams/projects/${this.projectID}/sites/${siteID}/instruments/${instrumentID}/measurements`;
+
+        // Construct URL params from options object
+        const queryParams = [];
+        for(const key in options) {
+            queryParams.push(`${key}=${encodeURIComponent(options[key])}`);
+        }
+        if(queryParams.length > 0) {
+            url += `?${queryParams.join('&')}`;
+        }
+        let res = await this.submitRequest(url);
+        return res;
+    }
+
+    async listVariables(siteID, instrumentID) {
+        // Construct URL for measurements request
+        let url = `${this.tenantURL}/v3/streams/projects/${this.projectID}/sites/${siteID}/instruments/${instrumentID}/variables`;
+        let res = await this.submitRequest(url);
+        return res;
+    } 
+
+    async listSites() {
+        // Construct URL for request
+        let url = `${this.tenantURL}/v3/streams/projects/${this.projectID}/sites`;
+        let res = await this.submitRequest(url);
+        return res;
+    }
+
+    async submitRequest(url, options) {
+        //get token from auth promise
+        let token = await this.auth;
+
+        // Set options for request
+        options = {
+            method: 'GET',
+            headers: {
+                'X-Tapis-Token': token,
+            },
+            ...options
+        };
+
+        // Return a promise for asynchronous measurements retrieval
+        return new Promise((resolve, reject) => {
+            // Initiate the measurements request
+            const req = https.request(url, options, (res) => {
+                res.setEncoding('utf8');
+                let data = '';
+
+                // Accumulate response data
+                res.on('data', (chunk) => {
+                    data += chunk;
+                });
+
+                // When response is complete
+                res.on('end', () => {
+                    try {
+                        const parsedResponse = JSON.parse(data);
+                        // If measurements retrieval is successful
+                        if (res.statusCode === 200 && parsedResponse.result) {
+                            resolve(parsedResponse.result);
+                        } 
+                        else {
+                            throw new Error()
+                        }
+                    }
+                    catch(error) {
+                        const errorOut = {
+                            status: res.statusCode || 500,
+                            reason: `The query resulted in an error: ${data}`
+                        }
+                        reject(errorOut);
+                    }
+                });
+            });
+
+            // Handle errors in the measurements request
+            req.on('error', (error) => {
+                const errorOut = {
+                    status: 500,
+                    reason: `Failed to retrieve data: ${error}`
+                }
+                reject(errorOut);
+            });
+
+            req.end();
+        });
+    }
+}
+
+exports.TapisV3Manager = TapisV3Manager;
 exports.DBManager = DBManager;
 exports.TapisManager = TapisManager;
