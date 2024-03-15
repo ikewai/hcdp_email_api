@@ -1344,7 +1344,6 @@ app.get("/mesonet/getVariables", async (req, res) => {
     }
     const siteID = `${station_id}_012`;
     const instrumentID = `${station_id}_012_${file_type}`;
-    console.log(siteID, instrumentID);
     try {
       const data = await tapisV3Manager.listVariables(siteID, instrumentID);
       reqData.code = 200;
@@ -1361,6 +1360,8 @@ app.get("/mesonet/getVariables", async (req, res) => {
 app.get("/mesonet/getMeasurements", async (req, res) => {
   const permission = "basic";
   await handleReq(req, res, permission, async (reqData) => {
+    //options
+    //start_date, end_date, limit, offset, var_ids (comma separated)
     let { station_id, file_type, ...options } = req.query;
     if(station_id === undefined) {
       //set failure and code in status
@@ -1378,8 +1379,7 @@ app.get("/mesonet/getMeasurements", async (req, res) => {
     }
     const siteID = `${station_id}_012`;
     const instrumentID = `${station_id}_012_${file_type}`;  
-    //start_date, end_date, limit, offset, var_ids (comma separated)
-    console.log(options);
+    
     try {
       const data = await tapisV3Manager.listMeasurements(siteID, instrumentID, options);
       reqData.code = 200;
