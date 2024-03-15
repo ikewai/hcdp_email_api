@@ -363,6 +363,12 @@ class TapisV3Manager {
         return res;
     }
 
+    async listVariables(siteID, instrumentID) {
+        // Construct URL for measurements request
+        let url = `${this.tenantURL}/v3/streams/projects/${this.projectID}/sites/${siteID}/instruments/${instrumentID}/variables`;
+        let res = await this.submitRequest(url);
+        return res;
+    } 
 
     async listSites() {
         // Construct URL for request

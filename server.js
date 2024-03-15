@@ -1296,7 +1296,7 @@ app.post("/addmetadata", express.raw({ limit: "50mb", type: () => true }), async
 ///////////////////////////////////////////////////
 
 
-app.get("/mesonet/listStations", async (req, res) => {
+app.get("/mesonet/getStations", async (req, res) => {
   const permission = "basic";
   await handleReq(req, res, permission, async (reqData) => {
     try {
@@ -1314,8 +1314,44 @@ app.get("/mesonet/listStations", async (req, res) => {
   });
 });
 
+app.get("/mesonet/getVariables", async (req, res) => {
+  const permission = "basic";
+  await handleReq(req, res, permission, async (reqData) => {
+    let { station_id, file_type } = req.query;
+    if(station_id === undefined) {
+      //set failure and code in status
+      reqData.success = false;
+      reqData.code = 400;
 
-app.get("/mesonet/listMeasurements", async (req, res) => {
+      return res.status(400)
+      .send(
+        `Request must include the following parameters:
+        station_id: The ID of the station to query.`
+      );
+    }
+    if(file_type === undefined) {
+      file_type = "MetData"
+    }
+    const siteID = `${station_id}_012`;
+    const instrumentID = `${station_id}_012_${file_type}`;
+
+    try {
+      const data = await tapisV3Manager.listVariables(siteID, instrumentID);
+      reqData.code = 200;
+      return res.status(200)
+      .json(data);
+    }
+    catch(e) {
+      console.error(`An unexpected error occurred while listing the sites. Error: ${e}`);
+      reqData.code = 500;
+      return res.status(500)
+      .send("An error occured while processing the request.");
+    }
+  });
+});
+
+
+app.get("/mesonet/getMeasurements", async (req, res) => {
   const permission = "basic";
   await handleReq(req, res, permission, async (reqData) => {
     let { station_id, file_type, ...options } = req.query;
