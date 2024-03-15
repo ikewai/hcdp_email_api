@@ -1,6 +1,6 @@
 #!/bin/bash
 
-docker stop -t 600 email
+docker stop -t 60 email
 docker wait email
 docker rm email
 docker build -t hcdp_email_api .
