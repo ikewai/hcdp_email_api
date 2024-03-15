@@ -412,19 +412,26 @@ class TapisV3Manager {
                             resolve(parsedResponse.result);
                         } 
                         else {
-                            console.log(url);
-                            throw new Error("Failed to retrieve data");
+                            throw new Error()
                         }
                     }
                     catch(error) {
-                        reject(error);
+                        const errorOut = {
+                            status: res.statusCode || 500,
+                            reason: `The query resulted in an error: ${data}`
+                        }
+                        reject(errorOut);
                     }
                 });
             });
 
             // Handle errors in the measurements request
             req.on('error', (error) => {
-                reject(error);
+                const errorOut = {
+                    status: 500,
+                    reason: `Failed to retrieve data: ${error}`
+                }
+                reject(errorOut);
             });
 
             req.end();

@@ -1295,6 +1295,19 @@ app.post("/addmetadata", express.raw({ limit: "50mb", type: () => true }), async
 /////////////// mesonet eps ///////////////////////
 ///////////////////////////////////////////////////
 
+function processMesonetError(res, e) {
+  let {status, reason} = e;
+  if(status === undefined) {
+    status = 500;
+  }
+  if(reason === undefined) {
+    reason = "An error occured while processing the request.";
+    console.error(`An unexpected error occurred while listing the measurements. Error: ${e}`);
+  }
+  reqData.code = status;
+  res.status(status)
+  .send(reason);
+}
 
 app.get("/mesonet/getStations", async (req, res) => {
   const permission = "basic";
@@ -1306,10 +1319,7 @@ app.get("/mesonet/getStations", async (req, res) => {
       .json(data);
     }
     catch(e) {
-      console.error(`An unexpected error occurred while listing the sites. Error: ${e}`);
-      reqData.code = 500;
-      return res.status(500)
-      .send("An error occured while processing the request.");
+      return processMesonetError(res, e);
     }
   });
 });
@@ -1342,10 +1352,7 @@ app.get("/mesonet/getVariables", async (req, res) => {
       .json(data);
     }
     catch(e) {
-      console.error(`An unexpected error occurred while listing the sites. Error: ${e}`);
-      reqData.code = 500;
-      return res.status(500)
-      .send("An error occured while processing the request.");
+      return processMesonetError(res, e);
     }
   });
 });
@@ -1380,10 +1387,7 @@ app.get("/mesonet/getMeasurements", async (req, res) => {
       .json(data);
     }
     catch(e) {
-      console.error(`An unexpected error occurred while listing the measurments. Error: ${e}`);
-      reqData.code = 500;
-      return res.status(500)
-      .send("An error occured while processing the request.");
+      return processMesonetError(res, e);
     }
   });
 });
