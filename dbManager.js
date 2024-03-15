@@ -359,6 +359,7 @@ class TapisV3Manager {
         if(queryParams.length > 0) {
             url += `?${queryParams.join('&')}`;
         }
+        console.log(url);
         let res = await this.submitRequest(url);
         return res;
     }

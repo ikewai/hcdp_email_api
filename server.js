@@ -1372,6 +1372,7 @@ app.get("/mesonet/getMeasurements", async (req, res) => {
     const siteID = `${station_id}_012`;
     const instrumentID = `${station_id}_012_${file_type}`;  
     //start_date, end_date, limit, offset, var_ids (comma separated)
+    console.log(options);
     try {
       const data = await tapisV3Manager.listMeasurements(siteID, instrumentID, options);
       reqData.code = 200;
