@@ -1334,7 +1334,7 @@ app.get("/mesonet/getVariables", async (req, res) => {
     }
     const siteID = `${station_id}_012`;
     const instrumentID = `${station_id}_012_${file_type}`;
-
+    console.log(siteID, instrumentID);
     try {
       const data = await tapisV3Manager.listVariables(siteID, instrumentID);
       reqData.code = 200;
