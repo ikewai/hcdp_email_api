@@ -1295,7 +1295,7 @@ app.post("/addmetadata", express.raw({ limit: "50mb", type: () => true }), async
 /////////////// mesonet eps ///////////////////////
 ///////////////////////////////////////////////////
 
-function processMesonetError(res, e) {
+function processMesonetError(res, reqData, e) {
   let {status, reason} = e;
   if(status === undefined) {
     status = 500;
@@ -1319,7 +1319,7 @@ app.get("/mesonet/getStations", async (req, res) => {
       .json(data);
     }
     catch(e) {
-      return processMesonetError(res, e);
+      return processMesonetError(res, reqData, e);
     }
   });
 });
@@ -1352,7 +1352,7 @@ app.get("/mesonet/getVariables", async (req, res) => {
       .json(data);
     }
     catch(e) {
-      return processMesonetError(res, e);
+      return processMesonetError(res, reqData, e);
     }
   });
 });
@@ -1387,7 +1387,7 @@ app.get("/mesonet/getMeasurements", async (req, res) => {
       .json(data);
     }
     catch(e) {
-      return processMesonetError(res, e);
+      return processMesonetError(res, reqData, e);
     }
   });
 });
