@@ -411,6 +411,7 @@ class TapisV3Manager {
                             resolve(parsedResponse.result);
                         } 
                         else {
+                            console.log(url);
                             throw new Error("Failed to retrieve data");
                         }
                     }
