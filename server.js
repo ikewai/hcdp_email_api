@@ -1116,7 +1116,7 @@ app.get("/raw/sff", async (req, res) => {
 app.get("/raw/list", async (req, res) => {
   const permission = "basic";
   await handleReq(req, res, permission, async (reqData) => {
-    let date = req.query.date;
+    const { date, station_id } = req.query;
 
     if(!date) {
       //set failure and code in status
@@ -1126,7 +1126,8 @@ app.get("/raw/list", async (req, res) => {
       res.status(400)
       .send(
         "Request must include the following parameters: \n\
-        date: An ISO 8601 formatted date string representing the date you would like the data for."
+        date: An ISO 8601 formatted date string representing the date you would like the data for. \n\
+        station_id (optional): The station ID you want to get files for."
       );
     }
     else {
@@ -1140,6 +1141,14 @@ app.get("/raw/list", async (req, res) => {
       let linkDir = `${apiURL}/raw/download?p=${dataDir}/`;
   
       let { err, files } = await readdir(sysDir);
+
+      //if a station ID was specified filter files by ones starting with that id
+      if(station_id !== undefined) {
+        files = files.filter((file) => {
+          fid = file.split("_")[0];
+          return fid == station_id;
+        });
+      }
   
       //no dir for requested date, just return empty
       if(err && err.code == "ENOENT") {
@@ -1336,7 +1345,8 @@ app.get("/mesonet/getVariables", async (req, res) => {
       return res.status(400)
       .send(
         `Request must include the following parameters:
-        station_id: The ID of the station to query.`
+        station_id: The ID of the station to query.
+        file_type (optional): The file the measurments are registered under. Default MetData`
       );
     }
     if(file_type === undefined) {
@@ -1371,7 +1381,13 @@ app.get("/mesonet/getMeasurements", async (req, res) => {
       return res.status(400)
       .send(
         `Request must include the following parameters:
-        station_id: The ID of the station to query.`
+        station_id: The ID of the station to query.
+        file_type (optional): The file the measurements are registered under. Default MetData
+        limit (optional): A number indicating the maximum number of records to be returned for each variable.
+        offset (optional): A number indicating an offset in the records returned from the first available record.
+        start_date (optional): An ISO-8601 formatted date string indicating the date/time returned records should start at.
+        end_date (optional): An ISO-8601 formatted date string indicating the date/time returned records should end at
+        var_ids (optional): A comma separated list of variable IDs limiting what variables will be returned.`
       );
     }
     if(file_type === undefined) {
