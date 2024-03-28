@@ -41,7 +41,8 @@
         "username": "username",
         "password": "password",
         "tenantURL": "https://dev.develop.tapis.io",
-        "projectID": "test-p1_012"
+        "projectID": "mesonet_streams_prod",
+        "instExt": "_globallyuniqueidsarenonsensicalforhierarchicalstructures3"
     },
     "githubWebhookSecret": "secret"
 }

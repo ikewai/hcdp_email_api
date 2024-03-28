@@ -278,12 +278,13 @@ class TapisManager {
 
 
 class TapisV3Manager {
-    constructor(username, password, tenantURL, projectID) {
+    constructor(username, password, tenantURL, projectID, instExt) {
         // Initialize class properties with provided values
         this.username = username;
         this.password = password;
         this.tenantURL = tenantURL;
         this.projectID = projectID;
+        this.instExt = instExt;
         this.authenticate();
     }
 
@@ -347,9 +348,9 @@ class TapisV3Manager {
         });
     }
 
-    async listMeasurements(siteID, instrumentID, options) {
+    async listMeasurements(stationID, options) {
         // Construct URL for measurements request
-        let url = `${this.tenantURL}/v3/streams/projects/${this.projectID}/sites/${siteID}/instruments/${instrumentID}/measurements`;
+        let url = `${this.tenantURL}/v3/streams/projects/${this.projectID}/sites/${stationID}/instruments/${stationID}${this.instExt}/measurements`;
 
         // Construct URL params from options object
         const queryParams = [];
@@ -363,9 +364,9 @@ class TapisV3Manager {
         return res;
     }
 
-    async listVariables(siteID, instrumentID) {
+    async listVariables(stationID) {
         // Construct URL for measurements request
-        let url = `${this.tenantURL}/v3/streams/projects/${this.projectID}/sites/${siteID}/instruments/${instrumentID}/variables`;
+        let url = `${this.tenantURL}/v3/streams/projects/${this.projectID}/sites/${stationID}/instruments/${stationID}${this.instExt}/variables`;
         let res = await this.submitRequest(url);
         return res;
     } 

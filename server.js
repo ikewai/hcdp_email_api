@@ -68,7 +68,7 @@ process.env["NODE_ENV"] = "production";
 
 const dbManager = new DBManager.DBManager(dbConfig.server, dbConfig.port, dbConfig.username, dbConfig.password, dbConfig.db, dbConfig.collection, dbConfig.connectionRetryLimit, dbConfig.queryRetryLimit);
 const tapisManager = new DBManager.TapisManager(tapisConfig.tenantURL, tapisConfig.token, dbConfig.queryRetryLimit, dbManager);
-const tapisV3Manager = new DBManager.TapisV3Manager(tapisV3Config.username, tapisV3Config.password, tapisV3Config.tenantURL, tapisV3Config.projectID);
+const tapisV3Manager = new DBManager.TapisV3Manager(tapisV3Config.username, tapisV3Config.password, tapisV3Config.tenantURL, tapisV3Config.projectID, tapisV3Config.instExt);
 
 ////////////////////////////////
 //////////server setup//////////
@@ -1336,7 +1336,7 @@ app.get("/mesonet/getStations", async (req, res) => {
 app.get("/mesonet/getVariables", async (req, res) => {
   const permission = "basic";
   await handleReq(req, res, permission, async (reqData) => {
-    let { station_id, file_type } = req.query;
+    let { station_id } = req.query;
     if(station_id === undefined) {
       //set failure and code in status
       reqData.success = false;
@@ -1345,17 +1345,11 @@ app.get("/mesonet/getVariables", async (req, res) => {
       return res.status(400)
       .send(
         `Request must include the following parameters:
-        station_id: The ID of the station to query.
-        file_type (optional): The file the measurments are registered under. Default MetData`
+        station_id: The ID of the station to query.`
       );
     }
-    if(file_type === undefined) {
-      file_type = "MetData"
-    }
-    const siteID = `${station_id}_012`;
-    const instrumentID = `${station_id}_012_${file_type}`;
     try {
-      const data = await tapisV3Manager.listVariables(siteID, instrumentID);
+      const data = await tapisV3Manager.listVariables(station_id);
       reqData.code = 200;
       return res.status(200)
       .json(data);
@@ -1372,7 +1366,7 @@ app.get("/mesonet/getMeasurements", async (req, res) => {
   await handleReq(req, res, permission, async (reqData) => {
     //options
     //start_date, end_date, limit, offset, var_ids (comma separated)
-    let { station_id, file_type, ...options } = req.query;
+    let { station_id, ...options } = req.query;
     if(station_id === undefined) {
       //set failure and code in status
       reqData.success = false;
@@ -1382,7 +1376,6 @@ app.get("/mesonet/getMeasurements", async (req, res) => {
       .send(
         `Request must include the following parameters:
         station_id: The ID of the station to query.
-        file_type (optional): The file the measurements are registered under. Default MetData
         limit (optional): A number indicating the maximum number of records to be returned for each variable.
         offset (optional): A number indicating an offset in the records returned from the first available record.
         start_date (optional): An ISO-8601 formatted date string indicating the date/time returned records should start at.
@@ -1390,14 +1383,9 @@ app.get("/mesonet/getMeasurements", async (req, res) => {
         var_ids (optional): A comma separated list of variable IDs limiting what variables will be returned.`
       );
     }
-    if(file_type === undefined) {
-      file_type = "MetData"
-    }
-    const siteID = `${station_id}_012`;
-    const instrumentID = `${station_id}_012_${file_type}`;  
     
     try {
-      const data = await tapisV3Manager.listMeasurements(siteID, instrumentID, options);
+      const data = await tapisV3Manager.listMeasurements(station_id, options);
       reqData.code = 200;
       return res.status(200)
       .json(data);
