@@ -1142,20 +1142,20 @@ app.get("/raw/list", async (req, res) => {
   
       let { err, files } = await readdir(sysDir);
 
-      //if a station ID was specified filter files by ones starting with that id
-      if(station_id !== undefined) {
-        files = files.filter((file) => {
-          fid = file.split("_")[0];
-          return fid == station_id;
-        });
-      }
-  
       //no dir for requested date, just return empty
       if(err && err.code == "ENOENT") {
         files = [];
       }
       else if(err) {
         throw err;
+      }
+
+      //if a station ID was specified filter files by ones starting with that id
+      if(station_id !== undefined) {
+        files = files.filter((file) => {
+          fid = file.split("_")[0];
+          return fid == station_id;
+        });
       }
   
       files = files.map((file) => {
