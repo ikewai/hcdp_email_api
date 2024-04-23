@@ -1304,7 +1304,7 @@ app.post("/addmetadata", express.raw({ limit: "50mb", type: () => true }), async
 /////////////// mesonet eps ///////////////////////
 ///////////////////////////////////////////////////
 
-function processMesonetError(res, reqData, e) {
+function processTapisError(res, reqData, e) {
   let {status, reason} = e;
   if(status === undefined) {
     status = 500;
@@ -1328,7 +1328,7 @@ app.get("/mesonet/getStations", async (req, res) => {
       .json(data);
     }
     catch(e) {
-      return processMesonetError(res, reqData, e);
+      return processTapisError(res, reqData, e);
     }
   });
 });
@@ -1355,7 +1355,7 @@ app.get("/mesonet/getVariables", async (req, res) => {
       .json(data);
     }
     catch(e) {
-      return processMesonetError(res, reqData, e);
+      return processTapisError(res, reqData, e);
     }
   });
 });
@@ -1391,7 +1391,39 @@ app.get("/mesonet/getMeasurements", async (req, res) => {
       .json(data);
     }
     catch(e) {
-      return processMesonetError(res, reqData, e);
+      return processTapisError(res, reqData, e);
+    }
+  });
+});
+
+
+app.get("/stations", async (req, res) => {
+  const permission = "basic";
+  await handleReq(req, res, permission, async (reqData) => {
+    let { q, limit, offset } = req.query;
+    const validNames = ["hcdp_station_metadata", "hcdp_station_value"];
+    if(q === undefined || !validNames.includes(q.name)) {
+      //set failure and code in status
+      reqData.success = false;
+      reqData.code = 400;
+
+      return res.status(400)
+      .send(
+        `Request must include the following parameters:
+        q: Mongo DB style query for station documents. The query must include a name field with a value of either "hcdp_station_metadata" or "hcdp_station_value".
+        limit (optional): A number indicating the maximum number of records to be returned for each variable.
+        offset (optional): A number indicating an offset in the records returned from the first available record.`
+      );
+    }
+    
+    try {
+      const data = await tapisManager.queryData(q, limit, offset);
+      reqData.code = 200;
+      return res.status(200)
+      .json(data);
+    }
+    catch(e) {
+      return processTapisError(res, reqData, e);
     }
   });
 });

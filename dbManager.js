@@ -131,14 +131,17 @@ class TapisManager {
         this.dbManager = dbManager;
     }
 
-    async request(data, retries, errors) {
+    async request(data, retries, errors, lastCode) {
         if(!errors) {
             errors = [];
         }
         let { options, body } = data;
         return new Promise((resolve, reject) => {
             if(retries < 0) {
-                reject(errors);
+                reject({
+                    status: lastCode,
+                    reason: errors
+                });
             }
             else {
                 const req = https.request(options, (res) => {
@@ -151,7 +154,7 @@ class TapisManager {
                         if(codeGroup != 2) {
                             let e = `Request responded with code ${res.statusCode}; message: ${responseData}`;
                             errors.push(e);
-                            return this.request(data, retries - 1, errors);
+                            return this.request(data, retries - 1, errors, res.statusCode);
                         }
                         else {
                             resolve({
@@ -162,7 +165,7 @@ class TapisManager {
                     });
                     res.on("error", (e) => {
                         errors.push(e);
-                        return this.request(data, retries - 1, errors);
+                        return this.request(data, retries - 1, errors, res.statusCode);
                     });
                 });
                 if(body) {
@@ -173,11 +176,17 @@ class TapisManager {
         });
     }
 
-    //error handling
-    async queryData(query) {
+    async queryData(query, limit, offset) {
+        if(limit === undefined) {
+            limit = 1000000;
+        }
+        if(offset === undefined) {
+            offset = 0;
+        }
         let params = {
             q: JSON.stringify(query),
-            limit: 1000000
+            limit: limit,
+            offset: offset
         };
         const paramStr = querystring.stringify(params);
         const options = {
@@ -194,8 +203,8 @@ class TapisManager {
             options
         };
         return this.request(data, this.retryLimit).then((res) => {
-            let resultList = JSON.parse(res.data).result;
-            return resultList;
+            let parsed = JSON.parse(res.data);
+            return parsed;
         }, (e) => {
             return Promise.reject(e);
         });
@@ -224,7 +233,7 @@ class TapisManager {
         let query = {
             name: "hcdp_station_metadata"
         };
-        let metadataDocs = await this.queryData(query);
+        let metadataDocs = await this.queryData(query).result;
         let indexedMetadata = {};
         for(let doc of metadataDocs) {
             let idField = doc.value.id_field;
