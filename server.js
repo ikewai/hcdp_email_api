@@ -1401,6 +1401,7 @@ app.get("/stations", async (req, res) => {
   const permission = "basic";
   await handleReq(req, res, permission, async (reqData) => {
     let { q, limit, offset } = req.query;
+    console.log(q, q.name);
     const validNames = ["hcdp_station_metadata", "hcdp_station_value"];
     if(q === undefined || !validNames.includes(q.name)) {
       //set failure and code in status
