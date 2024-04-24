@@ -1408,8 +1408,6 @@ app.get("/stations", async (req, res) => {
     catch {
       q = undefined;
     }
-    
-    console.log(q, q.name);
     const validNames = ["hcdp_station_metadata", "hcdp_station_value"];
     if(q === undefined || !validNames.includes(q.name)) {
       //set failure and code in status
