@@ -1401,6 +1401,8 @@ app.get("/stations", async (req, res) => {
   const permission = "basic";
   await handleReq(req, res, permission, async (reqData) => {
     let { q, limit, offset } = req.query;
+    //parse query string to JSON
+    q = JSON.parse(q);
     console.log(q, q.name);
     const validNames = ["hcdp_station_metadata", "hcdp_station_value"];
     if(q === undefined || !validNames.includes(q.name)) {
