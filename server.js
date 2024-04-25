@@ -1427,3 +1427,54 @@ app.get("/stations", async (req, res) => {
     }
   });
 });
+
+
+app.post("/notify", async (req, res) => {
+  const permission = "notify";
+  await handleReq(req, res, permission, async (reqData) => {
+    const { recepients, source, type, message } = req.body.uuid;
+
+    if(!Array.isArray(recepients) || recepients.length < 1) {
+      //set failure and code in status
+      reqData.success = false;
+      reqData.code = 400;
+
+      return res.status(400)
+      .send(
+        `Request must include the following parameters:
+        q: Mongo DB style query for station documents. The query must include a name field with a value of either "hcdp_station_metadata" or "hcdp_station_value".
+        limit (optional): A number indicating the maximum number of records to be returned for each variable.
+        offset (optional): A number indicating an offset in the records returned from the first available record.`
+      );
+    }
+
+    let mailOptions = {
+      to: recepients,
+      subject: `HCDP Notifier: ${type}`,
+      text: `${type}\nNotification source: ${source}\nNotification message: ${message}`,
+      html: `<h2>${type}</h2><p>Notification source: ${source}</p><p>Notification message: ${message}</p>`
+    };
+    try {
+      //attempt to send email to the recepients list
+      let emailStatus = await sendEmail(transporterOptions, mailOptions);
+      //if email send failed throw error for logging
+      if(!emailStatus.success) {
+        throw emailStatus.error;
+      }
+    }
+    //if error while sending admin email erite to stderr
+    catch(e) {
+      //set failure and code in status
+      reqData.success = false;
+      reqData.code = 500;
+
+      return res.status(500)
+      .send(
+        `The notification could not be sent. Error: ${e}`
+      );
+    }
+    reqData.code = 200;
+    return res.status(200)
+    .json(data);
+  });
+});
