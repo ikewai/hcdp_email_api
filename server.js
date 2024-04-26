@@ -1439,7 +1439,7 @@ app.get("/stations", async (req, res) => {
 app.post("/notify", async (req, res) => {
   const permission = "notify";
   await handleReq(req, res, permission, async (reqData) => {
-    const { recepients, source, type, message } = req.body.uuid;
+    const { recepients, source, type, message } = req.body;
 
     if(!Array.isArray(recepients) || recepients.length < 1) {
       //set failure and code in status
