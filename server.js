@@ -1482,6 +1482,6 @@ app.post("/notify", async (req, res) => {
     }
     reqData.code = 200;
     return res.status(200)
-    .json(data);
+    .send("Success! A notification has been sent to the requested recepients.");
   });
 });
