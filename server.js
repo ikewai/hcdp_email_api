@@ -1406,10 +1406,6 @@ app.get("/stations", async (req, res) => {
       q = JSON.parse(q.replace(/'/g, '"'));
     }
     catch {
-      q = undefined;
-    }
-    const validNames = ["hcdp_station_metadata", "hcdp_station_value"];
-    if(q === undefined || !validNames.includes(q.name)) {
       //set failure and code in status
       reqData.success = false;
       reqData.code = 400;
@@ -1417,7 +1413,7 @@ app.get("/stations", async (req, res) => {
       return res.status(400)
       .send(
         `Request must include the following parameters:
-        q: Mongo DB style query for station documents. The query must include a name field with a value of either "hcdp_station_metadata" or "hcdp_station_value".
+        q: Mongo DB style query for station documents.
         limit (optional): A number indicating the maximum number of records to be returned for each variable.
         offset (optional): A number indicating an offset in the records returned from the first available record.`
       );
@@ -1448,10 +1444,11 @@ app.post("/notify", async (req, res) => {
 
       return res.status(400)
       .send(
-        `Request must include the following parameters:
-        q: Mongo DB style query for station documents. The query must include a name field with a value of either "hcdp_station_metadata" or "hcdp_station_value".
-        limit (optional): A number indicating the maximum number of records to be returned for each variable.
-        offset (optional): A number indicating an offset in the records returned from the first available record.`
+        `Request body should be JSON with the fields:
+        recepients: An array of email addresses to send the notification to.
+        source (optional): The source of the notification.
+        type (optional): The notification type (e.g. Error, Info, etc.).
+        message (optional): The notification message.`
       );
     }
 
