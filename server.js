@@ -1459,7 +1459,7 @@ app.post("/notify", async (req, res) => {
       to: recepients,
       subject: `HCDP Notifier: ${type}`,
       text: `${type}\nNotification source: ${source}\nNotification message: ${message}`,
-      html: `<h2>${type}</h2><p>Notification source: ${source}</p><p>Notification message: ${message}</p>`
+      html: `<h3>${type}</h3><p>Notification source: ${source}</p><p>Notification message: ${message}</p>`
     };
     try {
       //attempt to send email to the recepients list
