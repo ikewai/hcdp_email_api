@@ -1318,6 +1318,20 @@ function processTapisError(res, reqData, e) {
   .send(reason);
 }
 
+function processMeasurementsError(res, reqData, e) {
+  let {status, reason} = e;
+  //if key error or empty data frame error just return no data
+  if(status == 500 && (reason.includes("Unrecognized exception type: <class 'KeyError'>") || reason.includes("Unrecognized exception type: <class 'pandas.errors.EmptyDataError'>"))) {
+    reqData.code = 200;
+    res.status(200)
+    .json({});
+  }
+  //otherwise process as proper error
+  else {
+    processTapisError(res, reqData, e);
+  }
+}
+
 app.get("/mesonet/getStations", async (req, res) => {
   const permission = "basic";
   await handleReq(req, res, permission, async (reqData) => {
@@ -1391,7 +1405,7 @@ app.get("/mesonet/getMeasurements", async (req, res) => {
       .json(data);
     }
     catch(e) {
-      return processTapisError(res, reqData, e);
+      return processMeasurementsError(res, reqData, e);
     }
   });
 });
