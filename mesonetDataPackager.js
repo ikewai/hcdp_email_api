@@ -210,4 +210,4 @@ class CSVTableFileHandle extends PackageFileHandle {
     }
 }
 
-exports.MesonetDataPackager = MesonetDataPackager;
+export default MesonetDataPackager;

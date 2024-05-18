@@ -14,7 +14,7 @@ const csvReadableStream = require('csv-reader');
 const detectDecodeStream = require('autodetect-decoder-stream');
 const crypto = require('crypto');
 const safeCompare = require('safe-compare');
-const { MesonetDataPackager } = require("./mesonetDataPackager");
+const MesonetDataPackager = require("./mesonetDataPackager");
 //add timestamps to output
 require("console-stamp")(console);
 
