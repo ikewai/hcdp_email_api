@@ -1418,17 +1418,19 @@ async function createMesonetPackage(stationIDs, combine, ftype, csvMode, options
   let packedStationData = {};
   let variableData = {};
   for(let station of stationData) {
-    for(let variable of station.instruments[0].variables) {
-      if(combine) {
-        variableData[variable.var_id] = variable;
-      }
-      else {
-        let stationVars = variableData[station.site_id];
-        if(stationVars === undefined) {
-          stationVars = {};
-          variableData[station.site_id] = stationVars;
+    if(station.instruments[0].variables) {
+      for(let variable of station.instruments[0].variables) {
+        if(combine) {
+          variableData[variable.var_id] = variable;
         }
-        stationVars[variable.var_id] = variable;
+        else {
+          let stationVars = variableData[station.site_id];
+          if(stationVars === undefined) {
+            stationVars = {};
+            variableData[station.site_id] = stationVars;
+          }
+          stationVars[variable.var_id] = variable;
+        }
       }
     }
     delete station.instruments;
