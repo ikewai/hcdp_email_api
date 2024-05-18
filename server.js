@@ -1475,7 +1475,7 @@ async function createMesonetPackage(stationIDs, combine, ftype, csvMode, options
     fpath = files[0];
   }
   else {
-    let zipProc = child_process.spawn("sh", ["./zipgen.sh", downloadRoot, productionRoot, zipName, files]);
+    let zipProc = child_process.spawn("sh", ["./zipgen.sh", downloadRoot, productionRoot, "data.zip", files]);
 
     //write stdout (should be file name) to output accumulator
     let code = await handleSubprocess(zipProc, (data) => {
@@ -1544,7 +1544,6 @@ app.get("/mesonet/createPackage/link", async (req, res) => {
     catch(e) {
       return processTapisError(res, reqData, e);
     }
-    
 
     reqData.code = 200;
     res.status(200)
