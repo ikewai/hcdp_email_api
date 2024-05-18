@@ -14,6 +14,7 @@ COPY server.js ./
 COPY fileIndexer.js ./
 COPY dbManager.js ./
 COPY csvProcessor.js ./
+COPY mesonetDataPackager.js ./
 COPY zipgen.sh ./
 COPY zipgen_parts.sh ./
 ADD tiffextract ./tiffextract
