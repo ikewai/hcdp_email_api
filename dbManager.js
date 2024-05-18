@@ -287,13 +287,14 @@ class TapisManager {
 
 
 class TapisV3Manager {
-    constructor(username, password, tenantURL, projectID, instExt) {
+    constructor(username, password, tenantURL, projectID, instExt, retryLimit) {
         // Initialize class properties with provided values
         this.username = username;
         this.password = password;
         this.tenantURL = tenantURL;
         this.projectID = projectID;
         this.instExt = instExt;
+        this.retryLimit = retryLimit;
         this.authenticate();
     }
 
@@ -369,25 +370,25 @@ class TapisV3Manager {
         if(queryParams.length > 0) {
             url += `?${queryParams.join('&')}`;
         }
-        let res = await this.submitRequest(url);
+        let res = await this.submitRequest(url, this.retryLimit);
         return res;
     }
 
     async listVariables(stationID) {
         // Construct URL for measurements request
         let url = `${this.tenantURL}/v3/streams/projects/${this.projectID}/sites/${stationID}/instruments/${stationID}${this.instExt}/variables`;
-        let res = await this.submitRequest(url);
+        let res = await this.submitRequest(url, this.retryLimit);
         return res;
     } 
 
     async listSites() {
         // Construct URL for request
         let url = `${this.tenantURL}/v3/streams/projects/${this.projectID}/sites`;
-        let res = await this.submitRequest(url);
+        let res = await this.submitRequest(url, this.retryLimit);
         return res;
     }
 
-    async submitRequest(url, options) {
+    async submitRequest(url, options, retries) {
         //get token from auth promise
         let token = await this.auth;
 
@@ -400,8 +401,22 @@ class TapisV3Manager {
             ...options
         };
 
+
         // Return a promise for asynchronous measurements retrieval
         return new Promise((resolve, reject) => {
+            const retry = (code, err) => {
+                if(retries < 1) {
+                    const errorOut = {
+                        status: code,
+                        reason: `The query resulted in an error: ${err}`
+                    }
+                    reject(errorOut);
+                }
+                else {
+                    resolve(this.submitRequest(url, options, retries - 1));
+                }
+            }
+
             // Initiate the measurements request
             const req = https.request(url, options, (res) => {
                 res.setEncoding('utf8');
@@ -425,22 +440,14 @@ class TapisV3Manager {
                         }
                     }
                     catch(error) {
-                        const errorOut = {
-                            status: res.statusCode || 500,
-                            reason: `The query resulted in an error: ${data}`
-                        }
-                        reject(errorOut);
+                        retry(res.statusCode || 500, data);
                     }
                 });
             });
 
             // Handle errors in the measurements request
             req.on('error', (error) => {
-                const errorOut = {
-                    status: 500,
-                    reason: `Failed to retrieve data: ${error}`
-                }
-                reject(errorOut);
+                retry(500, error);
             });
 
             req.end();
