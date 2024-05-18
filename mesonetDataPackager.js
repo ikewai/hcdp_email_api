@@ -210,4 +210,4 @@ class CSVTableFileHandle extends PackageFileHandle {
     }
 }
 
-export default MesonetDataPackager;
+module.exports = MesonetDataPackager;
