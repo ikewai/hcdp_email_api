@@ -1474,7 +1474,7 @@ async function createMesonetPackage(stationIDs, combine, ftype, csvMode, options
     packedStationData[station.site_id] = station;
   }
 
-  let packager = new MesonetDataPackager("./output", variableData, packedStationData, combine, ftype, csvMode);
+  let packager = new MesonetDataPackager(downloadRoot, variableData, packedStationData, combine, ftype, csvMode);
 
   let batches = batchDates(options.start_date, options.end_date);
   for(let stationID of stationIDs) {
