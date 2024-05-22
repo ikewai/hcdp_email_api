@@ -1505,6 +1505,7 @@ async function createMesonetPackage(stationIDs, combine, ftype, csvMode, options
     }
   }
   else {
+    console.log("files: ", files);
     let zipProc = child_process.spawn("sh", ["./zipgen.sh", downloadRoot, productionRoot, "data.zip", ...files]);
 
     //write stdout (should be file name) to output accumulator
