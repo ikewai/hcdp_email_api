@@ -120,6 +120,7 @@ const signals = {
 };
 
 function shutdown(code) {
+  tapisV3Manager.close();
   //stops new connections and completes existing ones before closing
   server.close(() => {
     console.log(`Server shutdown.`);
@@ -1437,42 +1438,31 @@ async function createMesonetPackage(stationIDs, combine, ftype, csvMode, options
     packedStationData[station.site_id] = station;
   }
 
-  let packager = new MesonetDataPackager(downloadRoot, variableData, packedStationData, combine, ftype, csvMode);
+  let packager = new MesonetDataPackager("./output", variableData, packedStationData, combine, ftype, csvMode);
 
   for(let stationID of stationIDs) {
     let measurements = {};
     try {
       measurements = await tapisV3Manager.listMeasurements(stationID, options);
-    }
-    catch(e) {
-      let {status, reason} = e;
-      //if key error or empty data frame error then no data, otherwise something else went wrong, cleanup and rethrow error
-      if(status != 500 || !(reason.includes("Unrecognized exception type: <class 'KeyError'>") || reason.includes("Unrecognized exception type: <class 'pandas.errors.EmptyDataError'>"))) {
-        packager.complete();
-        throw e;
-      }
-    }
-    try {
       await packager.write(stationID, measurements);
     }
     catch(e) {
       packager.complete();
+      let {status, reason} = e;
       throw {
-        status: 500,
-        reason: `An error occurred while writing a file: ${e}`
+        status: status || 500,
+        reason: reason || `An error occurred while writing a file: ${e}`
       }
     }
   }
   let files = await packager.complete();
+
   let fpath = "";
   if(files.length < 1) {
     throw {
       status: 404,
       reason: "No data found"
     }
-  }
-  else if(files.length == 1) {
-    fpath = files[0];
   }
   else {
     let zipProc = child_process.spawn("sh", ["./zipgen.sh", downloadRoot, productionRoot, "data.zip", ...files]);
@@ -1486,6 +1476,8 @@ async function createMesonetPackage(stationIDs, combine, ftype, csvMode, options
       throw new Error("Zip process failed with code " + code);
     }
   }
+  //remove the packager directory, a new one was made with the zip contents
+  fs.rmSync(packager.packageDir, {recursive: true, force: true});
 
   let split = fpath.split("/");
   let fname = split.pop();

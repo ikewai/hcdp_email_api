@@ -38,7 +38,7 @@ class MesonetDataPackager {
         if(!this.combine && (this.stationID === undefined || this.stationID != stationID)) {
             this.stationID = stationID;
             let fname = `${stationID}.${this.ftype}`;
-            await this.createHandle(fname, this.varData[stationID]);
+            await this.createHandle(fname, this.varData[stationID] || {});
         }
         else if(this.handle === undefined) {
             let fname = `data.${this.ftype}`;
@@ -57,7 +57,8 @@ class MesonetDataPackager {
 
 class PackageFileHandle {
     constructor(outFile) {
-        this.stream = fs.createWriteStream(outFile)
+        this.stream = fs.createWriteStream(outFile);
+        
         this.ready = new Promise((resolve) => {
             this.stream.once("open", (fd) => {
                 resolve();
@@ -66,15 +67,16 @@ class PackageFileHandle {
     }
 
     async write(data) {
-        await this.ready;
-        if(!this.stream.write(data)) {
-            this.ready = new Promise((resolve) => {
-                this.stream.once("drain", () => {
-                    resolve();
+        this.ready = this.ready.then(() => {
+            if(!this.stream.write(data)) {
+                return new Promise((resolve) => {
+                    this.stream.once("drain", () => {
+                        resolve();
+                    });
                 });
-            });
-        }
-        return;
+            }
+            return;
+        });
     }
 
     async close(final) {
@@ -91,24 +93,28 @@ class PackageFileHandle {
 class JSONFileHandle extends PackageFileHandle {
     constructor(outFile) {
         super(outFile);
-        super.write("{");
         this.first = true;
+        super.write("{");
     }
 
     //needs to be provided in chunks of same id to be combined
     async write(stationID, measurements) {
         if(stationID === this.currentStationID) {
-            this.measurements = this._addMeasurements(measurements);
+            this._addMeasurements(measurements);
         }
         else {
-            await this._dumpStationMeasurements();
-            this.first = false;
+            if(this.measurements) {
+                await this._dumpStationMeasurements(this.currentStationID);
+            }
             this.currentStationID = stationID;
             this.measurements = measurements;
         }
     }
 
     async complete() {
+        if(this.measurements) {
+            this._dumpStationMeasurements(this.currentStationID);
+        }
         return this.close("}");
     }
 
@@ -116,11 +122,13 @@ class JSONFileHandle extends PackageFileHandle {
         let measurements = {};
         measurements[stationID] = this.measurements;
         let data = JSON.stringify(measurements, null, 4);
+        data = data.slice(1, -1);
         data.replace("\n", "\n    ");
-        data = "\n    " + data;
+        data = "    " + data;
         if(!this.first) {
             data = "," + data
         }
+        this.first = false;
         return super.write(data);
     }
 
@@ -141,35 +149,42 @@ class CSVMatrixFileHandle extends PackageFileHandle {
         super(outFile);
         this.stationData = stationData;
         this.varData = varData;
+        this.varIDs = Object.keys(this.varData);
         this.writeHeader();
     }
 
     async writeHeader() {
-        let varIDs = new Object.keys(this.varData);
+
         let varNames = this.varIDs.map((id) => {
           return this.varData[id].var_name;
         });
-        let units = varIDs.map((id) => {
+        let units = this.varIDs.map((id) => {
           return this.varData[id].unit;
         });
-        await super.write(`,,,"${varIDs.join("\",\"")}"\n`);
+        await super.write(`,,,"${this.varIDs.join("\",\"")}"\n`);
         await super.write(`,,,"${units.join("\",\"")}"\n`);
         await super.write(`station_name,station_id,timestamp,"${varNames.join("\",\"")}"\n`);
     }
 
     async write(stationID, measurements) {
-        let stationName = this.stationData[station].site_name;
+        let stationName = this.stationData[stationID].site_name;
         let rows = {};
-        for(let i = 0; i < varIDs.length; i++) {
-            let variable = varIDs[i];
-            let values = measurements[station][variable] || {};
+        for(let i = 0; i < this.varIDs.length; i++) {
+            let variable = this.varIDs[i];
+            let values = measurements[variable] || {};
             for(let timestamp in values) {
                 let row = rows[timestamp];
                 if(row === undefined) {
-                    row = [stationName, stationID, timestamp].concat(new Array(varIDs.length).fill("NA"));
+                    row = [stationName, stationID, timestamp].concat(new Array(this.varIDs.length).fill("NA"));
                     rows[timestamp] = row;
                 }
-                row[i + 3] = (values[timestamp] || "NA").toString();
+                let value = values[timestamp];
+                if(value === null) {
+                    row[i + 3] = "NA";
+                }
+                else {
+                    row[i + 3] = value.toString();
+                }
             }
         }
         let rowData = Object.values(rows).sort((a, b) => {
@@ -181,6 +196,7 @@ class CSVMatrixFileHandle extends PackageFileHandle {
     }
 
     async complete() {
+        await this.ready;
         return this.close();
     }
 }
@@ -198,10 +214,21 @@ class CSVTableFileHandle extends PackageFileHandle {
     }
 
     async write(stationID, measurements) {
+        let data = [];
         for(let variable in measurements) {
             for(let timestamp in measurements[variable]) {
-                await super.write(`${this.stationData[stationID].site_name},${stationID},${timestamp},${this.varData[variable].var_name},${variable},${this.varData[variable].unit},${measurements[variable][timestamp] || "NA"}\n`);
+                let value = measurements[variable][timestamp];
+                if(value === null) {
+                    value = "NA";
+                }
+                data.push([this.stationData[stationID].site_name, stationID, timestamp, this.varData[variable].var_name, variable, this.varData[variable].unit, value]);
             }
+        }
+        data.sort((a, b) => {
+            return a[2] < b[2] ? -1 : 1;
+        });
+        for(let row of data) {
+            await super.write(`"${row.join("\",\"")}"\n`);
         }
     }
 

@@ -332,7 +332,7 @@ class TapisV3Manager {
                         // If authentication is successful
                         if(authRes.statusCode === 200 && parsedResponse.result?.access_token?.access_token) {
                             //reauth one minute before token goes stale
-                            setTimeout(() => {
+                            this.authRefresh = setTimeout(() => {
                                 this.authenticate();
                             }, (parsedResponse.result.access_token.expires_in - 60) * 1000);
                             resolve(parsedResponse.result.access_token.access_token);
@@ -358,37 +358,46 @@ class TapisV3Manager {
         });
     }
 
-    async listMeasurements(stationID, options) {
-        // Construct URL for measurements request
-        let url = `${this.tenantURL}/v3/streams/projects/${this.projectID}/sites/${stationID}/instruments/${stationID}${this.instExt}/measurements`;
-
-        // Construct URL params from options object
+    encodeURLParams(params) {
+        let encoded = "";
         const queryParams = [];
-        for(const key in options) {
-            queryParams.push(`${key}=${encodeURIComponent(options[key])}`);
+        for(const key in params) {
+            queryParams.push(`${key}=${encodeURIComponent(params[key])}`);
         }
         if(queryParams.length > 0) {
-            url += `?${queryParams.join('&')}`;
+            encoded = `?${queryParams.join('&')}`;
         }
-        let res = await this.submitRequest(url, this.retryLimit);
+        return encoded;
+    }
+
+    async listMeasurements(stationID, options) {
+        // Construct URL for measurements request
+        let url = `${this.tenantURL}/v3/streams/projects/${this.projectID}/sites/${stationID}/instruments/${stationID}${this.instExt}/measurements${this.encodeURLParams(options)}`;
+        let res = await this.submitRequest(url) || {};
+        if(res.measurements_in_file !== undefined) {
+            delete res.measurements_in_file;
+        }
         return res;
     }
 
     async listVariables(stationID) {
         // Construct URL for measurements request
         let url = `${this.tenantURL}/v3/streams/projects/${this.projectID}/sites/${stationID}/instruments/${stationID}${this.instExt}/variables`;
-        let res = await this.submitRequest(url, this.retryLimit);
+        let res = await this.submitRequest(url) || [];
         return res;
     } 
 
     async listSites() {
         // Construct URL for request
         let url = `${this.tenantURL}/v3/streams/projects/${this.projectID}/sites`;
-        let res = await this.submitRequest(url, this.retryLimit);
+        let res = await this.submitRequest(url) || [];
         return res;
     }
 
     async submitRequest(url, options, retries) {
+        if(retries === undefined) {
+            retries = this.retryLimit;
+        }
         //get token from auth promise
         let token = await this.auth;
 
@@ -400,7 +409,6 @@ class TapisV3Manager {
             },
             ...options
         };
-
 
         // Return a promise for asynchronous measurements retrieval
         return new Promise((resolve, reject) => {
@@ -430,14 +438,19 @@ class TapisV3Manager {
                 // When response is complete
                 res.on('end', () => {
                     try {
-                        const parsedResponse = JSON.parse(data);
-                        // If measurements retrieval is successful
-                        if (res.statusCode === 200 && parsedResponse.result) {
+                        // If retrieval is successful resolve with data parsed as JSON
+                        if(res.statusCode === 200) {
+                            const parsedResponse = JSON.parse(data);
                             resolve(parsedResponse.result);
-                        } 
-                        else {
-                            throw new Error()
                         }
+                        //if failed but the query was just empty return null and let caller fill default
+                        else if(res.statusCode == 500 && (data.includes("Unrecognized exception type: <class 'KeyError'>") || data.includes("Unrecognized exception type: <class 'pandas.errors.EmptyDataError'>"))) {
+                            resolve(null);
+                        }
+                        else {
+                            throw new Error();
+                        }
+                        
                     }
                     catch(error) {
                         retry(res.statusCode || 500, data);
@@ -452,6 +465,10 @@ class TapisV3Manager {
 
             req.end();
         });
+    }
+
+    close() {
+        clearTimeout(this.authRefresh);
     }
 }
 
