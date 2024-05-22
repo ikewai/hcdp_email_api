@@ -1412,8 +1412,44 @@ app.get("/mesonet/getMeasurements", async (req, res) => {
   });
 });
 
+function getBatchSize() {
+  return [3, "months"];
+}
+
+function getDefaultStartDate() {
+  return new moment().subtract(...getBatchSize()).toISOString();
+}
+
+function getDefaultEndDate() {
+  return new moment().toISOString();
+}
+
+function batchDates(start, end) {
+  let batches = [];
+  let date = new moment(start);
+  let endDate = new moment(end);
+  const batchSize = getBatchSize();
+  let batchStart = date.toISOString();
+  date.add(...batchSize);
+  let batchEnd;
+  while(date.isBefore(endDate)) {
+    batchEnd = date.toISOString();
+    batches.push([batchStart, batchEnd]);
+    batchStart = batchEnd;
+    date.add(...batchSize);
+  }
+  batches.push([batchStart, endDate.toISOString()]);
+  return batches;
+}
 
 async function createMesonetPackage(stationIDs, combine, ftype, csvMode, options, reqData) {
+  //set start and end dates to default if they do not exist to prevent very large queries that cannot be chunked
+  if(options.start_date === undefined) {
+    options.start_date = getDefaultStartDate();
+  }
+  if(options.endDate === undefined) {
+    options.endDate = getDefaultEndDate();
+  }
   const stationData = await tapisV3Manager.listSites();
   //station data has all instruments and variables, just repack variables and strip out of station refs to reduce unnecessary size (no need to query vars)
   let packedStationData = {};
@@ -1440,18 +1476,22 @@ async function createMesonetPackage(stationIDs, combine, ftype, csvMode, options
 
   let packager = new MesonetDataPackager("./output", variableData, packedStationData, combine, ftype, csvMode);
 
+  let batches = batchDates(options.start_date, options.end_date);
   for(let stationID of stationIDs) {
-    let measurements = {};
-    try {
-      measurements = await tapisV3Manager.listMeasurements(stationID, options);
-      await packager.write(stationID, measurements);
-    }
-    catch(e) {
-      packager.complete();
-      let {status, reason} = e;
-      throw {
-        status: status || 500,
-        reason: reason || `An error occurred while writing a file: ${e}`
+    for(let batch of batches) {
+      options.start_date = batch[0];
+      options.end_date = batch[1];
+      try {
+        let measurements = await tapisV3Manager.listMeasurements(stationID, options);
+        await packager.write(stationID, measurements);
+      }
+      catch(e) {
+        packager.complete();
+        let {status, reason} = e;
+        throw {
+          status: status || 500,
+          reason: reason || `An error occurred while writing a file: ${e}`
+        }
       }
     }
   }
@@ -1522,8 +1562,8 @@ app.get("/mesonet/createPackage/link", async (req, res) => {
         csvMode (optional): How to pack CSV data if "csv" is selected for ftype. Should be "table" or "matrix" Default value "matrix".
         limit (optional): A number indicating the maximum number of records to be returned for each variable.
         offset (optional): A number indicating an offset in the records returned from the first available record.
-        start_date (optional): An ISO-8601 formatted date string indicating the date/time returned records should start at.
-        end_date (optional): An ISO-8601 formatted date string indicating the date/time returned records should end at
+        start_date (optional): An ISO-8601 formatted date string indicating the date/time returned records should start at. Default value is 3 months before the current date and time.
+        end_date (optional): An ISO-8601 formatted date string indicating the date/time returned records should end at. Default value is the current date and time.
         var_ids (optional): A comma separated list of variable IDs limiting what variables will be returned.`
       );
     }
@@ -1565,8 +1605,8 @@ app.get("/mesonet/createPackage/email", async (req, res) => {
         csvMode (optional): How to pack CSV data if "csv" is selected for ftype. Should be "table" or "matrix" Default value "matrix".
         limit (optional): A number indicating the maximum number of records to be returned for each variable.
         offset (optional): A number indicating an offset in the records returned from the first available record.
-        start_date (optional): An ISO-8601 formatted date string indicating the date/time returned records should start at.
-        end_date (optional): An ISO-8601 formatted date string indicating the date/time returned records should end at
+        start_date (optional): An ISO-8601 formatted date string indicating the date/time returned records should start at. Default value is 3 months before the current date and time.
+        end_date (optional): An ISO-8601 formatted date string indicating the date/time returned records should end at. Default value is the current date and time.
         var_ids (optional): A comma separated list of variable IDs limiting what variables will be returned.`
       );
     }
