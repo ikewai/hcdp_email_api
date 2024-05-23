@@ -31,7 +31,7 @@ class MesonetDataPackager {
             this.handle = this.csvMode == "table" ? new CSVTableFileHandle(outFile, varData, this.stationData) : new CSVMatrixFileHandle(outFile, varData, this.stationData);
         }
         
-        this.files.push(outFile);
+        this.files.push(fname);
     }
 
     async write(stationID, measurements) {
