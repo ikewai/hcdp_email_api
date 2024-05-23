@@ -684,6 +684,7 @@ app.post("/genzip/email", async (req, res) => {
           clientError += " We appologize for the inconvenience. The site administrators will be notified of the issue. Please try again later.";
           let mailOptions = {
             to: email,
+            subject: "HCDP Data Error",
             text: clientError,
             html: "<p>" + clientError + "</p>"
           };
@@ -1627,6 +1628,7 @@ app.get("/mesonet/createPackage/email", async (req, res) => {
         clientError += " We appologize for the inconvenience. The site administrators will be notified of the issue. Please try again later.";
         let mailOptions = {
           to: email,
+          subject: "Mesonet Data Error",
           text: clientError,
           html: "<p>" + clientError + "</p>"
         };
@@ -1644,6 +1646,7 @@ app.get("/mesonet/createPackage/email", async (req, res) => {
   
       let mailOptions = {
         to: email,
+        subject: "Mesonet Data",
         text: "Your Mesonet download package is ready. Please go to " + link + " to download it. This link will expire in three days, please download your data in that time.",
         html: "<p>Your Mesonet download package is ready. Please click <a href=\"" + link + "\">here</a> to download it. This link will expire in three days, please download your data in that time.</p>"
       };
