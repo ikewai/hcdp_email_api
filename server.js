@@ -85,7 +85,7 @@ let options = {
 const server = https.createServer(options, app)
 .listen(port, (err) => {
   if(err) {
-    console.error(error);
+    console.error(err);
   }
   else {
     console.log("Server listening at port " + port);
@@ -1477,7 +1477,6 @@ async function createMesonetPackage(stationIDs, combine, ftype, csvMode, options
   let packager = new MesonetDataPackager(downloadRoot, variableData, packedStationData, combine, ftype, csvMode);
 
   let batches = batchDates(options.start_date, options.end_date);
-  console.log(batches);
   for(let stationID of stationIDs) {
     for(let batch of batches) {
       options.start_date = batch[0];
@@ -1506,7 +1505,6 @@ async function createMesonetPackage(stationIDs, combine, ftype, csvMode, options
     }
   }
   else {
-    console.log("files: ", files);
     let zipProc = child_process.spawn("sh", ["./zipgen.sh", downloadRoot, packager.packageDir, "data.zip", ...files]);
 
     //write stdout (should be file name) to output accumulator

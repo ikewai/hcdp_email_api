@@ -1,7 +1,7 @@
 const { MongoClient } = require("mongodb");
 const querystring = require('querystring');
 const https = require("https");
-
+const moment = require("moment");
 
 class DBManager {
     constructor(server, port, username, password, dbName, collectionName, connectionRetryLimit, queryRetryLimit) {
@@ -298,6 +298,11 @@ class TapisV3Manager {
         this.authenticate();
     }
 
+    convertTimestampToHST(timestamp) {
+        let converted = new moment(timestamp).subtract(10, "hours");
+        return converted.toISOString().slice(0, -1) + "-10:00";
+    }
+
     authenticate() {
         // Construct the authentication URL
         const authUrl = `${this.tenantURL}/v3/oauth2/tokens`;
@@ -376,6 +381,15 @@ class TapisV3Manager {
         let res = await this.submitRequest(url) || {};
         if(res.measurements_in_file !== undefined) {
             delete res.measurements_in_file;
+        }
+        //transform timestamps
+        for(let variable in res) {
+            let transformedVarData = {};
+            for(let timestamp in res[variable]) {
+                let hstTimestamp = this.convertTimestampToHST(timestamp);
+                transformedVarData[hstTimestamp] = res[variable][timestamp];
+            }
+            res[variable] = transformedVarData;
         }
         return res;
     }
