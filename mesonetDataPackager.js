@@ -161,9 +161,9 @@ class CSVMatrixFileHandle extends PackageFileHandle {
         let units = this.varIDs.map((id) => {
           return this.varData[id].unit;
         });
-        await super.write(`,,,"${this.varIDs.join("\",\"")}"\n`);
-        await super.write(`,,,"${units.join("\",\"")}"\n`);
-        await super.write(`station_name,station_id,timestamp,"${varNames.join("\",\"")}"\n`);
+        super.write(`,,,"${this.varIDs.join("\",\"")}"\n`);
+        super.write(`,,,"${units.join("\",\"")}"\n`);
+        super.write(`station_name,station_id,timestamp,"${varNames.join("\",\"")}"\n`);
     }
 
     async write(stationID, measurements) {
@@ -210,7 +210,7 @@ class CSVTableFileHandle extends PackageFileHandle {
     }
 
     async writeHeader() {
-        await super.write("station_name,station_id,timestamp,variable_name,variable_id,unit,value\n");
+        super.write("station_name,station_id,timestamp,variable_name,variable_id,unit,value\n");
     }
 
     async write(stationID, measurements) {
