@@ -1,8 +1,20 @@
+import { Writable } from "stream";
+
 const { v4: uuidv4 } = require('uuid');
 const fs = require('fs');
 const path = require('path');
 
-class MesonetDataPackager {
+export class MesonetDataPackager {
+    packageDir: string;
+    combine: boolean;
+    ftype: "json" | "csv";
+    csvMode: "matrix" | "table";
+    files: string[];
+    varData: any;
+    stationData: any;
+    handle: PackageFileHandle | undefined;
+    stationID: string | undefined;
+
     constructor(root, varData, stationData, combine, ftype, csvMode) {
         const uuid = uuidv4();
         const packageDir = path.join(root, uuid);
@@ -44,7 +56,7 @@ class MesonetDataPackager {
             let fname = `data.${this.ftype}`;
             await this.createHandle(fname, this.varData);
         }
-        return this.handle.write(stationID, measurements);
+        return this.handle!.write(stationID, measurements);
     }
 
     async complete() {
@@ -55,8 +67,11 @@ class MesonetDataPackager {
     }
 }
 
-class PackageFileHandle {
-    constructor(outFile) {
+abstract class PackageFileHandle {
+    stream: Writable;
+    ready: Promise<void>;
+
+    constructor(outFile: string) {
         this.stream = fs.createWriteStream(outFile);
         
         this.ready = new Promise((resolve) => {
@@ -66,7 +81,13 @@ class PackageFileHandle {
         });
     }
 
-    async write(data) {
+    abstract write(stationID: string, measurements: any): Promise<void>;
+
+    public async complete(): Promise<void> {
+        await this.close();
+    }
+
+    protected async writeData(data) {
         this.ready = this.ready.then(() => {
             if(!this.stream.write(data)) {
                 return new Promise((resolve) => {
@@ -79,7 +100,7 @@ class PackageFileHandle {
         });
     }
 
-    async close(final) {
+    protected async close(final?): Promise<void> {
         await this.ready;
         return new Promise((resolve) => {
             this.stream.end(final, () => {
@@ -91,20 +112,24 @@ class PackageFileHandle {
 
 
 class JSONFileHandle extends PackageFileHandle {
+    first: boolean;
+    measurements: any;
+    currentStationID: string | undefined;
+
     constructor(outFile) {
         super(outFile);
         this.first = true;
-        super.write("{");
+        super.writeData("{");
     }
 
     //needs to be provided in chunks of same id to be combined
-    async write(stationID, measurements) {
+    async write(stationID: string, measurements) {
         if(stationID === this.currentStationID) {
-            this._addMeasurements(measurements);
+            this.addMeasurements(measurements);
         }
         else {
             if(this.measurements) {
-                await this._dumpStationMeasurements(this.currentStationID);
+                await this.dumpStationMeasurements(this.currentStationID);
             }
             this.currentStationID = stationID;
             this.measurements = measurements;
@@ -113,12 +138,12 @@ class JSONFileHandle extends PackageFileHandle {
 
     async complete() {
         if(this.measurements) {
-            this._dumpStationMeasurements(this.currentStationID);
+            this.dumpStationMeasurements(this.currentStationID);
         }
         return this.close("}");
     }
 
-    _dumpStationMeasurements(stationID) {
+    private dumpStationMeasurements(stationID) {
         let measurements = {};
         measurements[stationID] = this.measurements;
         let data = JSON.stringify(measurements, null, 4);
@@ -129,10 +154,10 @@ class JSONFileHandle extends PackageFileHandle {
             data = "," + data
         }
         this.first = false;
-        return super.write(data);
+        return super.writeData(data);
     }
 
-    _addMeasurements(measurements) {
+    private addMeasurements(measurements) {
         for(let variable in measurements) {
             if(this.measurements[variable] === undefined) {
                 this.measurements[variable] = {};
@@ -145,7 +170,11 @@ class JSONFileHandle extends PackageFileHandle {
 }
 
 class CSVMatrixFileHandle extends PackageFileHandle {
-    constructor(outFile, varData, stationData) {
+    stationData: any;
+    varData: any;
+    varIDs: string[];
+
+    constructor(outFile: string, varData, stationData) {
         super(outFile);
         this.stationData = stationData;
         this.varData = varData;
@@ -161,14 +190,14 @@ class CSVMatrixFileHandle extends PackageFileHandle {
         let units = this.varIDs.map((id) => {
           return this.varData[id].unit;
         });
-        super.write(`,,,"${this.varIDs.join("\",\"")}"\n`);
-        super.write(`,,,"${units.join("\",\"")}"\n`);
-        super.write(`station_name,station_id,timestamp,"${varNames.join("\",\"")}"\n`);
+        super.writeData(`,,,"${this.varIDs.join("\",\"")}"\n`);
+        super.writeData(`,,,"${units.join("\",\"")}"\n`);
+        super.writeData(`station_name,station_id,timestamp,"${varNames.join("\",\"")}"\n`);
     }
 
     async write(stationID, measurements) {
         let stationName = this.stationData[stationID].site_name;
-        let rows = {};
+        let rows: {[timestamp: string]: string[]} = {};
         for(let i = 0; i < this.varIDs.length; i++) {
             let variable = this.varIDs[i];
             let values = measurements[variable] || {};
@@ -191,17 +220,15 @@ class CSVMatrixFileHandle extends PackageFileHandle {
             return a[2] < b[2] ? -1 : 1;
         });
         for(let row of rowData) {
-            await super.write(`"${row.join("\",\"")}"\n`);
+            await super.writeData(`"${row.join("\",\"")}"\n`);
         }
-    }
-
-    async complete() {
-        await this.ready;
-        return this.close();
     }
 }
 
 class CSVTableFileHandle extends PackageFileHandle {
+    stationData: any;
+    varData: any;
+
     constructor(outFile, varData, stationData) {
         super(outFile);
         this.stationData = stationData;
@@ -210,11 +237,11 @@ class CSVTableFileHandle extends PackageFileHandle {
     }
 
     async writeHeader() {
-        super.write("station_name,station_id,timestamp,variable_name,variable_id,unit,value\n");
+        super.writeData("station_name,station_id,timestamp,variable_name,variable_id,unit,value\n");
     }
 
     async write(stationID, measurements) {
-        let data = [];
+        let data: string[][] = [];
         for(let variable in measurements) {
             for(let timestamp in measurements[variable]) {
                 let value = measurements[variable][timestamp];
@@ -228,13 +255,7 @@ class CSVTableFileHandle extends PackageFileHandle {
             return a[2] < b[2] ? -1 : 1;
         });
         for(let row of data) {
-            await super.write(`"${row.join("\",\"")}"\n`);
+            await super.writeData(`"${row.join("\",\"")}"\n`);
         }
     }
-
-    async complete() {
-        return this.close();
-    }
 }
-
-module.exports = MesonetDataPackager;
