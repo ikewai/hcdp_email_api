@@ -4,6 +4,8 @@
   "description": "HCDP API.",
   "main": "server.js",
   "scripts": {
+    "deploy": "bash util/deploy.sh",
+    "deploy-test": "bash util/deploy_test.sh",
     "build": "npx tsc && cp -R src/assets dist",
     "start": "npm run build && cd dist/app && node server.js",
     "test": "echo \"Error: no test specified\" && exit 1"
