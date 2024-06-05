@@ -16,7 +16,7 @@ COPY certs/live/**/*.pem ./src/assets/
 
 # RUN npm install
 # If you are building your code for production
-RUN npm install --only=production
+RUN npm install
 
 RUN g++ ./tiffextract/driver.cpp -o tiffextract.out -fopenmp
 
