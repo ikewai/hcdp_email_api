@@ -721,7 +721,7 @@ app.post("/genzip/email", async (req, res) => {
         reqData.sizeF = numFiles;
         let zipPath = "";
         let zipProc;
-        zipProc = child_process.spawn("sh", ["src/bash/zipgen.sh", downloadRoot, productionRoot, zipName, ...paths]);
+        zipProc = child_process.spawn("sh", ["../assets/scripts/zipgen.sh", downloadRoot, productionRoot, zipName, ...paths]);
 
         let code = await handleSubprocess(zipProc, (data) => {
           zipPath += data.toString();
@@ -904,7 +904,7 @@ app.post("/genzip/instant/link", async (req, res) => {
       reqData.sizeF = numFiles;
       res.contentType("application/zip");
 
-      let zipProc = child_process.spawn("sh", ["src/bash/zipgen.sh", downloadRoot, productionRoot, zipName, ...paths]);
+      let zipProc = child_process.spawn("sh", ["../assets/scripts/zipgen.sh", downloadRoot, productionRoot, zipName, ...paths]);
       let zipPath = "";
 
       //write stdout (should be file name) to output accumulator
@@ -973,7 +973,7 @@ app.post("/genzip/instant/splitlink", async (req, res) => {
 
       reqData.sizeF = numFiles;
       res.contentType("application/zip");
-      let zipProc = child_process.spawn("sh", ["src/bash/zipgen_parts.sh", downloadRoot, productionRoot, ...paths]);
+      let zipProc = child_process.spawn("sh", ["../assets/scripts/zipgen_parts.sh", downloadRoot, productionRoot, ...paths]);
       let zipOutput = "";
 
       //write stdout (should be file name) to output accumulator
@@ -1513,7 +1513,7 @@ async function createMesonetPackage(stationIDs, combine, ftype, csvMode, options
     }
   }
   else {
-    let zipProc = child_process.spawn("sh", ["src/bash/zipgen.sh", downloadRoot, packager.packageDir, "data.zip", ...files]);
+    let zipProc = child_process.spawn("sh", ["../assets/scripts/zipgen.sh", downloadRoot, packager.packageDir, "data.zip", ...files]);
 
     //write stdout (should be file name) to output accumulator
     let code = await handleSubprocess(zipProc, (data) => {
