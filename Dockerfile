@@ -18,8 +18,6 @@ COPY certs/live/**/*.pem ./src/assets/
 # If you are building your code for production
 RUN npm install
 
-RUN g++ ./tiffextract/driver.cpp -o tiffextract.out -fopenmp
-
 EXPOSE 443
 
 # Don't use npm start because signals are handled weird. To get a graceful stop need to run node server.js directly
@@ -27,5 +25,7 @@ EXPOSE 443
 
 # Compile
 RUN npm run build
+RUN g++ ./tiffextract/driver.cpp -o dist/assets/tiffextract.out -fopenmp
+
 WORKDIR /api/dist/app
 CMD [ "node", "server.js" ]
