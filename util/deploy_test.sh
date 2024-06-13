@@ -4,7 +4,7 @@ docker stop emailtest
 docker wait emailtest
 docker rm emailtest
 
-cp -R ../api/certs/live certs/live
+cp -R ../api/certs/live certs
 
 docker build -t hcdp_email_api_test .
 
