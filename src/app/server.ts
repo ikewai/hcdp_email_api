@@ -1122,7 +1122,7 @@ app.get("/raw/sff", async (req, res) => {
 app.get("/raw/list", async (req, res) => {
   const permission = "basic";
   await handleReq(req, res, permission, async (reqData) => {
-    const { date, station_id } = req.query;
+    let { date, station_id, location } = req.query;
 
     if(!date) {
       //set failure and code in status
@@ -1133,16 +1133,20 @@ app.get("/raw/list", async (req, res) => {
       .send(
         "Request must include the following parameters: \n\
         date: An ISO 8601 formatted date string representing the date you would like the data for. \n\
-        station_id (optional): The station ID you want to get files for."
+        station_id (optional): The station ID you want to get files for. \n\
+        location (optional): The sensor network location to retreive files for. Default hawaii"
       );
     }
     else {
+      if(location === undefined) {
+        location = "hawaii"
+      }
       let parsedDate = moment(date);
       let year = parsedDate.format("YYYY");
       let month = parsedDate.format("MM");
       let day = parsedDate.format("DD");
   
-      let dataDir = path.join("hawaii", year, month, day);
+      let dataDir = path.join(location, year, month, day);
       let sysDir = path.join(rawDataRoot, dataDir);
       let linkDir = `${apiURL}/raw/download?p=${dataDir}/`;
   
@@ -1758,6 +1762,13 @@ app.post("/notify", async (req, res) => {
 });
 
 
+
+
+
+
+
+
+
 //create instrument for flag, add default value to metadata
 function createFlag(flag, defaultValue) {
   if(defaultValue === undefined) {
@@ -1778,6 +1789,15 @@ function createFlag(flag, defaultValue) {
 app.post("/mesonet/setFlag", async (req, res) => {
   const permission = "meso_admin";
   await handleReq(req, res, permission, async (reqData) => {
+    reqData.success = false;
+      reqData.code = 501;
+
+      return res.status(501)
+      .send(
+        `Not implemented`
+      );
+
+
     const { station_id, flag, data } = req.body;
 
     let instID = "";
@@ -1800,6 +1820,14 @@ app.post("/mesonet/setFlag", async (req, res) => {
 app.post("/mesonet/setFlag/default", async (req, res) => {
   const permission = "meso_admin";
   await handleReq(req, res, permission, async (reqData) => {
+    reqData.success = false;
+      reqData.code = 501;
+
+      return res.status(501)
+      .send(
+        `Not implemented`
+      );
+
     const { station_id, var_id, flag, value } = req.body;
   });
 });
