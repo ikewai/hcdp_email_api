@@ -4,11 +4,16 @@
   "description": "HCDP API.",
   "main": "server.js",
   "scripts": {
+    "deploy": "bash util/deploy.sh",
+    "deploy-test": "bash util/deploy_test.sh",
+    "build": "npx tsc && cp -R src/assets dist",
+    "start": "npm run build && cd dist/app && node server.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "Jared McLean",
   "license": "ISC",
   "dependencies": {
+    "@types/node": "^20.12.13",
     "autodetect-decoder-stream": "^2.0.2",
     "body-parser": "^1.19.0",
     "compression": "^1.7.4",
@@ -24,5 +29,10 @@
     "nodemailer": "^6.6.1",
     "safe-compare": "^1.1.4",
     "uuid": "^9.0.1"
+  },
+  "devDependencies": {
+    "@types/dotenv": "^8.2.0",
+    "@types/express": "^4.17.21",
+    "typescript": "^5.4.5"
   }
 }

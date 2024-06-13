@@ -1,0 +1,48 @@
+
+{
+    "port": 443,
+    "smtp": "smtp.hawaii.edu",
+    "smtpPort": 25,
+    "key": "key.pem",
+    "cert": "cert.pem",
+    "defaultZipName": "HCDP_data.zip",
+    "rawDataDir": "raw/",
+    "downloadDir": "downloads/",
+    "productionDir": "production/",
+    "licenseFile": "production/LICENSE.txt",
+    "dataRoot": "/data/",
+    "urlRoot": "https://ikeauth.its.hawaii.edu/files/v2/download/public/system/ikewai-annotated-data/HCDP/",
+    "userLog": "/logs/userlog.txt",
+    "whitelist": {
+        "token": {
+            "permissions": ["basic", "db", "notify", "mesonet_admin"]
+        }
+    },
+    "administrators": ["mcleanj@hawaii.edu", "seanbc@hawaii.edu"],
+    "email": {
+        "from": "no-reply-hcdp@hawaii.edu",
+        "subject": "HCDP Data"
+    },
+    "dbConfig": {
+        "server": "agavepersist.its.hawaii.edu",
+        "port": 27017,
+        "username": "username",
+        "password": "password",
+        "db": "api",
+        "collection": "metadata",
+        "connectionRetryLimit": 3,
+        "queryRetryLimit": 3
+    },
+    "tapisConfig": {
+        "tenantURL": "https://agaveauth.its.hawaii",
+        "token": "token"
+    },
+    "tapisV3Config": {
+        "username": "username",
+        "password": "password",
+        "tenantURL": "https://dev.develop.tapis.io",
+        "projectID": "mesonet_streams_prod",
+        "instExt": "_globallyuniqueidsarenonsensicalforhierarchicalstructures3"
+    },
+    "githubWebhookSecret": "secret"
+}
