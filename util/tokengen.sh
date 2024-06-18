@@ -21,5 +21,5 @@ restart=${restart:-y}
 restart=$(echo $restart | tr '[:upper:]' '[:lower:]')
 if [ "$restart" == "y" ]; then
     echo "The API will now restart..."
-    /bin/bash docker_redeploy.sh
+    /bin/bash ./util/deploy.sh
 fi
