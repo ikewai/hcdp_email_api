@@ -41,8 +41,12 @@
         "username": "username",
         "password": "password",
         "tenantURL": "https://dev.develop.tapis.io",
-        "projectID": "mesonet_streams_prod",
-        "instExt": "_globallyuniqueidsarenonsensicalforhierarchicalstructures3"
+        "streams": {
+            "projects": {
+                "hawaii": "hawaii_mesonet",
+                "american_samoa": "american_samoa_mesonet"
+            }
+        }
     },
     "githubWebhookSecret": "secret"
 }

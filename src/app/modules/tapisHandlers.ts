@@ -1,7 +1,9 @@
 const { MongoClient } = require("mongodb");
 const querystring = require('querystring');
 const https = require("https");
-const moment = require("moment");
+
+import { TapisV3Auth } from "./tapis/auth";
+import { TapisV3Streams } from "./tapis/streams";
 
 export class DBManager {
     dbName: string;
@@ -297,314 +299,25 @@ export class TapisManager {
 }
 
 
+
+
+
+
 export class TapisV3Manager {
-    username: string;
-    password: string;
-    tenantURL: string;
-    projectID: string;
-    instExt: string;
-    retryLimit: number;
-    v2Manager: TapisManager;
-    auth!: Promise<string>;
-    authRefresh!: NodeJS.Timeout;
+    private auth: TapisV3Auth;
+    private _streams: TapisV3Streams;
 
-    constructor(username, password, tenantURL, projectID, instExt, retryLimit, v2Manager) {
-        // Initialize class properties with provided values
-        this.username = username;
-        this.password = password;
-        this.tenantURL = tenantURL;
-        this.projectID = projectID;
-        this.instExt = instExt;
-        this.retryLimit = retryLimit;
-        this.v2Manager = v2Manager;
-        this.authenticate();
+    constructor(username: string, password: string, tenantURL: string, retryLimit: number, v2Manager: TapisManager) {
+        this.auth = new TapisV3Auth(username, password, tenantURL);
+        this._streams = new TapisV3Streams(tenantURL, retryLimit, v2Manager, this.auth);
     }
 
-    convertTimestampToHST(timestamp) {
-        let converted = new moment(timestamp).subtract(10, "hours");
-        return converted.toISOString().slice(0, -1) + "-10:00";
+    get streams(): TapisV3Streams {
+        return this._streams;
     }
 
-    authenticate() {
-        // Construct the authentication URL
-        const authUrl = `${this.tenantURL}/v3/oauth2/tokens`;
-
-        // Construct the payload for authentication
-        const authPayload = `username=${encodeURIComponent(this.username)}&password=${encodeURIComponent(this.password)}&grant_type=password&scope=user`;
-
-        // Set options for the authentication request
-        const authOptions = {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded',
-            },
-        };
-
-        // set auth promise to authentication funct
-        this.auth = new Promise((resolve, reject) => {
-            // Initiate the authentication request
-            const authReq = https.request(authUrl, authOptions, (authRes) => {
-                authRes.setEncoding('utf8');
-                let authData = '';
-
-                // Accumulate response data
-                authRes.on('data', (chunk) => {
-                    authData += chunk;
-                });
-
-                // When response is complete
-                authRes.on('end', () => {
-                    try {
-                        const parsedResponse = JSON.parse(authData);
-                        // If authentication is successful
-                        if(authRes.statusCode === 200 && parsedResponse.result?.access_token?.access_token) {
-                            //reauth one minute before token goes stale
-                            this.authRefresh = setTimeout(() => {
-                                this.authenticate();
-                            }, (parsedResponse.result.access_token.expires_in - 60) * 1000);
-                            resolve(parsedResponse.result.access_token.access_token);
-                        }
-                        else {
-                            throw new Error('Authentication failed');
-                        }
-                    }
-                    catch (error) {
-                        reject(error);
-                    }
-                });
-            });
-
-            // Handle errors in the authentication request
-            authReq.on('error', (error) => {
-                reject(error);
-            });
-
-            // Send authentication payload
-            authReq.write(authPayload);
-            authReq.end();
-        });
-    }
-
-    encodeURLParams(params) {
-        let encoded = "";
-        const queryParams: string[] = [];
-        for(const key in params) {
-            queryParams.push(`${key}=${encodeURIComponent(params[key])}`);
-        }
-        if(queryParams.length > 0) {
-            encoded = `?${queryParams.join('&')}`;
-        }
-        return encoded;
-    }
-
-    async listMeasurements(stationID, options) {
-        // Construct URL for measurements request
-        let url = `${this.tenantURL}/v3/streams/projects/${this.projectID}/sites/${stationID}/instruments/${stationID}${this.instExt}/measurements${this.encodeURLParams(options)}`;
-        let res: any = await this.submitRequest(url) || {};
-        if(res.measurements_in_file !== undefined) {
-            delete res.measurements_in_file;
-        }
-        //transform timestamps
-        for(let variable in res) {
-            let transformedVarData = {};
-            for(let timestamp in res[variable]) {
-                let hstTimestamp = this.convertTimestampToHST(timestamp);
-                transformedVarData[hstTimestamp] = res[variable][timestamp];
-            }
-            res[variable] = transformedVarData;
-        }
-        return res;
-    }
-
-    async listVariables(stationID) {
-        // Construct URL for measurements request
-        let url = `${this.tenantURL}/v3/streams/projects/${this.projectID}/sites/${stationID}/instruments/${stationID}${this.instExt}/variables`;
-        let res = await this.submitRequest(url) || [];
-        return res;
-    } 
-
-    async listStations(): Promise<any[]> {
-        // Construct URL for request
-        let url = `${this.tenantURL}/v3/streams/projects/${this.projectID}/sites`;
-        let res: any[] = <any[]>(await this.submitRequest(url)) || [];
-        return res;
-    }
-
-    //create all variables
-    //also mesonet workflow will need to create vars for all instruments
-    //and create all flag instruments for new stations
-    async createFlagInstrument(stationID, flagID, flagName, defaultValue) {
-        let instrumentID = this.getFlagInstID(stationID, flagID);
-        let url = `${this.tenantURL}/v3/streams/projects/${this.projectID}/sites/${stationID}/instruments`;
-        let options = {
-            method: "POST"
-        };
-        let metadata = {
-            id: flagID,
-            name: flagName,
-            default: defaultValue
-        };
-
-        let body = JSON.stringify([{
-            inst_id: instrumentID,
-            inst_name: instrumentID,
-            inst_description: `Instrument for logging ${flagID} flag values for station ${stationID}`,
-            metadata
-        }]);
-
-        await this.submitRequest(url, options, body);
-        return instrumentID;
-    }
-
-    //update?
-    async createFlag(stationID, flagID, flagName, variableIDs, defaultValue) {
-        let instrumentID = await this.createFlagInstrument(stationID, flagID, flagName, defaultValue);
-        //can mass create variables
-        //note units and stuff don't matter for flags
-        for(let variableID of variableIDs) {
-            await this.createFlagVariable(flagID, variableID);
-        }
-    }
-
-    async createFlagVariable(flagID, variableID) {
-        //this.createFlagVariables();
-    }
-
-    async createStation() {
-    }
-
-    async getFlags() {
-        let stations = this.listStations();
-        let flags = stations[0].instruments.map((instrument) => {
-            return {
-                flag_id: instrument.inst_id,
-                flag_name: instrument.inst_name
-            };
-        });
-        return flags;
-    }
-
-
-    //////////////////////////////////////////////////////////
-    //////////////////////////////////////////////////////////
-    //////////////////////////////////////////////////////////
-
-    async registerFlag(flagID, flagName, defaultValue) {
-        if(defaultValue === undefined) {
-            defaultValue = 0;
-        }
-        this.v2Manager.create({
-            name: "mesonet_flag",
-            value: {
-                id: flagID,
-                name: flagName,
-                defaultValue
-            }
-        });
-    }
-
-    async getFlag(flagID) {
-        let flag = null;
-        let flagData = await this.v2Manager.queryData({
-            name: "mesonet_flag",
-            "value.id": flagID
-        });
-        if(flagData.length > 0) {
-            flag = flagData[0];
-        }
-    }
-
-    async listFlags() {
-        return this.v2Manager.queryData({
-            name: "mesonet_flag"
-        });
-    }
-
-    //////////////////////////////////////////////////////////
-    //////////////////////////////////////////////////////////
-    //////////////////////////////////////////////////////////
-
-    getFlagInstID(stationID, flag) {
-        return `${stationID}${this.instExt}_${flag}`;
-    }
-
-    async submitRequest(url, options = {}, body: any = null, retries = this.retryLimit) {
-        if(retries === undefined) {
-            retries = this.retryLimit;
-        }
-        //get token from auth promise
-        let token = await this.auth;
-
-        // Set options for request
-        options = {
-            method: 'GET',
-            headers: {
-                'X-Tapis-Token': token,
-            },
-            ...options
-        };
-
-        // Return a promise for asynchronous measurements retrieval
-        return new Promise((resolve, reject) => {
-            const retry = (code, err) => {
-                if(retries < 1) {
-                    const errorOut = {
-                        status: code,
-                        reason: `The query resulted in an error: ${err}`
-                    }
-                    reject(errorOut);
-                }
-                else {
-                    resolve(this.submitRequest(url, options, body, retries - 1));
-                }
-            }
-
-            // Initiate the measurements request
-            const req = https.request(url, options, (res) => {
-                res.setEncoding('utf8');
-                let data = '';
-
-                // Accumulate response data
-                res.on('data', (chunk) => {
-                    data += chunk;
-                });
-
-                // When response is complete
-                res.on('end', () => {
-                    try {
-                        // If retrieval is successful resolve with data parsed as JSON
-                        if(res.statusCode === 200) {
-                            const parsedResponse = JSON.parse(data);
-                            resolve(parsedResponse.result);
-                        }
-                        //if failed but the query was just empty return null and let caller fill default
-                        else if(res.statusCode == 500 && (data.includes("Unrecognized exception type: <class 'KeyError'>") || data.includes("Unrecognized exception type: <class 'pandas.errors.EmptyDataError'>"))) {
-                            resolve(null);
-                        }
-                        else {
-                            throw new Error();
-                        }
-                        
-                    }
-                    catch(error) {
-                        retry(res.statusCode || 500, data);
-                    }
-                });
-            });
-
-            // Handle errors in the measurements request
-            req.on('error', (error) => {
-                retry(500, error);
-            });
-
-            if(body !== null) {
-                req.write(body);
-            }
-            req.end();
-        });
-    }
-
+    
     close() {
-        clearTimeout(this.authRefresh);
+        this.auth.close();
     }
 }

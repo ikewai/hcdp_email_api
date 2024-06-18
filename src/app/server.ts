@@ -72,7 +72,7 @@ process.env["NODE_ENV"] = "production";
 
 const dbManager = new DBManager(dbConfig.server, dbConfig.port, dbConfig.username, dbConfig.password, dbConfig.db, dbConfig.collection, dbConfig.connectionRetryLimit, dbConfig.queryRetryLimit);
 const tapisManager = new TapisManager(tapisConfig.tenantURL, tapisConfig.token, dbConfig.queryRetryLimit, dbManager);
-const tapisV3Manager = new TapisV3Manager(tapisV3Config.username, tapisV3Config.password, tapisV3Config.tenantURL, tapisV3Config.projectID, tapisV3Config.instExt, dbConfig.queryRetryLimit, tapisManager);
+const tapisV3Manager = new TapisV3Manager(tapisV3Config.username, tapisV3Config.password, tapisV3Config.tenantURL, dbConfig.queryRetryLimit, tapisManager);
 
 ////////////////////////////////
 //////////server setup//////////
@@ -1134,7 +1134,7 @@ app.get("/raw/list", async (req, res) => {
         "Request must include the following parameters: \n\
         date: An ISO 8601 formatted date string representing the date you would like the data for. \n\
         station_id (optional): The station ID you want to get files for. \n\
-        location (optional): The sensor network location to retreive files for. Default hawaii"
+        location (optional): The sensor network location to retrieve files for. Default hawaii"
       );
     }
     else {
@@ -1310,6 +1310,8 @@ app.post("/addmetadata", express.raw({ limit: "50mb", type: () => true }), async
 });
 
 
+
+
 ///////////////////////////////////////////////////
 /////////////// mesonet eps ///////////////////////
 ///////////////////////////////////////////////////
@@ -1345,8 +1347,21 @@ function processMeasurementsError(res, reqData, e) {
 app.get("/mesonet/getStations", async (req, res) => {
   const permission = "basic";
   await handleReq(req, res, permission, async (reqData) => {
+    let { location } = req.query;
+    if(location === undefined) {
+      location = "hawaii"
+    }
+    let projectID = tapisV3Config.streams.projects[location];
+    if(projectID == undefined) {
+      //set failure and code in status
+      reqData.success = false;
+      reqData.code = 400;
+
+      return res.status(400)
+      .send("Unknown location provided.");
+    }
     try {
-      const data = await tapisV3Manager.listStations();
+      const data = await tapisV3Manager.streams.listStations(projectID);
       reqData.code = 200;
       return res.status(200)
       .json(data);
@@ -1360,7 +1375,10 @@ app.get("/mesonet/getStations", async (req, res) => {
 app.get("/mesonet/getVariables", async (req, res) => {
   const permission = "basic";
   await handleReq(req, res, permission, async (reqData) => {
-    let { station_id } = req.query;
+    let { station_id, location } = req.query;
+    if(location === undefined) {
+      location = "hawaii";
+    }
     if(station_id === undefined) {
       //set failure and code in status
       reqData.success = false;
@@ -1369,11 +1387,21 @@ app.get("/mesonet/getVariables", async (req, res) => {
       return res.status(400)
       .send(
         `Request must include the following parameters:
-        station_id: The ID of the station to query.`
+        station_id: The ID of the station to query.
+        location (optional): The sensor network location to retrieve data for. Default hawaii`
       );
     }
+    let projectID = tapisV3Config.streams.projects[location];
+    if(projectID == undefined) {
+      //set failure and code in status
+      reqData.success = false;
+      reqData.code = 400;
+
+      return res.status(400)
+      .send("Unknown location provided.");
+    }
     try {
-      const data = await tapisV3Manager.listVariables(station_id);
+      const data = await tapisV3Manager.streams.listVariables(projectID, station_id);
       reqData.code = 200;
       return res.status(200)
       .json(data);
@@ -1390,7 +1418,10 @@ app.get("/mesonet/getMeasurements", async (req, res) => {
   await handleReq(req, res, permission, async (reqData) => {
     //options
     //start_date, end_date, limit, offset, var_ids (comma separated)
-    let { station_id, ...options } = req.query;
+    let { station_id, location, ...options } = req.query;
+    if(location === undefined) {
+      location = "hawaii";
+    }
     if(station_id === undefined) {
       //set failure and code in status
       reqData.success = false;
@@ -1404,12 +1435,21 @@ app.get("/mesonet/getMeasurements", async (req, res) => {
         offset (optional): A number indicating an offset in the records returned from the first available record.
         start_date (optional): An ISO-8601 formatted date string indicating the date/time returned records should start at.
         end_date (optional): An ISO-8601 formatted date string indicating the date/time returned records should end at
-        var_ids (optional): A comma separated list of variable IDs limiting what variables will be returned.`
+        var_ids (optional): A comma separated list of variable IDs limiting what variables will be returned.
+        location (optional): The sensor network location to retrieve data for. Default hawaii`
       );
     }
-    
+    let projectID = tapisV3Config.streams.projects[location];
+    if(projectID == undefined) {
+      //set failure and code in status
+      reqData.success = false;
+      reqData.code = 400;
+
+      return res.status(400)
+      .send("Unknown location provided.");
+    }
     try {
-      const data = await tapisV3Manager.listMeasurements(station_id, options);
+      const data = await tapisV3Manager.streams.listMeasurements(projectID, station_id, options);
       reqData.code = 200;
       return res.status(200)
       .json(data);
@@ -1432,7 +1472,7 @@ function getDefaultEndDate() {
   return new moment().toISOString();
 }
 
-function batchDates(start, end): [string, string][] {
+function batchDates(start: string, end: string): [string, string][] {
   let batches: [string, string][] = [];
   let date = new moment(start);
   let endDate = new moment(end);
@@ -1450,7 +1490,7 @@ function batchDates(start, end): [string, string][] {
   return batches;
 }
 
-async function createMesonetPackage(stationIDs, combine, ftype, csvMode, options, reqData) {
+async function createMesonetPackage(projectID: string, stationIDs: string[], combine: boolean, ftype: "json" | "csv", csvMode: "matrix" | "table", options: any, reqData: any) {
   //set start and end dates to default if they do not exist to prevent very large queries that cannot be chunked
   if(options.start_date === undefined) {
     options.start_date = getDefaultStartDate();
@@ -1458,7 +1498,7 @@ async function createMesonetPackage(stationIDs, combine, ftype, csvMode, options
   if(options.endDate === undefined) {
     options.endDate = getDefaultEndDate();
   }
-  const stationData = await tapisV3Manager.listStations();
+  const stationData = await tapisV3Manager.streams.listStations(projectID);
   //station data has all instruments and variables, just repack variables and strip out of station refs to reduce unnecessary size (no need to query vars)
   let packedStationData = {};
   let variableData = {};
@@ -1490,7 +1530,7 @@ async function createMesonetPackage(stationIDs, combine, ftype, csvMode, options
       options.start_date = batch[0];
       options.end_date = batch[1];
       try {
-        let measurements = await tapisV3Manager.listMeasurements(stationID, options);
+        let measurements = await tapisV3Manager.streams.listMeasurements(projectID, stationID, options);
         await packager.write(stationID, measurements);
       }
       catch(e: any) {
@@ -1551,7 +1591,10 @@ app.get("/mesonet/createPackage/link", async (req, res) => {
   await handleReq(req, res, permission, async (reqData) => {
     //options
     //start_date, end_date, limit, offset, var_ids (comma separated)
-    let { station_ids, email, combine, ftype, csvMode, ...options } = req.query;
+    let { station_ids, location, email, combine, ftype, csvMode, ...options } = req.query;
+    if(location === undefined) {
+      location = "hawaii";
+    }
     if(email) {
       reqData.user = email;
     }
@@ -1572,14 +1615,24 @@ app.get("/mesonet/createPackage/link", async (req, res) => {
         offset (optional): A number indicating an offset in the records returned from the first available record.
         start_date (optional): An ISO-8601 formatted date string indicating the date/time returned records should start at. Default value is 3 months before the current date and time.
         end_date (optional): An ISO-8601 formatted date string indicating the date/time returned records should end at. Default value is the current date and time.
-        var_ids (optional): A comma separated list of variable IDs limiting what variables will be returned.`
+        var_ids (optional): A comma separated list of variable IDs limiting what variables will be returned.
+        location (optional): The sensor network location to retrieve data for. Default hawaii`
       );
+    }
+    let projectID = tapisV3Config.streams.projects[location];
+    if(projectID == undefined) {
+      //set failure and code in status
+      reqData.success = false;
+      reqData.code = 400;
+
+      return res.status(400)
+      .send("Unknown location provided.");
     }
 
     let stationIDs = station_ids.split(",");
-    let link;
+    let link: string;
     try {
-      link = await createMesonetPackage(stationIDs, combine, ftype, csvMode, options, reqData);
+      link = await createMesonetPackage(projectID, stationIDs, combine, ftype, csvMode, options, reqData);
     }
     catch(e) {
       return processTapisError(res, reqData, e);
@@ -1597,7 +1650,10 @@ app.get("/mesonet/createPackage/email", async (req, res) => {
   await handleReq(req, res, permission, async (reqData) => {
     //options
     //start_date, end_date, limit, offset, var_ids (comma separated)
-    let { station_ids, email, combine, ftype, csvMode, ...options } = req.query;
+    let { station_ids, location, email, combine, ftype, csvMode, ...options } = req.query;
+    if(location === undefined) {
+      location = "hawaii";
+    }
     if(station_ids === undefined || email === undefined) {
       //set failure and code in status
       reqData.success = false;
@@ -1615,8 +1671,18 @@ app.get("/mesonet/createPackage/email", async (req, res) => {
         offset (optional): A number indicating an offset in the records returned from the first available record.
         start_date (optional): An ISO-8601 formatted date string indicating the date/time returned records should start at. Default value is 3 months before the current date and time.
         end_date (optional): An ISO-8601 formatted date string indicating the date/time returned records should end at. Default value is the current date and time.
-        var_ids (optional): A comma separated list of variable IDs limiting what variables will be returned.`
+        var_ids (optional): A comma separated list of variable IDs limiting what variables will be returned.
+        location (optional): The sensor network location to retrieve data for. Default hawaii`
       );
+    }
+    let projectID = tapisV3Config.streams.projects[location];
+    if(projectID == undefined) {
+      //set failure and code in status
+      reqData.success = false;
+      reqData.code = 400;
+
+      return res.status(400)
+      .send("Unknown location provided.");
     }
 
     //response should be sent immediately
@@ -1649,7 +1715,7 @@ app.get("/mesonet/createPackage/email", async (req, res) => {
     
     try {
       let stationIDs = station_ids.split(",");
-      let link = await createMesonetPackage(stationIDs, combine, ftype, csvMode, options, reqData);
+      let link = await createMesonetPackage(projectID, stationIDs, combine, ftype, csvMode, options, reqData);
   
       let mailOptions = {
         to: email,
