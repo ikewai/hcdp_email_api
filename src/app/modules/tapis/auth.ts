@@ -2,7 +2,7 @@ const https = require("https");
 
 export class TapisV3Auth {
     private authRefresh: NodeJS.Timeout | undefined;
-    private  auth!: Promise<string>;
+    private auth!: Promise<string>;
     private username: string;
     private password: string;
     private tenantURL: string;

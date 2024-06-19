@@ -3,7 +3,9 @@ const querystring = require('querystring');
 const https = require("https");
 
 import { TapisV3Auth } from "./tapis/auth";
-import { TapisV3Streams } from "./tapis/streams";
+import { TapisV3Streams, ProjectHandler } from "./tapis/streams";
+
+export { ProjectHandler };
 
 export class DBManager {
     dbName: string;

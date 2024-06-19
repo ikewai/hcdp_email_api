@@ -43,8 +43,14 @@
         "tenantURL": "https://dev.develop.tapis.io",
         "streams": {
             "projects": {
-                "hawaii": "hawaii_mesonet",
-                "american_samoa": "american_samoa_mesonet"
+                "hawaii": {
+                    "project": "hawaii_mesonet",
+                    "timezone": "Pacific/Honolulu"
+                },
+                "american_samoa": {
+                    "project": "american_samoa_mesonet",
+                    "timezone": "Pacific/Pago_Pago"
+                }
             }
         }
     },

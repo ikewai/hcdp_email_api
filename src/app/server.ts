@@ -14,7 +14,7 @@ const crypto = require('crypto');
 const safeCompare = require('safe-compare');
 
 import { MesonetDataPackager } from "./modules/mesonetDataPackager";
-import { DBManager, TapisManager, TapisV3Manager } from "./modules/tapisHandlers";
+import { DBManager, TapisManager, TapisV3Manager, ProjectHandler } from "./modules/tapisHandlers";
 import { getPaths, fnamePattern, getEmpty } from "./modules/fileIndexer";
 
 //add timestamps to output
@@ -73,6 +73,12 @@ process.env["NODE_ENV"] = "production";
 const dbManager = new DBManager(dbConfig.server, dbConfig.port, dbConfig.username, dbConfig.password, dbConfig.db, dbConfig.collection, dbConfig.connectionRetryLimit, dbConfig.queryRetryLimit);
 const tapisManager = new TapisManager(tapisConfig.tenantURL, tapisConfig.token, dbConfig.queryRetryLimit, dbManager);
 const tapisV3Manager = new TapisV3Manager(tapisV3Config.username, tapisV3Config.password, tapisV3Config.tenantURL, dbConfig.queryRetryLimit, tapisManager);
+
+const projectHandlers: {[location: string]: ProjectHandler} = {};
+for(let location in tapisV3Config.streams.projects) {
+  let projectConfig = tapisV3Config.streams.projects[location];
+  projectHandlers[location] = tapisV3Manager.streams.getProjectHandler(projectConfig.project, projectConfig.timezone);
+}
 
 ////////////////////////////////
 //////////server setup//////////
@@ -1351,8 +1357,8 @@ app.get("/mesonet/getStations", async (req, res) => {
     if(location === undefined) {
       location = "hawaii"
     }
-    let projectID = tapisV3Config.streams.projects[location];
-    if(projectID == undefined) {
+    let projectHandler = projectHandlers[location];
+    if(projectHandler == undefined) {
       //set failure and code in status
       reqData.success = false;
       reqData.code = 400;
@@ -1361,7 +1367,7 @@ app.get("/mesonet/getStations", async (req, res) => {
       .send("Unknown location provided.");
     }
     try {
-      const data = await tapisV3Manager.streams.listStations(projectID);
+      const data = await projectHandler.listStations();
       reqData.code = 200;
       return res.status(200)
       .json(data);
@@ -1391,8 +1397,8 @@ app.get("/mesonet/getVariables", async (req, res) => {
         location (optional): The sensor network location to retrieve data for. Default hawaii`
       );
     }
-    let projectID = tapisV3Config.streams.projects[location];
-    if(projectID == undefined) {
+    let projectHandler = projectHandlers[location];
+    if(projectHandler == undefined) {
       //set failure and code in status
       reqData.success = false;
       reqData.code = 400;
@@ -1401,7 +1407,7 @@ app.get("/mesonet/getVariables", async (req, res) => {
       .send("Unknown location provided.");
     }
     try {
-      const data = await tapisV3Manager.streams.listVariables(projectID, station_id);
+      const data = await projectHandler.listVariables(station_id);
       reqData.code = 200;
       return res.status(200)
       .json(data);
@@ -1439,8 +1445,8 @@ app.get("/mesonet/getMeasurements", async (req, res) => {
         location (optional): The sensor network location to retrieve data for. Default hawaii`
       );
     }
-    let projectID = tapisV3Config.streams.projects[location];
-    if(projectID == undefined) {
+    let projectHandler = projectHandlers[location];
+    if(projectHandler == undefined) {
       //set failure and code in status
       reqData.success = false;
       reqData.code = 400;
@@ -1449,7 +1455,7 @@ app.get("/mesonet/getMeasurements", async (req, res) => {
       .send("Unknown location provided.");
     }
     try {
-      const data = await tapisV3Manager.streams.listMeasurements(projectID, station_id, options);
+      const data = await projectHandler.listMeasurements(station_id, options);
       reqData.code = 200;
       return res.status(200)
       .json(data);
@@ -1490,7 +1496,7 @@ function batchDates(start: string, end: string): [string, string][] {
   return batches;
 }
 
-async function createMesonetPackage(projectID: string, stationIDs: string[], combine: boolean, ftype: "json" | "csv", csvMode: "matrix" | "table", options: any, reqData: any) {
+async function createMesonetPackage(projectHandler: ProjectHandler, stationIDs: string[], combine: boolean, ftype: "json" | "csv", csvMode: "matrix" | "table", options: any, reqData: any) {
   //set start and end dates to default if they do not exist to prevent very large queries that cannot be chunked
   if(options.start_date === undefined) {
     options.start_date = getDefaultStartDate();
@@ -1498,7 +1504,7 @@ async function createMesonetPackage(projectID: string, stationIDs: string[], com
   if(options.endDate === undefined) {
     options.endDate = getDefaultEndDate();
   }
-  const stationData = await tapisV3Manager.streams.listStations(projectID);
+  const stationData = await projectHandler.listStations();
   //station data has all instruments and variables, just repack variables and strip out of station refs to reduce unnecessary size (no need to query vars)
   let packedStationData = {};
   let variableData = {};
@@ -1530,7 +1536,7 @@ async function createMesonetPackage(projectID: string, stationIDs: string[], com
       options.start_date = batch[0];
       options.end_date = batch[1];
       try {
-        let measurements = await tapisV3Manager.streams.listMeasurements(projectID, stationID, options);
+        let measurements = await projectHandler.listMeasurements(stationID, options);
         await packager.write(stationID, measurements);
       }
       catch(e: any) {
@@ -1619,8 +1625,8 @@ app.get("/mesonet/createPackage/link", async (req, res) => {
         location (optional): The sensor network location to retrieve data for. Default hawaii`
       );
     }
-    let projectID = tapisV3Config.streams.projects[location];
-    if(projectID == undefined) {
+    let projectHandler = projectHandlers[location];
+    if(projectHandler == undefined) {
       //set failure and code in status
       reqData.success = false;
       reqData.code = 400;
@@ -1632,7 +1638,7 @@ app.get("/mesonet/createPackage/link", async (req, res) => {
     let stationIDs = station_ids.split(",");
     let link: string;
     try {
-      link = await createMesonetPackage(projectID, stationIDs, combine, ftype, csvMode, options, reqData);
+      link = await createMesonetPackage(projectHandler, stationIDs, combine, ftype, csvMode, options, reqData);
     }
     catch(e) {
       return processTapisError(res, reqData, e);
@@ -1675,8 +1681,8 @@ app.get("/mesonet/createPackage/email", async (req, res) => {
         location (optional): The sensor network location to retrieve data for. Default hawaii`
       );
     }
-    let projectID = tapisV3Config.streams.projects[location];
-    if(projectID == undefined) {
+    let projectHandler = projectHandlers[location];
+    if(projectHandler == undefined) {
       //set failure and code in status
       reqData.success = false;
       reqData.code = 400;
@@ -1715,7 +1721,7 @@ app.get("/mesonet/createPackage/email", async (req, res) => {
     
     try {
       let stationIDs = station_ids.split(",");
-      let link = await createMesonetPackage(projectID, stationIDs, combine, ftype, csvMode, options, reqData);
+      let link = await createMesonetPackage(projectHandler, stationIDs, combine, ftype, csvMode, options, reqData);
   
       let mailOptions = {
         to: email,
@@ -1856,12 +1862,12 @@ app.post("/mesonet/setFlag", async (req, res) => {
   const permission = "meso_admin";
   await handleReq(req, res, permission, async (reqData) => {
     reqData.success = false;
-      reqData.code = 501;
+    reqData.code = 501;
 
-      return res.status(501)
-      .send(
-        `Not implemented`
-      );
+    return res.status(501)
+    .send(
+      `Not implemented`
+    );
 
 
     const { station_id, flag, data } = req.body;
@@ -1887,12 +1893,12 @@ app.post("/mesonet/setFlag/default", async (req, res) => {
   const permission = "meso_admin";
   await handleReq(req, res, permission, async (reqData) => {
     reqData.success = false;
-      reqData.code = 501;
+    reqData.code = 501;
 
-      return res.status(501)
-      .send(
-        `Not implemented`
-      );
+    return res.status(501)
+    .send(
+      `Not implemented`
+    );
 
     const { station_id, var_id, flag, value } = req.body;
   });

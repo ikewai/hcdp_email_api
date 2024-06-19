@@ -1,83 +1,23 @@
 const https = require("https");
-const moment = require("moment");
+const moment = require("moment-timezone");
 import { TapisV3Auth } from "./auth";
 import { TapisManager } from "../tapisHandlers";
 
-export class TapisV3Streams {
-    private tenantURL: string;
+class RequestHandler {
     private retryLimit: number;
     private auth: TapisV3Auth;
-    private v2Manager: TapisManager;
 
-    constructor(tenantURL: string, retryLimit: number, v2Manager: TapisManager, auth: TapisV3Auth) {
-        this.tenantURL = tenantURL;
-        this.auth = auth;
+    constructor(retryLimit: number, auth: TapisV3Auth) {
         this.retryLimit = retryLimit;
-        this.v2Manager = v2Manager;
+        this.auth = auth;
     }
 
-    private convertTimestampToHST(timestamp: string) {
-        let converted = new moment(timestamp).subtract(10, "hours");
-        return converted.toISOString().slice(0, -1) + "-10:00";
-    }
-
-    private getInstID(projectID: string, stationID: string, type: string) {
-        return `${projectID}_${stationID}_${type}`;
-    }
-
-    private encodeURLParams(params: {[key: string]: string}) {
-        let encoded = "";
-        const queryParams: string[] = [];
-        for(const key in params) {
-            queryParams.push(`${key}=${encodeURIComponent(params[key])}`);
-        }
-        if(queryParams.length > 0) {
-            encoded = `?${queryParams.join('&')}`;
-        }
-        return encoded;
-    }
-
-    async listMeasurements(projectID: string, stationID: string, options: {[key: string]: string}) {
-        let instID = this.getInstID(projectID, stationID, "measurements");
-        // Construct URL for measurements request
-        let url = `${this.tenantURL}/v3/streams/projects/${projectID}/sites/${stationID}/instruments/${instID}/measurements${this.encodeURLParams(options)}`;
-        let res: any = await this.submitRequest(url) || {};
-        if(res.measurements_in_file !== undefined) {
-            delete res.measurements_in_file;
-        }
-        //transform timestamps
-        for(let variable in res) {
-            let transformedVarData = {};
-            for(let timestamp in res[variable]) {
-                let hstTimestamp = this.convertTimestampToHST(timestamp);
-                transformedVarData[hstTimestamp] = res[variable][timestamp];
-            }
-            res[variable] = transformedVarData;
-        }
-        return res;
-    }
-
-    async listVariables(projectID: string, stationID: string) {
-        let instID = this.getInstID(projectID, stationID, "measurements");
-        // Construct URL for measurements request
-        let url = `${this.tenantURL}/v3/streams/projects/${projectID}/sites/${stationID}/instruments/${instID}/variables`;
-        let res = await this.submitRequest(url) || [];
-        return res;
-    } 
-
-    async listStations(projectID: string): Promise<any[]> {
-        // Construct URL for request
-        let url = `${this.tenantURL}/v3/streams/projects/${projectID}/sites`;
-        let res: any[] = <any[]>(await this.submitRequest(url)) || [];
-        return res;
-    }
-
-    private async submitRequest(url: string, options = {}, body: any = null, retries = this.retryLimit) {
+    public async submitRequest(url: string, options = {}, body: any = null, retries = this.retryLimit) {
         if(retries === undefined) {
             retries = this.retryLimit;
         }
         //get token from auth promise
-        let token = await this.auth;
+        let token = await this.auth.getToken();
 
         // Set options for request
         options = {
@@ -90,7 +30,7 @@ export class TapisV3Streams {
 
         // Return a promise for asynchronous measurements retrieval
         return new Promise((resolve, reject) => {
-            const retry = (code, err) => {
+            const retry = (code: number, err) => {
                 if(retries < 1) {
                     const errorOut = {
                         status: code,
@@ -146,6 +86,94 @@ export class TapisV3Streams {
             }
             req.end();
         });
+    }
+}
+
+
+export class ProjectHandler {
+    private tz: string;
+    private projectID: string;
+    private requestHandler: RequestHandler;
+    private tenantURL: string;
+
+    constructor(projectID: string, timezone: string, tenantURL: string, requestHandler: RequestHandler) {
+        this.tz = timezone;
+        this.projectID = projectID;
+        this.tenantURL = tenantURL;
+        this.requestHandler = requestHandler;
+    }
+
+    private localizeTimestamp(timestamp: string) {
+        let converted = new moment(timestamp).tz(this.tz);
+        return converted.format();
+    }
+
+    private getInstID(stationID: string, type: string) {
+        return `${this.projectID}_${stationID}_${type}`;
+    }
+
+    private encodeURLParams(params: {[key: string]: string}) {
+        let encoded = "";
+        const queryParams: string[] = [];
+        for(const key in params) {
+            queryParams.push(`${key}=${encodeURIComponent(params[key])}`);
+        }
+        if(queryParams.length > 0) {
+            encoded = `?${queryParams.join('&')}`;
+        }
+        return encoded;
+    }
+
+    async listMeasurements(stationID: string, options: {[key: string]: string}) {
+        let instID = this.getInstID(stationID, "measurements");
+        // Construct URL for measurements request
+        let url = `${this.tenantURL}/v3/streams/projects/${this.projectID}/sites/${stationID}/instruments/${instID}/measurements${this.encodeURLParams(options)}`;
+        let res: any = await this.requestHandler.submitRequest(url) || {};
+        if(res.measurements_in_file !== undefined) {
+            delete res.measurements_in_file;
+        }
+        //transform timestamps
+        for(let variable in res) {
+            let transformedVarData = {};
+            for(let timestamp in res[variable]) {
+                let localizedTimestamp = this.localizeTimestamp(timestamp);
+                transformedVarData[localizedTimestamp] = res[variable][timestamp];
+            }
+            res[variable] = transformedVarData;
+        }
+        return res;
+    }
+
+    async listVariables(stationID: string) {
+        let instID = this.getInstID(stationID, "measurements");
+        // Construct URL for measurements request
+        let url = `${this.tenantURL}/v3/streams/projects/${this.projectID}/sites/${stationID}/instruments/${instID}/variables`;
+        let res = await this.requestHandler.submitRequest(url) || [];
+        return res;
+    } 
+
+    async listStations(): Promise<any[]> {
+        // Construct URL for request
+        let url = `${this.tenantURL}/v3/streams/projects/${this.projectID}/sites`;
+        let res: any[] = <any[]>(await this.requestHandler.submitRequest(url)) || [];
+        return res;
+    }
+}
+
+export class TapisV3Streams {
+    private tenantURL: string;
+    private v2Manager: TapisManager;
+    private requestHandler: RequestHandler;
+    
+
+    constructor(tenantURL: string, retryLimit: number, v2Manager: TapisManager, auth: TapisV3Auth) {
+        this.tenantURL = tenantURL;
+        this.v2Manager = v2Manager;
+        this.requestHandler = new RequestHandler(retryLimit, auth);
+    }
+
+    public getProjectHandler(projectID: string, timezone: string): ProjectHandler {
+        return new ProjectHandler(projectID, timezone, this.tenantURL, this.requestHandler);
     }
 }
 
