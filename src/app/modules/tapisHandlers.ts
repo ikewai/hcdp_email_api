@@ -225,6 +225,40 @@ export class TapisManager {
         });
     }
 
+    async replace(name: string, keys: {[key: string]: string}, newValue: {[key: string]: any}): Promise<boolean> {
+        let replaced = false;
+        let query = {
+            name
+        };
+        for(let key in keys) {
+            let queryKey = `value.${key}`;
+            let queryValue = keys[key];
+            query[queryKey] = queryValue;
+        }
+        let matches = (await this.queryData(query)).result;
+        let match: any = null;
+        if(matches.length > 0) {
+            match = matches[0];
+        }
+        if(match) {
+            match.uuid;
+            await this.dbManager.replaceRecord(match.uuid, newValue)
+            replaced = true;
+        }
+        return replaced;
+    }
+
+    async createOrReplace(name: string, keys: {[key: string]: string}, value: {[key: string]: any}): Promise<boolean> {
+        let replaced = await this.replace(name, keys, value);
+        if(!replaced) {
+            await this.create({
+                name,
+                value
+            });
+        }
+        return replaced;
+    }
+
     async create(doc) {
         const options: any = {
             protocol: this.tenantURL.protocol,
@@ -311,7 +345,7 @@ export class TapisV3Manager {
 
     constructor(username: string, password: string, tenantURL: string, retryLimit: number, v2Manager: TapisManager) {
         this.auth = new TapisV3Auth(username, password, tenantURL);
-        this._streams = new TapisV3Streams(tenantURL, retryLimit, v2Manager, this.auth);
+        this._streams = new TapisV3Streams(tenantURL, retryLimit, this.auth, v2Manager);
     }
 
     get streams(): TapisV3Streams {

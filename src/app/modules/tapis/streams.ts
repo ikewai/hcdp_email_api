@@ -1,7 +1,7 @@
 const https = require("https");
 const moment = require("moment-timezone");
-import { TapisV3Auth } from "./auth";
 import { TapisManager } from "../tapisHandlers";
+import { TapisV3Auth } from "./auth";
 
 class RequestHandler {
     private retryLimit: number;
@@ -95,12 +95,14 @@ export class ProjectHandler {
     private projectID: string;
     private requestHandler: RequestHandler;
     private tenantURL: string;
+    private v2Manager: TapisManager;
 
-    constructor(projectID: string, timezone: string, tenantURL: string, requestHandler: RequestHandler) {
+    constructor(projectID: string, timezone: string, tenantURL: string, requestHandler: RequestHandler, v2Manager: TapisManager) {
         this.tz = timezone;
         this.projectID = projectID;
         this.tenantURL = tenantURL;
         this.requestHandler = requestHandler;
+        this.v2Manager = v2Manager;
     }
 
     private localizeTimestamp(timestamp: string) {
@@ -158,22 +160,38 @@ export class ProjectHandler {
         let res: any[] = <any[]>(await this.requestHandler.submitRequest(url)) || [];
         return res;
     }
+
+
+    //register the flag, then when set a flag check if inst exists (only need id), if doesn't create
+    async registerFlag(flagID: string, flagName: string, defaultValue: any = 0, relatedVars: string[] = []) {
+        this.v2Manager.createOrReplace("mesonet_flag", {
+            id: flagID
+        }, {
+            id: flagID,
+            name: flagName,
+            defaultValue,
+            relatedVars
+        });
+    }
 }
+
+
+
+
 
 export class TapisV3Streams {
     private tenantURL: string;
-    private v2Manager: TapisManager;
     private requestHandler: RequestHandler;
-    
+    private v2Manager: TapisManager;
 
-    constructor(tenantURL: string, retryLimit: number, v2Manager: TapisManager, auth: TapisV3Auth) {
+    constructor(tenantURL: string, retryLimit: number, auth: TapisV3Auth, v2Manager: TapisManager) {
         this.tenantURL = tenantURL;
-        this.v2Manager = v2Manager;
         this.requestHandler = new RequestHandler(retryLimit, auth);
+        this.v2Manager = v2Manager;
     }
 
     public getProjectHandler(projectID: string, timezone: string): ProjectHandler {
-        return new ProjectHandler(projectID, timezone, this.tenantURL, this.requestHandler);
+        return new ProjectHandler(projectID, timezone, this.tenantURL, this.requestHandler, this.v2Manager);
     }
 }
 
