@@ -128,22 +128,7 @@ export class ProjectHandler {
 
     async listMeasurements(stationID: string, options: {[key: string]: string}) {
         let instID = this.getInstID(stationID, "measurements");
-        // Construct URL for measurements request
-        let url = `${this.tenantURL}/v3/streams/projects/${this.projectID}/sites/${stationID}/instruments/${instID}/measurements${this.encodeURLParams(options)}`;
-        let res: any = await this.requestHandler.submitRequest(url) || {};
-        if(res.measurements_in_file !== undefined) {
-            delete res.measurements_in_file;
-        }
-        //transform timestamps
-        for(let variable in res) {
-            let transformedVarData = {};
-            for(let timestamp in res[variable]) {
-                let localizedTimestamp = this.localizeTimestamp(timestamp);
-                transformedVarData[localizedTimestamp] = res[variable][timestamp];
-            }
-            res[variable] = transformedVarData;
-        }
-        return res;
+        return this.listValues(instID, stationID, options);
     }
 
     async listVariables(stationID: string) {
@@ -162,16 +147,109 @@ export class ProjectHandler {
     }
 
 
-    //register the flag, then when set a flag check if inst exists (only need id), if doesn't create
-    async registerFlag(flagID: string, flagName: string, defaultValue: any = 0, relatedVars: string[] = []) {
-        this.v2Manager.createOrReplace("mesonet_flag", {
-            id: flagID
+    //register the flag, then when set a flag check if var exists (only need id), if doesn't create
+    async registerFlag(id: string, name: string, description: string, defaultValue: number = 0, relatedVars: string[] = [], update: boolean = true) {
+        await this.v2Manager.checkCreate("mesonet_flag", {
+            id
         }, {
-            id: flagID,
-            name: flagName,
+            id,
+            name,
+            description,
             defaultValue,
             relatedVars
+        }, update);
+    }
+
+    //maybe make one flag instrument and each flag as a variable actually
+    //need to create flag instruments when station created
+    async setFlag(stationID: string, flagID: string, datetime: string, value: number) {
+        let instID = this.getInstID(stationID, "flags");
+        let url = `${this.tenantURL}/v3/streams/projects/${this.projectID}/sites/${stationID}/instruments/variables`;
+
+        let flagRecord: any = await this.v2Manager.getMatches(flagID, {
+            id: flagID
         });
+        if(flagRecord.length > 0) {
+            flagRecord = flagRecord[0].value;
+        }
+        else {
+            //flag has not been registered, throw some kind of error
+        }
+
+        let hasFlag = false;
+        //get flags in flag instrument
+        let res: any = await this.requestHandler.submitRequest(url) || [];
+        //if variable for this flag has not been created then create it
+        for(let flag of res) {
+            if(flag.var_id == flagID) {
+                hasFlag = true;
+                break;
+            }
+        }
+        //make sure to create flag instruments
+        //get flag info
+        if(!hasFlag) {
+            let { id, name, description, ...metadata } = flagRecord;
+            let options = {
+                method: 'POST'
+            }
+            //
+            let body = [{
+                "var_name": id,
+                "var_id": name,
+                "var_description": description,
+                "metadata": metadata
+            }];
+            await this.requestHandler.submitRequest(url, options, body);
+        }
+
+        //test this, need inst in body?
+        url = `${this.tenantURL}/v3/streams/projects/${this.projectID}/sites/${stationID}/instruments/${instID}/measurements`;
+        let options = {
+            method: 'POST'
+        }
+        let varData = {
+            datetime
+        };
+        varData[flagID] = value;
+        let body = {
+            vars: [varData]
+        }
+        await this.requestHandler.submitRequest(url, options, body);
+    }
+
+    //list flag values
+    async listFlagValues(stationID: string, options: {[key: string]: string}) {
+        let instID = this.getInstID(stationID, "flags");
+        return this.listValues(instID, stationID, options);
+    }
+
+    private async listValues(instID: string, stationID: string, options: {[key: string]: string}) {
+        // Construct URL for measurements request
+        let url = `${this.tenantURL}/v3/streams/projects/${this.projectID}/sites/${stationID}/instruments/${instID}/measurements${this.encodeURLParams(options)}`;
+        let res: any = await this.requestHandler.submitRequest(url) || {};
+        if(res.measurements_in_file !== undefined) {
+            delete res.measurements_in_file;
+        }
+        //transform timestamps
+        for(let variable in res) {
+            let transformedVarData = {};
+            for(let timestamp in res[variable]) {
+                let localizedTimestamp = this.localizeTimestamp(timestamp);
+                transformedVarData[localizedTimestamp] = res[variable][timestamp];
+            }
+            res[variable] = transformedVarData;
+        }
+        return res;
+    }
+
+    //list flags
+    async listFlags(flagID?: string) {
+        let keys: any = {};
+        if(flagID !== undefined) {
+            keys.id = flagID
+        }
+        return this.v2Manager.getMatches("mesonet_flag", keys);
     }
 }
 

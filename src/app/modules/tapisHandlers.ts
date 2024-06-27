@@ -225,8 +225,7 @@ export class TapisManager {
         });
     }
 
-    async replace(name: string, keys: {[key: string]: string}, newValue: {[key: string]: any}): Promise<boolean> {
-        let replaced = false;
+    async getMatches(name: string, keys: {[key: string]: string}): Promise<any[]> {
         let query = {
             name
         };
@@ -236,6 +235,12 @@ export class TapisManager {
             query[queryKey] = queryValue;
         }
         let matches = (await this.queryData(query)).result;
+        return matches;
+    }
+
+    async replace(name: string, keys: {[key: string]: string}, newValue: {[key: string]: any}): Promise<boolean> {
+        let replaced = false;
+        let matches = await this.getMatches(name, keys);
         let match: any = null;
         if(matches.length > 0) {
             match = matches[0];
@@ -248,15 +253,36 @@ export class TapisManager {
         return replaced;
     }
 
-    async createOrReplace(name: string, keys: {[key: string]: string}, value: {[key: string]: any}): Promise<boolean> {
-        let replaced = await this.replace(name, keys, value);
-        if(!replaced) {
+    async checkCreate(name: string, keys: {[key: string]: string}, value: {[key: string]: any}, replace: boolean = true): Promise<'c' | 'r' | 'n'> {
+        let happened: 'c' | 'r' | 'n' = 'n';
+        let create = async () => {
             await this.create({
                 name,
                 value
             });
+            happened = 'c';
         }
-        return replaced;
+        
+        //if should replace if exists then try replace
+        //if not replaced then create
+        if(replace) {
+            let replaced = await this.replace(name, keys, value);
+            if(replaced) {
+                happened = 'r';
+            }
+            else {
+                await create();
+            };
+        }
+        //otherwise check if any matches
+        //if no matches then create
+        else {
+            let matches = await this.getMatches(name, keys);
+            if(matches.length <= 0) {
+                await create();
+            }
+        }
+        return happened;
     }
 
     async create(doc) {
