@@ -16,6 +16,8 @@ export class DBManager {
     connection: Promise<void>;
     db: any;
     collection: any;
+    dbURI: string;
+    dbConfig: any;
 
     constructor(server, port, username, password, dbName, collectionName, connectionRetryLimit, queryRetryLimit) {
         const encodedUsername = encodeURIComponent(username);
@@ -25,17 +27,16 @@ export class DBManager {
         this.connectionRetryLimit = connectionRetryLimit;
         this.queryRetryLimit = queryRetryLimit;
 
-        const dbURI = `mongodb://${encodedUsername}:${encodedPassword}@${server}:${port}/${dbName}`;
-        const dbConfig = {
+        this.dbURI = `mongodb://${encodedUsername}:${encodedPassword}@${server}:${port}/${dbName}`;
+        this.dbConfig = {
             useNewUrlParser: true,
             useUnifiedTopology: true,
             keepAlive: true
         };
-        this.client = new MongoClient(dbURI, dbConfig);
         this.connection = this.createConnection(connectionRetryLimit, 0);
     }
 
-    async wait(delay): Promise<void> {
+    async wait(delay: number): Promise<void> {
         return new Promise((resolve, reject) => {
             setTimeout(() => {
                 resolve();
@@ -58,6 +59,7 @@ export class DBManager {
     
     async createConnection(retries, delay) {
         await this.wait(delay);
+        this.client = new MongoClient(this.dbURI, this.dbConfig);
         //maight have to have this return connection and set this.connection to result of this function
         //or definitely have to do that, because if retrying connection and something's waiting it will throw the original connection error, want to wait until this whole functions finished
         let connection = this.client.connect();
