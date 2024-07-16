@@ -174,6 +174,10 @@ export class ProjectHandler {
         }
         else {
             //flag has not been registered, throw some kind of error
+            return Promise.reject({
+                status: 404,
+                reason: "No flag with the provided ID was found. Please register the flag."
+            });
         }
 
         let hasFlag = false;
@@ -224,6 +228,15 @@ export class ProjectHandler {
         return this.listValues(instID, stationID, options);
     }
 
+    //list flags
+    async listFlags(flagID?: string) {
+        let keys: any = {};
+        if(flagID !== undefined) {
+            keys.id = flagID;
+        }
+        return this.v2Manager.getMatches("mesonet_flag", keys);
+    }
+
     private async listValues(instID: string, stationID: string, options: {[key: string]: string}) {
         // Construct URL for measurements request
         let url = `${this.tenantURL}/v3/streams/projects/${this.projectID}/sites/${stationID}/instruments/${instID}/measurements${this.encodeURLParams(options)}`;
@@ -241,15 +254,6 @@ export class ProjectHandler {
             res[variable] = transformedVarData;
         }
         return res;
-    }
-
-    //list flags
-    async listFlags(flagID?: string) {
-        let keys: any = {};
-        if(flagID !== undefined) {
-            keys.id = flagID
-        }
-        return this.v2Manager.getMatches("mesonet_flag", keys);
     }
 }
 
