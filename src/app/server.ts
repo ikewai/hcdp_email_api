@@ -541,11 +541,37 @@ app.post("/db/delete", async (req, res) => {
       return res.status(400)
       .send(
         `Request body should include the following fields: \n\
-        uuid: A string representing the uuid of the document to have it's value replaced`
+        uuid: A string representing the uuid of the document to delete.`
       );
     }
     else {
       let deleted = await dbManager.deleteRecord(uuid);
+      reqData.code = 200;
+      res.status(200)
+      .send(deleted.toString());
+    }
+  });
+});
+
+app.post("/db/bulkDelete", async (req, res) => {
+  const permission = "db";
+  await handleReq(req, res, permission, async (reqData) => {
+    const uuids = req.body.uuids;
+
+    if(!Array.isArray(uuids)) {
+      //set failure and code in status
+      reqData.success = false;
+      reqData.code = 400;
+
+      //send error
+      return res.status(400)
+      .send(
+        `Request body should include the following fields: \n\
+        uuids: An array string representing the uuids of the documents to delete`
+      );
+    }
+    else {
+      let deleted = await dbManager.bulkDelete(uuids);
       reqData.code = 200;
       res.status(200)
       .send(deleted.toString());

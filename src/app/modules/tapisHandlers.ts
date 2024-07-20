@@ -103,10 +103,22 @@ export class DBManager {
         return res;
     }
     
-    async deleteRecord(uuid) {
+    async deleteRecord(uuid: string) {
         const query = { uuid };
         const params = [ query ];
         let res = await this.executeDbQuery("deleteOne", params, this.queryRetryLimit, true);
+        let deleted = res.deletedCount;
+        return deleted;
+    }
+
+    async bulkDelete(uuids: string[]) {
+        const query = {
+            uuid: {
+                $in: uuids
+            }
+        }
+        const params = [ query ];
+        let res = await this.executeDbQuery("deleteMany", params, this.queryRetryLimit, true);
         let deleted = res.deletedCount;
         return deleted;
     }
