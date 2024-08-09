@@ -1,5 +1,5 @@
-const https = require("https");
-const moment = require("moment-timezone");
+import * as https from "https";
+import moment from "moment-timezone";
 import { TapisV3Auth } from "./auth";
 import { TapisManager } from "../tapisHandlers";
 
@@ -104,7 +104,7 @@ export class ProjectHandler {
     }
 
     private localizeTimestamp(timestamp: string) {
-        let converted = new moment(timestamp).tz(this.tz);
+        let converted = moment(timestamp).tz(this.tz);
         return converted.format();
     }
 

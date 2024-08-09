@@ -1,4 +1,4 @@
-const https = require("https");
+import * as https from "https";
 
 export class TapisV3Auth {
     private authRefresh: NodeJS.Timeout | undefined;

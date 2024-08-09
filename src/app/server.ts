@@ -1,24 +1,26 @@
-const express = require("express");
-const compression = require("compression");
-const nodemailer = require("nodemailer");
-const https = require("https");
-const fs = require("fs");
-const config = require("../assets/config.json");
-const child_process = require("child_process");
-const moment = require("moment");
-const path = require("path");
-const sanitize = require("mongo-sanitize");
-const csvReadableStream = require('csv-reader');
-const detectDecodeStream = require('autodetect-decoder-stream');
-const crypto = require('crypto');
-const safeCompare = require('safe-compare');
+import express from "express";
+import compression from "compression";
+import * as nodemailer from "nodemailer";
+import * as https from "https";
+import * as fs from "fs";
+import * as child_process from "child_process";
+import moment from "moment";
+import * as path from "path";
+import * as sanitize from "mongo-sanitize";
+import CsvReadableStream from "csv-reader";
+import * as detectDecodeStream from "autodetect-decoder-stream";
+import * as crypto from "crypto";
+import * as safeCompare from "safe-compare";
 
-import { MesonetDataPackager } from "./modules/mesonetDataPackager";
-import { DBManager, TapisManager, TapisV3Manager, ProjectHandler } from "./modules/tapisHandlers";
-import { getPaths, fnamePattern, getEmpty } from "./modules/fileIndexer";
+import { MesonetDataPackager } from "./modules/mesonetDataPackager.js";
+import { DBManager, TapisManager, TapisV3Manager, ProjectHandler } from "./modules/tapisHandlers.js";
+import { getPaths, fnamePattern, getEmpty } from "./modules/fileIndexer.js";
 
 //add timestamps to output
-require("console-stamp")(console);
+import consoleStamp from 'console-stamp';
+consoleStamp(console);
+
+const config = JSON.parse(fs.readFileSync("../assets/config.json", "utf8"));
 
 // const githubMiddleware = require('github-webhook-middleware')({
 //   secret: config.githubWebhookSecret,
@@ -92,13 +94,8 @@ let options = {
 };
 
 const server = https.createServer(options, app)
-.listen(port, (err) => {
-  if(err) {
-    console.error(err);
-  }
-  else {
-    console.log("Server listening at port " + port);
-  }
+.listen(port, () => {
+  console.log("Server listening at port " + port);
 });
 
 app.use(express.json());
@@ -644,7 +641,7 @@ app.get("/download/package", async (req, res) => {
       );
     }
 
-    let { packageID, file } = req.query;
+    let { packageID, file }: any = req.query;
     if(!(packageID && file)) {
       return e400();
     }
@@ -1057,7 +1054,7 @@ app.post("/genzip/instant/splitlink", async (req, res) => {
 app.get("/production/list", async (req, res) => {
   const permission = "basic";
   await handleReq(req, res, permission, async (reqData) => {
-    let data = req.query.data;
+    let data: any = req.query.data;
     data = JSON.parse(data);
     if(!Array.isArray(data)) {
       //set failure and code in status
@@ -1089,7 +1086,7 @@ app.get("/production/list", async (req, res) => {
 app.get("/raw/download", async (req, res) => {
   await handleReqNoAuth(req, res, async (reqData) => {
     //destructure query
-    let { p } = req.query;
+    let { p }: any = req.query;
 
     if(!p) {
       reqData.success = false;
@@ -1154,7 +1151,7 @@ app.get("/raw/sff", async (req, res) => {
 app.get("/raw/list", async (req, res) => {
   const permission = "basic";
   await handleReq(req, res, permission, async (reqData) => {
-    let { date, station_id, location } = req.query;
+    let { date, station_id, location }: any = req.query;
 
     if(!date) {
       //set failure and code in status
@@ -1276,7 +1273,7 @@ app.post("/addmetadata", express.raw({ limit: "50mb", type: () => true }), async
       let docs: any[] = [];
       res.pipe(new detectDecodeStream({ defaultEncoding: "1255" }))
       //note old data does not parse numbers, maybe reprocess data with parsed numbers at some point, for now leave everything as strings though
-      .pipe(new csvReadableStream({ parseNumbers: false, parseBooleans: false, trim: true }))
+      .pipe(new CsvReadableStream({ parseNumbers: false, parseBooleans: false, trim: true }))
       .on("data", (row) => {
         if(header === null) {
           let translations = {
@@ -1379,7 +1376,7 @@ function processMeasurementsError(res, reqData, e) {
 app.get("/mesonet/getStations", async (req, res) => {
   const permission = "basic";
   await handleReq(req, res, permission, async (reqData) => {
-    let { location } = req.query;
+    let { location }: any = req.query;
     if(location === undefined) {
       location = "hawaii"
     }
@@ -1407,7 +1404,7 @@ app.get("/mesonet/getStations", async (req, res) => {
 app.get("/mesonet/getVariables", async (req, res) => {
   const permission = "basic";
   await handleReq(req, res, permission, async (reqData) => {
-    let { station_id, location } = req.query;
+    let { station_id, location }: any = req.query;
     if(location === undefined) {
       location = "hawaii";
     }
@@ -1450,7 +1447,7 @@ app.get("/mesonet/getMeasurements", async (req, res) => {
   await handleReq(req, res, permission, async (reqData) => {
     //options
     //start_date, end_date, limit, offset, var_ids (comma separated)
-    let { station_id, location, ...options } = req.query;
+    let { station_id, location, ...options }: any = req.query;
     if(location === undefined) {
       location = "hawaii";
     }
@@ -1462,7 +1459,7 @@ app.get("/mesonet/getMeasurements", async (req, res) => {
       return res.status(400)
       .send(
         `Request must include the following parameters:
-        station_id: The ID of the station to query.
+        station_ids: A comma separated list of station IDs to query.
         limit (optional): A number indicating the maximum number of records to be returned for each variable.
         offset (optional): A number indicating an offset in the records returned from the first available record.
         start_date (optional): An ISO-8601 formatted date string indicating the date/time returned records should start at.
@@ -1497,17 +1494,17 @@ function getBatchSize() {
 }
 
 function getDefaultStartDate() {
-  return new moment().subtract(...getBatchSize()).toISOString();
+  return moment().subtract(...getBatchSize()).toISOString();
 }
 
 function getDefaultEndDate() {
-  return new moment().toISOString();
+  return moment().toISOString();
 }
 
 function batchDates(start: string, end: string): [string, string][] {
   let batches: [string, string][] = [];
-  let date = new moment(start);
-  let endDate = new moment(end);
+  let date = moment(start);
+  let endDate = moment(end);
   const batchSize = getBatchSize();
   let batchStart = date.toISOString();
   date.add(...batchSize);
@@ -1623,7 +1620,7 @@ app.get("/mesonet/createPackage/link", async (req, res) => {
   await handleReq(req, res, permission, async (reqData) => {
     //options
     //start_date, end_date, limit, offset, var_ids (comma separated)
-    let { station_ids, location, email, combine, ftype, csvMode, ...options } = req.query;
+    let { station_ids, location, email, combine, ftype, csvMode, ...options }: any = req.query;
     if(location === undefined) {
       location = "hawaii";
     }
@@ -1682,7 +1679,7 @@ app.get("/mesonet/createPackage/email", async (req, res) => {
   await handleReq(req, res, permission, async (reqData) => {
     //options
     //start_date, end_date, limit, offset, var_ids (comma separated)
-    let { station_ids, location, email, combine, ftype, csvMode, ...options } = req.query;
+    let { station_ids, location, email, combine, ftype, csvMode, ...options }: any = req.query;
     if(location === undefined) {
       location = "hawaii";
     }
@@ -1776,7 +1773,7 @@ app.get("/mesonet/createPackage/email", async (req, res) => {
 app.get("/stations", async (req, res) => {
   const permission = "basic";
   await handleReq(req, res, permission, async (reqData) => {
-    let { q, limit, offset } = req.query;
+    let { q, limit, offset }: any = req.query;
     try {
       //parse query string to JSON
       q = JSON.parse(q.replace(/'/g, '"'));

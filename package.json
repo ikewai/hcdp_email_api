@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "HCDP API.",
   "main": "server.js",
+  "type": "module",
   "scripts": {
     "deploy": "bash util/deploy.sh",
     "deploy-test": "bash util/deploy_test.sh",
